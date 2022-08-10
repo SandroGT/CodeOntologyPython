@@ -442,7 +442,7 @@
         <owl:inverseOf rdf:resource="http://rdf.webofcode.org/woc/isModifierOf"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Modifiable"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Modifier"/>
-        <rdfs:comment xml:lang="en">The hasGenericType property relates a modifiable element to its modifiers</rdfs:comment>
+        <rdfs:comment xml:lang="en">Relates a `Modifiable` element to the `Modifier`s that mark it.</rdfs:comment>
         <rdfs:label xml:lang="en">has modifier</rdfs:label>
     </owl:ObjectProperty>
     
@@ -1065,7 +1065,7 @@
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isModifierOf">
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Modifier"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Modifiable"/>
-        <rdfs:comment xml:lang="en">The isModifierOf property relates a modifier to the corresponding modifiable element.</rdfs:comment>
+        <rdfs:comment xml:lang="en">Relates a `Modifier` to the corresponding `Modifiable` elements that have been marked with it.</rdfs:comment>
         <rdfs:label xml:lang="en">is modifier of</rdfs:label>
     </owl:ObjectProperty>
     
@@ -1399,7 +1399,7 @@
         <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/hasName"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/ComplexType"/>
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
-        <rdfs:comment xml:lang="en">Links a class, enum or interface to its canonical name. For instance, the class Java.lang.String is linked to the string &quot;java.lang.string&quot;</rdfs:comment>
+        <rdfs:comment xml:lang="en">Links a `Class`, `Enum` or `Interface` to its canonical name, taking into account the namespace (`Package`) that defines it. For example, the `Class` &quot;String&quot; from &quot;Java.lang&quot; should be linked to the string &quot;java.lang.string&quot;.</rdfs:comment>
         <rdfs:label xml:lang="en">has canonical name</rdfs:label>
     </owl:DatatypeProperty>
     
@@ -1411,8 +1411,19 @@
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/ArrayType"/>
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
-        <rdfs:comment xml:lang="en">Links an array to the number of its dimensions. As an example, an array of type &quot;int[][][]&quot; has a dimensions count of 3</rdfs:comment>
+        <rdfs:comment xml:lang="en">Links an `Array` to the number of its dimensions. As an example, an `Array` of type &quot;int[][][]&quot; has a dimensions count of 3.</rdfs:comment>
         <rdfs:label xml:lang="en">dimensions</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://rdf.webofcode.org/woc/hasDocumentation -->
+
+    <owl:DatatypeProperty rdf:about="http://rdf.webofcode.org/woc/hasDocumentation">
+        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+        <rdfs:comment>Links a `Code Element` to its documentation comments in natural language.</rdfs:comment>
+        <rdfs:label>doc</rdfs:label>
     </owl:DatatypeProperty>
     
 
@@ -1423,7 +1434,7 @@
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/BlockStatement"/>
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
-        <rdfs:comment xml:lang="en">Links a statement to the number of the last line it covers</rdfs:comment>
+        <rdfs:comment xml:lang="en">Links a `Block Statement` to the line number of the last line it covers.</rdfs:comment>
         <rdfs:label xml:lang="en">end line</rdfs:label>
     </owl:DatatypeProperty>
     
@@ -1436,7 +1447,7 @@
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Statement"/>
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
-        <rdfs:comment xml:lang="en">Links a labeled statement to its label</rdfs:comment>
+        <rdfs:comment xml:lang="en">Links a labeled `Statement` to its label.</rdfs:comment>
         <rdfs:label xml:lang="en">label</rdfs:label>
     </owl:DatatypeProperty>
     
@@ -1455,7 +1466,7 @@
             </owl:Class>
         </rdfs:domain>
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
-        <rdfs:comment xml:lang="en">Links a statement to the line it starts in</rdfs:comment>
+        <rdfs:comment xml:lang="en">Links an `Expression` or `Statement` to the line number it starts in.</rdfs:comment>
         <rdfs:label xml:lang="en">line</rdfs:label>
     </owl:DatatypeProperty>
     
@@ -1475,8 +1486,20 @@
             </owl:Class>
         </rdfs:domain>
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
-        <rdfs:comment xml:lang="en">Links a element to its name</rdfs:comment>
+        <rdfs:comment xml:lang="en">Links an entity to its name.</rdfs:comment>
         <rdfs:label xml:lang="en">name</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://rdf.webofcode.org/woc/hasParameterPosition -->
+
+    <owl:DatatypeProperty rdf:about="http://rdf.webofcode.org/woc/hasParameterPosition">
+        <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/hasPosition"/>
+        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Parameter"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
+        <rdfs:comment>Links a positional `Parameter` to its position in the succession of `Parameter`s within a `Method` signature, if any. The first `Parameter` has position 0.</rdfs:comment>
+        <rdfs:label>parameter position</rdfs:label>
     </owl:DatatypeProperty>
     
 
@@ -1487,7 +1510,7 @@
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
-        <rdfs:comment xml:lang="en">Links a element to its position</rdfs:comment>
+        <rdfs:comment xml:lang="en">Links a `Code Element` to its position.</rdfs:comment>
         <rdfs:label xml:lang="en">position</rdfs:label>
     </owl:DatatypeProperty>
     
@@ -1499,7 +1522,7 @@
         <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/hasName"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/ComplexType"/>
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
-        <rdfs:comment xml:lang="en">Links a class, enum or interface to its simple name. For instance, the simple name of the class java.lang.String is &quot;String&quot;</rdfs:comment>
+        <rdfs:comment xml:lang="en">Links a `Class`, `Enum` or `Interface` to its simple name. For example, the `Class` &quot;String&quot; from &quot;Java.lang&quot; should be linked to the string &quot;String&quot;.</rdfs:comment>
         <rdfs:label xml:lang="en">has simple name</rdfs:label>
     </owl:DatatypeProperty>
     
@@ -1511,8 +1534,20 @@
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
-        <rdfs:comment xml:lang="en">Links a element to its source code</rdfs:comment>
+        <rdfs:comment xml:lang="en">Links a `Code Element` to its source code.</rdfs:comment>
         <rdfs:label xml:lang="en">source code</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://rdf.webofcode.org/woc/hasStatementPosition -->
+
+    <owl:DatatypeProperty rdf:about="http://rdf.webofcode.org/woc/hasStatementPosition">
+        <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/hasPosition"/>
+        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Statement"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
+        <rdfs:comment>Links a `Statement` to its position in the succession of declared `Statement`s within a block/frame of code. The first `Statement` has position 0.</rdfs:comment>
+        <rdfs:label>statement position</rdfs:label>
     </owl:DatatypeProperty>
     
 
@@ -1530,8 +1565,32 @@
             </owl:Class>
         </rdfs:domain>
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
-        <rdfs:comment xml:lang="en">Links a break statement or a continue statement to the label it targets, if any</rdfs:comment>
+        <rdfs:comment xml:lang="en">Links a `Break Statement` or a `Continue Statement` to the label it targets, if any.</rdfs:comment>
         <rdfs:label>targeted label</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://rdf.webofcode.org/woc/hasTypeArgumentPosition -->
+
+    <owl:DatatypeProperty rdf:about="http://rdf.webofcode.org/woc/hasTypeArgumentPosition">
+        <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/hasPosition"/>
+        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/TypeArgument"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
+        <rdfs:comment>Links a `Type Argument` to its position in the succession of `Type Argument`s in a particular parametrization of a generic type defined by a `Parameterized Type`. The first `Type Argument` has position 0.</rdfs:comment>
+        <rdfs:label>type argument position</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://rdf.webofcode.org/woc/hasTypeVariablePosition -->
+
+    <owl:DatatypeProperty rdf:about="http://rdf.webofcode.org/woc/hasTypeVariablePosition">
+        <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/hasPosition"/>
+        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/TypeVariable"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
+        <rdfs:comment>Links a `Type Variable` to its position in the succession of declared `Type Variable`s within a `Class` or `Interface` definition, if any. The first `Type Variable` has position 0.</rdfs:comment>
+        <rdfs:label>type variable position</rdfs:label>
     </owl:DatatypeProperty>
     
 
@@ -1542,7 +1601,7 @@
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Executable"/>
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#boolean"/>
-        <rdfs:comment xml:lang="en">True if an executable accepts a variable number of parameters, false otherwise</rdfs:comment>
+        <rdfs:comment xml:lang="en">Marks an `Executable` that accepts a variable number of `Parameter`s with True, False otherwise.</rdfs:comment>
         <rdfs:label xml:lang="en">is var args</rdfs:label>
     </owl:DatatypeProperty>
     
@@ -1563,7 +1622,7 @@
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/AccessModifier">
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Modifier"/>
-        <rdfs:comment xml:lang="en">An access modifier</rdfs:comment>
+        <rdfs:comment xml:lang="en">A particular `Modifier` used to specify the accessibility of `Modifiable`s like `Executable`, `Complex Type` or `Field`. As an example, some specific `Access Modifier` keywords could be &quot;public&quot;, &quot;private&quot; and &quot;protected&quot;.</rdfs:comment>
         <rdfs:label xml:lang="en">Access Modifier</rdfs:label>
     </owl:Class>
     
@@ -1813,6 +1872,13 @@
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/ComplexType">
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Modifiable"/>
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Type"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasModifier"/>
+                <owl:maxQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:maxQualifiedCardinality>
+                <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/AccessModifier"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
         <rdfs:comment xml:lang="en">A class or an enumeration or an interface</rdfs:comment>
         <rdfs:label xml:lang="en">Complex Type</rdfs:label>
     </owl:Class>
@@ -1915,6 +1981,13 @@ Control Flow Statements break up the flow of execution by employing decision mak
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Modifiable"/>
         <rdfs:subClassOf>
             <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasModifier"/>
+                <owl:maxQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:maxQualifiedCardinality>
+                <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/AccessModifier"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
                 <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isVarArgs"/>
                 <owl:someValuesFrom rdf:resource="http://www.w3.org/2001/XMLSchema#boolean"/>
             </owl:Restriction>
@@ -2006,6 +2079,13 @@ Control Flow Statements break up the flow of execution by employing decision mak
                         </owl:unionOf>
                     </owl:Class>
                 </owl:allValuesFrom>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasModifier"/>
+                <owl:maxQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:maxQualifiedCardinality>
+                <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/AccessModifier"/>
             </owl:Restriction>
         </rdfs:subClassOf>
         <rdfs:comment xml:lang="en">A class field</rdfs:comment>
@@ -2162,6 +2242,7 @@ Control Flow Statements break up the flow of execution by employing decision mak
     <!-- http://rdf.webofcode.org/woc/LocalVariable -->
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/LocalVariable">
+        <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Modifiable"/>
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Variable"/>
         <rdfs:subClassOf>
             <owl:Restriction>
@@ -2242,14 +2323,7 @@ Control Flow Statements break up the flow of execution by employing decision mak
                 <owl:someValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Modifier"/>
             </owl:Restriction>
         </rdfs:subClassOf>
-        <rdfs:subClassOf>
-            <owl:Restriction>
-                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasModifier"/>
-                <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
-                <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/AccessModifier"/>
-            </owl:Restriction>
-        </rdfs:subClassOf>
-        <rdfs:comment xml:lang="en">An element that can have a modifier</rdfs:comment>
+        <rdfs:comment xml:lang="en">An element that can be marked with a `Modifier`.</rdfs:comment>
         <rdfs:label xml:lang="en">Modifiable</rdfs:label>
     </owl:Class>
     
@@ -2259,7 +2333,7 @@ Control Flow Statements break up the flow of execution by employing decision mak
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/Modifier">
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
-        <rdfs:comment xml:lang="en">A modifier</rdfs:comment>
+        <rdfs:comment xml:lang="en">An element used to assign additional or different functionalities to the `Modifiable` they are linked to. As an example, some `Modifier` keywords could be &quot;abstract&quot;, &quot;final&quot; and &quot;static&quot;.</rdfs:comment>
         <rdfs:label xml:lang="en">Modifier</rdfs:label>
     </owl:Class>
     
