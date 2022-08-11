@@ -2160,7 +2160,7 @@ Control Flow Statements break up the flow of execution by employing decision mak
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/GradleProject">
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Project"/>
-        <rdfs:comment xml:lang="en">A gradle project</rdfs:comment>
+        <rdfs:comment xml:lang="en">A Gradle project.</rdfs:comment>
         <rdfs:label xml:lang="en">Gradle Project</rdfs:label>
     </owl:Class>
     
@@ -2233,7 +2233,7 @@ Control Flow Statements break up the flow of execution by employing decision mak
                 <owl:onDataRange rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
             </owl:Restriction>
         </rdfs:subClassOf>
-        <rdfs:comment xml:lang="en">A library</rdfs:comment>
+        <rdfs:comment xml:lang="en">A collection of `Package`s, usually giving access to functionalities for specific purposes. Technically it is a stand-alone `Package`, with no other `Package`s containing it.</rdfs:comment>
         <rdfs:label xml:lang="en">Library</rdfs:label>
     </owl:Class>
     
@@ -2287,7 +2287,7 @@ Control Flow Statements break up the flow of execution by employing decision mak
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/MavenProject">
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Project"/>
-        <rdfs:comment xml:lang="en">A maven project</rdfs:comment>
+        <rdfs:comment xml:lang="en">A Maven project.</rdfs:comment>
         <rdfs:label xml:lang="en">Maven Project</rdfs:label>
     </owl:Class>
     
@@ -2343,7 +2343,7 @@ Control Flow Statements break up the flow of execution by employing decision mak
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/Package">
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
-        <rdfs:comment xml:lang="en">A Package</rdfs:comment>
+        <rdfs:comment xml:lang="en">A distinctive namespace to help identify some of the named entities it contains even in outer scopes, avoiding name collisions.</rdfs:comment>
         <rdfs:label xml:lang="en">Package</rdfs:label>
     </owl:Class>
     
@@ -2402,7 +2402,7 @@ Control Flow Statements break up the flow of execution by employing decision mak
     <!-- http://rdf.webofcode.org/woc/Project -->
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/Project">
-        <rdfs:comment xml:lang="en">A project</rdfs:comment>
+        <rdfs:comment xml:lang="en">A development version of the source code with additional information for building and/or distribution. It must point to a source root that defines a `Library`.</rdfs:comment>
         <rdfs:label xml:lang="en">Project</rdfs:label>
     </owl:Class>
     
