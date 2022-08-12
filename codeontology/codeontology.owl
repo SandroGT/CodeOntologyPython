@@ -128,7 +128,7 @@
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasAnnotation">
         <owl:inverseOf rdf:resource="http://rdf.webofcode.org/woc/isAnnotationOf"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
-        <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/AnnotationType"/>
+        <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Annotation"/>
         <rdfs:comment>The hasAnnotation property relates a code element to its annotations</rdfs:comment>
         <rdfs:label xml:lang="en">has annotation</rdfs:label>
     </owl:ObjectProperty>
@@ -472,7 +472,7 @@
         <rdfs:domain>
             <owl:Class>
                 <owl:unionOf rdf:parseType="Collection">
-                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/AnnotationType"/>
+                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Annotation"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/ComplexType"/>
                 </owl:unionOf>
             </owl:Class>
@@ -793,7 +793,7 @@
     <!-- http://rdf.webofcode.org/woc/isAnnotationOf -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isAnnotationOf">
-        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/AnnotationType"/>
+        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Annotation"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
         <rdfs:comment xml:lang="en">The isAnnotationOf property relates an annotation to the annotated code element.</rdfs:comment>
         <rdfs:label xml:lang="en">is annotation of</rdfs:label>
@@ -1094,7 +1094,7 @@
         <rdfs:range>
             <owl:Class>
                 <owl:unionOf rdf:parseType="Collection">
-                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/AnnotationType"/>
+                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Annotation"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/ComplexType"/>
                 </owl:unionOf>
             </owl:Class>
@@ -1652,10 +1652,10 @@
     
 
 
-    <!-- http://rdf.webofcode.org/woc/AnnotationType -->
+    <!-- http://rdf.webofcode.org/woc/Annotation -->
 
-    <owl:Class rdf:about="http://rdf.webofcode.org/woc/AnnotationType">
-        <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Type"/>
+    <owl:Class rdf:about="http://rdf.webofcode.org/woc/Annotation">
+        <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
         <rdfs:comment xml:lang="en">An annotation</rdfs:comment>
         <rdfs:label xml:lang="en">Annotation</rdfs:label>
     </owl:Class>
@@ -1665,7 +1665,7 @@
     <!-- http://rdf.webofcode.org/woc/AnonymousClass -->
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/AnonymousClass">
-        <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Class"/>
+        <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/ComplexType"/>
         <rdfs:comment xml:lang="en">An anonymous class</rdfs:comment>
         <rdfs:label xml:lang="en">Anonymous Class</rdfs:label>
     </owl:Class>
@@ -2156,6 +2156,26 @@ Control Flow Statements break up the flow of execution by employing decision mak
     
 
 
+    <!-- http://rdf.webofcode.org/woc/Function -->
+
+    <owl:Class rdf:about="http://rdf.webofcode.org/woc/Function">
+        <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Executable"/>
+        <rdfs:comment>A function</rdfs:comment>
+        <rdfs:label>Function</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://rdf.webofcode.org/woc/GlobalVariable -->
+
+    <owl:Class rdf:about="http://rdf.webofcode.org/woc/GlobalVariable">
+        <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Variable"/>
+        <rdfs:comment>A global variable</rdfs:comment>
+        <rdfs:label>Global Variable</rdfs:label>
+    </owl:Class>
+    
+
+
     <!-- http://rdf.webofcode.org/woc/GradleProject -->
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/GradleProject">
@@ -2191,6 +2211,16 @@ Control Flow Statements break up the flow of execution by employing decision mak
     
 
 
+    <!-- http://rdf.webofcode.org/woc/ImportStatement -->
+
+    <owl:Class rdf:about="http://rdf.webofcode.org/woc/ImportStatement">
+        <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Statement"/>
+        <rdfs:comment>An import statement</rdfs:comment>
+        <rdfs:label>Import Statement</rdfs:label>
+    </owl:Class>
+    
+
+
     <!-- http://rdf.webofcode.org/woc/Interface -->
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/Interface">
@@ -2219,6 +2249,16 @@ Control Flow Statements break up the flow of execution by employing decision mak
         </rdfs:subClassOf>
         <rdfs:comment xml:lang="en">A labeled block of code, namely a case-labeled block or a default-labeled block</rdfs:comment>
         <rdfs:label xml:lang="en">Labeled Block</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://rdf.webofcode.org/woc/LambdaExpression -->
+
+    <owl:Class rdf:about="http://rdf.webofcode.org/woc/LambdaExpression">
+        <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Expression"/>
+        <rdfs:comment>A lambda expression</rdfs:comment>
+        <rdfs:label>Lambda Expression</rdfs:label>
     </owl:Class>
     
 
@@ -2823,7 +2863,7 @@ synchronized &lt;Expression&gt; &lt;Block&gt;</rdfs:comment>
     <rdf:Description>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AllDisjointClasses"/>
         <owl:members rdf:parseType="Collection">
-            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/AnnotationType"/>
+            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Annotation"/>
             <rdf:Description rdf:about="http://rdf.webofcode.org/woc/ArrayType"/>
             <rdf:Description rdf:about="http://rdf.webofcode.org/woc/ComplexType"/>
             <rdf:Description rdf:about="http://rdf.webofcode.org/woc/ParameterizedType"/>
