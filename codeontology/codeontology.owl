@@ -2463,7 +2463,13 @@ Control Flow Statements break up the flow of execution by employing decision mak
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/Modifier">
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
-        <rdfs:comment xml:lang="en">An element used to assign additional or different functionalities to the `Modifiable` they are linked to. As an example, some `Modifier` keywords could be &quot;abstract&quot;, &quot;final&quot; and &quot;static&quot;.</rdfs:comment>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isModifierOf"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Modifiable"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:comment xml:lang="en">An element used to change the behaviour of the `Modifiable` they are linked to. As an example, some `Modifier` keywords could be &quot;abstract&quot;, &quot;final&quot; and &quot;static&quot;.</rdfs:comment>
         <rdfs:label xml:lang="en">Modifier</rdfs:label>
     </owl:Class>
     
