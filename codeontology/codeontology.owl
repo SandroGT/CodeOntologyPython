@@ -148,8 +148,8 @@
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasArgument">
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/ExecutableInvocationExpression"/>
-        <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/ActualArgument"/>
-        <rdfs:comment xml:lang="en">The hasArgument property relates an executable invocation to each of its actual arguments.</rdfs:comment>
+        <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/ExecutableArgument"/>
+        <rdfs:comment xml:lang="en">Relates an `Executable Invocation Expression` to each of its `Executable Argument`s.</rdfs:comment>
         <rdfs:label xml:lang="en">has argument</rdfs:label>
     </owl:ObjectProperty>
     
@@ -1738,30 +1738,6 @@
     
 
 
-    <!-- http://rdf.webofcode.org/woc/ActualArgument -->
-
-    <owl:Class rdf:about="http://rdf.webofcode.org/woc/ActualArgument">
-        <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Expression"/>
-        <rdfs:subClassOf>
-            <owl:Restriction>
-                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasSubExpression"/>
-                <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
-                <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/Expression"/>
-            </owl:Restriction>
-        </rdfs:subClassOf>
-        <rdfs:subClassOf>
-            <owl:Restriction>
-                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasPosition"/>
-                <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
-                <owl:onDataRange rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
-            </owl:Restriction>
-        </rdfs:subClassOf>
-        <rdfs:comment>The actual argument of a method</rdfs:comment>
-        <rdfs:label>Actual Argument</rdfs:label>
-    </owl:Class>
-    
-
-
     <!-- http://rdf.webofcode.org/woc/Annotation -->
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/Annotation">
@@ -2160,10 +2136,40 @@ Control Flow Statements break up the flow of execution by employing decision mak
     
 
 
+    <!-- http://rdf.webofcode.org/woc/ExecutableArgument -->
+
+    <owl:Class rdf:about="http://rdf.webofcode.org/woc/ExecutableArgument">
+        <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasSubExpression"/>
+                <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+                <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/Expression"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasPosition"/>
+                <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+                <owl:onDataRange rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:comment>A mirror for the actual `Expression` passed as `Parameter` in an `Executable Invocation Expression`.</rdfs:comment>
+        <rdfs:label>Executable Argument</rdfs:label>
+    </owl:Class>
+    
+
+
     <!-- http://rdf.webofcode.org/woc/ExecutableInvocationExpression -->
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/ExecutableInvocationExpression">
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Expression"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasArgument"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/ExecutableArgument"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
         <rdfs:subClassOf>
             <owl:Restriction>
                 <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/invokes"/>
@@ -2171,7 +2177,7 @@ Control Flow Statements break up the flow of execution by employing decision mak
                 <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/Executable"/>
             </owl:Restriction>
         </rdfs:subClassOf>
-        <rdfs:comment xml:lang="en">An invocation of either a method or a constructor.</rdfs:comment>
+        <rdfs:comment xml:lang="en">An invocation of either a method, function or a constructor.</rdfs:comment>
         <rdfs:label xml:lang="en">Executable invocation expression</rdfs:label>
     </owl:Class>
     
@@ -2330,6 +2336,16 @@ Control Flow Statements break up the flow of execution by employing decision mak
         </rdfs:subClassOf>
         <rdfs:comment>A function</rdfs:comment>
         <rdfs:label>Function</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://rdf.webofcode.org/woc/FunctionInvocationExpression -->
+
+    <owl:Class rdf:about="http://rdf.webofcode.org/woc/FunctionInvocationExpression">
+        <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/ExecutableInvocationExpression"/>
+        <rdfs:comment>A function call</rdfs:comment>
+        <rdfs:label>Function Invocation Expression</rdfs:label>
     </owl:Class>
     
 
@@ -3190,14 +3206,6 @@ synchronized &lt;Expression&gt; &lt;Block&gt;</rdfs:comment>
     <rdf:Description>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AllDisjointClasses"/>
         <owl:members rdf:parseType="Collection">
-            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/ActualArgument"/>
-            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/AssignmentExpression"/>
-            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/ExecutableInvocationExpression"/>
-        </owl:members>
-    </rdf:Description>
-    <rdf:Description>
-        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AllDisjointClasses"/>
-        <owl:members rdf:parseType="Collection">
             <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Annotation"/>
             <rdf:Description rdf:about="http://rdf.webofcode.org/woc/ArrayType"/>
             <rdf:Description rdf:about="http://rdf.webofcode.org/woc/ComplexType"/>
@@ -3218,6 +3226,14 @@ synchronized &lt;Expression&gt; &lt;Block&gt;</rdfs:comment>
             <rdf:Description rdf:about="http://rdf.webofcode.org/woc/SynchronizedStatement"/>
             <rdf:Description rdf:about="http://rdf.webofcode.org/woc/ThrowStatement"/>
             <rdf:Description rdf:about="http://rdf.webofcode.org/woc/TryStatement"/>
+        </owl:members>
+    </rdf:Description>
+    <rdf:Description>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AllDisjointClasses"/>
+        <owl:members rdf:parseType="Collection">
+            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/AssignmentExpression"/>
+            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/ExecutableArgument"/>
+            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/ExecutableInvocationExpression"/>
         </owl:members>
     </rdf:Description>
     <rdf:Description>
