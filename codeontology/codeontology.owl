@@ -136,9 +136,9 @@
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasAnnotation">
         <owl:inverseOf rdf:resource="http://rdf.webofcode.org/woc/isAnnotationOf"/>
-        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
+        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Modifiable"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Annotation"/>
-        <rdfs:comment>The hasAnnotation property relates a code element to its annotations</rdfs:comment>
+        <rdfs:comment>Relates a `Modifiable` to each of its `Annotation`s,</rdfs:comment>
         <rdfs:label xml:lang="en">has annotation</rdfs:label>
     </owl:ObjectProperty>
     
@@ -844,8 +844,8 @@
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isAnnotationOf">
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Annotation"/>
-        <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
-        <rdfs:comment xml:lang="en">The isAnnotationOf property relates an annotation to the annotated code element.</rdfs:comment>
+        <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Modifiable"/>
+        <rdfs:comment xml:lang="en">Relates an `Annotation` to each of its tagged `Modifiable`s.</rdfs:comment>
         <rdfs:label xml:lang="en">is annotation of</rdfs:label>
     </owl:ObjectProperty>
     
@@ -1746,7 +1746,13 @@
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/Annotation">
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
-        <rdfs:comment xml:lang="en">An annotation</rdfs:comment>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isAnnotationOf"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Modifiable"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:comment xml:lang="en">An element used to integrate additional information about the `Modifiable` it is tagging, or even to restrict, extend, or alter its behavior.</rdfs:comment>
         <rdfs:label xml:lang="en">Annotation</rdfs:label>
     </owl:Class>
     
@@ -2195,7 +2201,6 @@ Control Flow Statements break up the flow of execution by employing decision mak
     <!-- http://rdf.webofcode.org/woc/Field -->
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/Field">
-        <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Modifiable"/>
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Variable"/>
         <rdfs:subClassOf>
             <owl:Restriction>
@@ -2450,7 +2455,6 @@ Control Flow Statements break up the flow of execution by employing decision mak
     <!-- http://rdf.webofcode.org/woc/LocalVariable -->
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/LocalVariable">
-        <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Modifiable"/>
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Variable"/>
         <rdfs:subClassOf>
             <owl:Restriction>
@@ -2546,6 +2550,12 @@ Control Flow Statements break up the flow of execution by employing decision mak
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
         <rdfs:subClassOf>
             <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasAnnotation"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Annotation"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
                 <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasModifier"/>
                 <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Modifier"/>
             </owl:Restriction>
@@ -2566,7 +2576,7 @@ Control Flow Statements break up the flow of execution by employing decision mak
                 <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Modifiable"/>
             </owl:Restriction>
         </rdfs:subClassOf>
-        <rdfs:comment xml:lang="en">An element used to change the behaviour of the `Modifiable` they are linked to. As an example, some `Modifier` keywords could be &quot;abstract&quot;, &quot;final&quot; and &quot;static&quot;.</rdfs:comment>
+        <rdfs:comment xml:lang="en">A dedicated keyword to change the behaviour of the `Modifiable` they are linked to. As an example, some `Modifier` keywords could be &quot;abstract&quot;, &quot;final&quot; and &quot;static&quot;.</rdfs:comment>
         <rdfs:label xml:lang="en">Modifier</rdfs:label>
     </owl:Class>
     
@@ -2881,6 +2891,7 @@ synchronized &lt;Expression&gt; &lt;Block&gt;</rdfs:comment>
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/Variable">
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
+        <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Modifiable"/>
         <rdfs:subClassOf>
             <owl:Restriction>
                 <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasType"/>
