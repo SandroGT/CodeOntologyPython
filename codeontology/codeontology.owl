@@ -1483,18 +1483,6 @@
     
 
 
-    <!-- http://rdf.webofcode.org/woc/hasCanonicalName -->
-
-    <owl:DatatypeProperty rdf:about="http://rdf.webofcode.org/woc/hasCanonicalName">
-        <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/hasName"/>
-        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/ComplexType"/>
-        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
-        <rdfs:comment xml:lang="en">Links a `Class`, `Enum` or `Interface` to its canonical name, taking into account the namespace (`Package`) that defines it. For example, the `Class` &quot;String&quot; from &quot;Java.lang&quot; should be linked to the string &quot;java.lang.string&quot;.</rdfs:comment>
-        <rdfs:label xml:lang="en">has canonical name</rdfs:label>
-    </owl:DatatypeProperty>
-    
-
-
     <!-- http://rdf.webofcode.org/woc/hasDimensions -->
 
     <owl:DatatypeProperty rdf:about="http://rdf.webofcode.org/woc/hasDimensions">
@@ -1526,6 +1514,28 @@
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
         <rdfs:comment xml:lang="en">Links a `Block Statement` to the line number of the last line it covers.</rdfs:comment>
         <rdfs:label xml:lang="en">end line</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://rdf.webofcode.org/woc/hasFullyQualifiedName -->
+
+    <owl:DatatypeProperty rdf:about="http://rdf.webofcode.org/woc/hasFullyQualifiedName">
+        <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/hasName"/>
+        <rdfs:domain>
+            <owl:Class>
+                <owl:unionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Class"/>
+                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Enum"/>
+                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Function"/>
+                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/GlobalVariable"/>
+                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Interface"/>
+                </owl:unionOf>
+            </owl:Class>
+        </rdfs:domain>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+        <rdfs:comment xml:lang="en">Links a `Class`, `Enum` or `Interface`, `Function` or `Global Variable` to its full name, taking into account the namespace (`Package`) that defines it. For example, the `Class` &quot;String&quot; from &quot;Java.lang&quot; should be linked to the string &quot;java.lang.string&quot;.</rdfs:comment>
+        <rdfs:label xml:lang="en">has fully qualified name</rdfs:label>
     </owl:DatatypeProperty>
     
 
@@ -1610,9 +1620,19 @@
 
     <owl:DatatypeProperty rdf:about="http://rdf.webofcode.org/woc/hasSimpleName">
         <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/hasName"/>
-        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/ComplexType"/>
+        <rdfs:domain>
+            <owl:Class>
+                <owl:unionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Class"/>
+                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Enum"/>
+                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Function"/>
+                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/GlobalVariable"/>
+                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Interface"/>
+                </owl:unionOf>
+            </owl:Class>
+        </rdfs:domain>
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
-        <rdfs:comment xml:lang="en">Links a `Class`, `Enum` or `Interface` to its simple name. For example, the `Class` &quot;String&quot; from &quot;Java.lang&quot; should be linked to the string &quot;String&quot;.</rdfs:comment>
+        <rdfs:comment xml:lang="en">Links a `Class`, `Enum` or `Interface`, `Function` or `Global Variable` to its simple name. For example, the `Class` &quot;String&quot; from &quot;Java.lang&quot; should be linked to the string &quot;String&quot;.</rdfs:comment>
         <rdfs:label xml:lang="en">has simple name</rdfs:label>
     </owl:DatatypeProperty>
     
