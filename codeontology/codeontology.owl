@@ -310,7 +310,7 @@
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Variable"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/VariableDeclarationStatement"/>
-        <rdfs:comment xml:lang="en">The hasDeclaration property relates a variable to the statement it was declared by.</rdfs:comment>
+        <rdfs:comment xml:lang="en">Relates a variable to the `Statement` it was declared by.</rdfs:comment>
         <rdfs:label xml:lang="en">has declaration</rdfs:label>
     </owl:ObjectProperty>
     
@@ -2342,7 +2342,7 @@ Control Flow Statements break up the flow of execution by employing decision mak
                 <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/AccessModifier"/>
             </owl:Restriction>
         </rdfs:subClassOf>
-        <rdfs:comment xml:lang="en">A class field</rdfs:comment>
+        <rdfs:comment xml:lang="en">A `Variable` embodied in a `Class` and representing one of the `Class` properties.</rdfs:comment>
         <rdfs:label xml:lang="en">Field</rdfs:label>
     </owl:Class>
     
@@ -2353,8 +2353,8 @@ Control Flow Statements break up the flow of execution by employing decision mak
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/FieldDeclarationStatement">
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/VariableDeclarationStatement"/>
         <owl:disjointWith rdf:resource="http://rdf.webofcode.org/woc/LocalVariableDeclarationStatement"/>
-        <rdfs:comment xml:lang="en">The declaration of a field</rdfs:comment>
-        <rdfs:label xml:lang="en">Field Declaration</rdfs:label>
+        <rdfs:comment xml:lang="en">A `Field` declaration.</rdfs:comment>
+        <rdfs:label xml:lang="en">Field Declaration Statement</rdfs:label>
     </owl:Class>
     
 
@@ -2461,8 +2461,24 @@ Control Flow Statements break up the flow of execution by employing decision mak
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/GlobalVariable">
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Variable"/>
-        <rdfs:comment>A global variable</rdfs:comment>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasDeclaration"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/GlobalVariableDeclarationStatement"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:comment>A `Variable` with global scope.</rdfs:comment>
         <rdfs:label>Global Variable</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://rdf.webofcode.org/woc/GlobalVariableDeclarationStatement -->
+
+    <owl:Class rdf:about="http://rdf.webofcode.org/woc/GlobalVariableDeclarationStatement">
+        <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/VariableDeclarationStatement"/>
+        <rdfs:comment>A `Gloabl Variable` declaration.</rdfs:comment>
+        <rdfs:label>Global Variable Declaration Statement</rdfs:label>
     </owl:Class>
     
 
@@ -2601,11 +2617,17 @@ Control Flow Statements break up the flow of execution by employing decision mak
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Variable"/>
         <rdfs:subClassOf>
             <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasDeclaration"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/LocalVariableDeclarationStatement"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
                 <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isDeclaredBy"/>
                 <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Executable"/>
             </owl:Restriction>
         </rdfs:subClassOf>
-        <rdfs:comment xml:lang="en">A local variable</rdfs:comment>
+        <rdfs:comment xml:lang="en">A `Variable` with limited local scope.</rdfs:comment>
         <rdfs:label xml:lang="en">Local Variable</rdfs:label>
     </owl:Class>
     
@@ -2615,7 +2637,7 @@ Control Flow Statements break up the flow of execution by employing decision mak
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/LocalVariableDeclarationStatement">
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/VariableDeclarationStatement"/>
-        <rdfs:comment xml:lang="en">A local variable declaration</rdfs:comment>
+        <rdfs:comment xml:lang="en">A `Local Variable` declaration.</rdfs:comment>
         <rdfs:label xml:lang="en">Local Variable Declaration Statement</rdfs:label>
     </owl:Class>
     
@@ -3072,7 +3094,7 @@ synchronized &lt;Expression&gt; &lt;Block&gt;</rdfs:comment>
                 <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/Type"/>
             </owl:Restriction>
         </rdfs:subClassOf>
-        <rdfs:comment xml:lang="en">A variable</rdfs:comment>
+        <rdfs:comment xml:lang="en">A variable, that is, a reference to an object or primitive type.</rdfs:comment>
         <rdfs:label xml:lang="en">Variable</rdfs:label>
     </owl:Class>
     
@@ -3082,8 +3104,8 @@ synchronized &lt;Expression&gt; &lt;Block&gt;</rdfs:comment>
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/VariableDeclarationStatement">
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/DeclarationStatement"/>
-        <rdfs:comment xml:lang="en">A statement that represents the declaration of a variable</rdfs:comment>
-        <rdfs:label xml:lang="en">Variable Declaration</rdfs:label>
+        <rdfs:comment xml:lang="en">A `Variable` declaration.</rdfs:comment>
+        <rdfs:label xml:lang="en">Variable Declaration Statement</rdfs:label>
     </owl:Class>
     
 
