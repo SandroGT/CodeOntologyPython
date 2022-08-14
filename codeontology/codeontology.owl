@@ -306,7 +306,7 @@
     <!-- http://rdf.webofcode.org/woc/hasDeclaration -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasDeclaration">
-        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+        <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/isDeclaredBy"/>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Variable"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/VariableDeclarationStatement"/>
@@ -534,11 +534,12 @@
     <!-- http://rdf.webofcode.org/woc/hasParameter -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasParameter">
+        <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/declares"/>
         <owl:inverseOf rdf:resource="http://rdf.webofcode.org/woc/isParameterOf"/>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Executable"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Parameter"/>
-        <rdfs:comment xml:lang="en">The hasParameter property relates a constructor or a method to the formal parameters it declares</rdfs:comment>
+        <rdfs:comment xml:lang="en">Relates an `Executable` to the formal `Parameter`s it declares.</rdfs:comment>
         <rdfs:label xml:lang="en">has parameter</rdfs:label>
     </owl:ObjectProperty>
     
@@ -1218,10 +1219,11 @@
     <!-- http://rdf.webofcode.org/woc/isParameterOf -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isParameterOf">
-        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
+        <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/isDeclaredBy"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Parameter"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Executable"/>
-        <rdfs:comment xml:lang="en">The isParameterOf property relates a parameter to the corresponding executable.</rdfs:comment>
+        <rdfs:comment xml:lang="en">Relates a `Parameter` to the `Executable` it was declared by.</rdfs:comment>
         <rdfs:label xml:lang="en">is parameter of</rdfs:label>
     </owl:ObjectProperty>
     
@@ -2091,7 +2093,7 @@
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/Constructor">
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Executable"/>
         <owl:disjointWith rdf:resource="http://rdf.webofcode.org/woc/Method"/>
-        <rdfs:comment xml:lang="en">A constructor of a Class</rdfs:comment>
+        <rdfs:comment xml:lang="en">A named `Executable`, declared within a `Class` body and used to instantiate that same `Class`.</rdfs:comment>
         <rdfs:label xml:lang="en">Constructor</rdfs:label>
     </owl:Class>
     
@@ -2217,6 +2219,12 @@ Control Flow Statements break up the flow of execution by employing decision mak
         </rdfs:subClassOf>
         <rdfs:subClassOf>
             <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasParameter"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Parameter"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
                 <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasBody"/>
                 <owl:maxQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:maxQualifiedCardinality>
                 <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/BlockStatement"/>
@@ -2235,7 +2243,7 @@ Control Flow Statements break up the flow of execution by employing decision mak
                 <owl:someValuesFrom rdf:resource="http://www.w3.org/2001/XMLSchema#boolean"/>
             </owl:Restriction>
         </rdfs:subClassOf>
-        <rdfs:comment xml:lang="en">An executable block of code, namely a Method or a Constructor</rdfs:comment>
+        <rdfs:comment xml:lang="en">An executable block of code.</rdfs:comment>
         <rdfs:label xml:lang="en">Executable</rdfs:label>
     </owl:Class>
     
@@ -2459,7 +2467,7 @@ Control Flow Statements break up the flow of execution by employing decision mak
                 <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/Type"/>
             </owl:Restriction>
         </rdfs:subClassOf>
-        <rdfs:comment>A function</rdfs:comment>
+        <rdfs:comment>A named `Executable`.</rdfs:comment>
         <rdfs:label>Function</rdfs:label>
     </owl:Class>
     
@@ -2723,7 +2731,7 @@ Control Flow Statements break up the flow of execution by employing decision mak
                 <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/Type"/>
             </owl:Restriction>
         </rdfs:subClassOf>
-        <rdfs:comment xml:lang="en">A Method</rdfs:comment>
+        <rdfs:comment xml:lang="en">A named `Executable`, declared within a `Class` body and callable only through an instance of that class.</rdfs:comment>
         <rdfs:label xml:lang="en">Method</rdfs:label>
     </owl:Class>
     
@@ -2793,12 +2801,19 @@ Control Flow Statements break up the flow of execution by employing decision mak
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Variable"/>
         <rdfs:subClassOf>
             <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isParameterOf"/>
+                <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+                <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/Executable"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
                 <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasPosition"/>
                 <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
                 <owl:onDataRange rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
             </owl:Restriction>
         </rdfs:subClassOf>
-        <rdfs:comment xml:lang="en">A formal parameter</rdfs:comment>
+        <rdfs:comment xml:lang="en">A formal parameter, actually a `Variable` declared along with an `Executable` to pass data within its block.</rdfs:comment>
         <rdfs:label xml:lang="en">Parameter</rdfs:label>
     </owl:Class>
     
