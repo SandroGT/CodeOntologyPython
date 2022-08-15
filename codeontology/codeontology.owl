@@ -914,7 +914,7 @@
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isArrayOf">
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/ArrayType"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Type"/>
-        <rdfs:comment xml:lang="en">The isArrayOf property relates an arrray to the type of its elements at the finest grain. For instance, an array of type &quot;int[][][]&quot; is linked to the type &quot;int&quot;. The number of dimensions of the array is specified by the dimensions property.</rdfs:comment>
+        <rdfs:comment xml:lang="en">Relates an `Array` to the `Type` of its elements at the finest grain. For instance, an `Arraty` with a `Type` of &quot;int[][][]&quot; is linked to the type &quot;int&quot;.</rdfs:comment>
         <rdfs:label xml:lang="en">is array of</rdfs:label>
     </owl:ObjectProperty>
     
@@ -1566,7 +1566,7 @@
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/ArrayType"/>
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
-        <rdfs:comment xml:lang="en">Links an `Array` to the number of its dimensions. As an example, an `Array` of type &quot;int[][][]&quot; has a dimensions count of 3.</rdfs:comment>
+        <rdfs:comment xml:lang="en">Links an `Array` to the number of its dimensions. As an example, an `Array` with a `Type` of &quot;int[][][]&quot; has a dimensions count of 3.</rdfs:comment>
         <rdfs:label xml:lang="en">dimensions</rdfs:label>
     </owl:DatatypeProperty>
     
@@ -1878,8 +1878,8 @@
                 <owl:onDataRange rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
             </owl:Restriction>
         </rdfs:subClassOf>
-        <rdfs:comment xml:lang="en">An array type</rdfs:comment>
-        <rdfs:label xml:lang="en">Array</rdfs:label>
+        <rdfs:comment xml:lang="en">A collection of elements of the same `Type` organized in matrix form, with direct access by indexes.</rdfs:comment>
+        <rdfs:label xml:lang="en">Array Type</rdfs:label>
     </owl:Class>
     
 
