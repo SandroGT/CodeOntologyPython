@@ -242,6 +242,21 @@
     
 
 
+    <!-- http://rdf.webofcode.org/woc/hasCaseExpression -->
+
+    <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasCaseExpression">
+        <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/hasSubExpression"/>
+        <owl:inverseOf rdf:resource="http://rdf.webofcode.org/woc/isCaseExpressionOf"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/CaseLabeledBlock"/>
+        <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Expression"/>
+        <rdfs:comment>Relates a `Case Labele Block` to the `Expression` defined by that case, whose value (&quot;case value&quot;) is used for comparison with the &quot;switch value&quot;.</rdfs:comment>
+        <rdfs:label>has case expression</rdfs:label>
+    </owl:ObjectProperty>
+    
+
+
     <!-- http://rdf.webofcode.org/woc/hasCatchClause -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasCatchClause">
@@ -346,7 +361,7 @@
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/IfThenElseStatement"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Statement"/>
-        <rdfs:comment xml:lang="en">The hasElseBranch property relates a if-then-else statement to the statement in the else branch.</rdfs:comment>
+        <rdfs:comment xml:lang="en">Relates a `If-Then-Else Statement` to its `Statement` in the &quot;else&quot; branch.</rdfs:comment>
         <rdfs:label xml:lang="en">has else branch</rdfs:label>
     </owl:ObjectProperty>
     
@@ -826,6 +841,21 @@
     
 
 
+    <!-- http://rdf.webofcode.org/woc/hasSwitchExpression -->
+
+    <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasSwitchExpression">
+        <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/hasSubExpression"/>
+        <owl:inverseOf rdf:resource="http://rdf.webofcode.org/woc/isSwitchExpressionOf"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/SwitchStatement"/>
+        <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Expression"/>
+        <rdfs:comment>Relates a `Switch Statement` to the `Expression` it takes, whose value (&quot;switch value&quot;) is used for comparison with the `Case Labeled Block`s &quot;case value&quot;s.</rdfs:comment>
+        <rdfs:label>has switch expression</rdfs:label>
+    </owl:ObjectProperty>
+    
+
+
     <!-- http://rdf.webofcode.org/woc/hasSwitchLabel -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasSwitchLabel">
@@ -834,7 +864,7 @@
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/SwitchStatement"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/LabeledBlock"/>
-        <rdfs:comment xml:lang="en">The hasSwitchLabel property relates a switch statement to its cases.</rdfs:comment>
+        <rdfs:comment xml:lang="en">Relates a `Switch Statement` to each of its `Labeled Block`s cases.</rdfs:comment>
         <rdfs:label xml:lang="en">has switch label</rdfs:label>
     </owl:ObjectProperty>
     
@@ -864,7 +894,7 @@
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/IfThenElseStatement"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Statement"/>
-        <rdfs:comment xml:lang="en">The hasThenBranch property relates a if-then-else statement to the statement declared in the &quot;then&quot; branch</rdfs:comment>
+        <rdfs:comment xml:lang="en">Relates a `If-Then-Else Statement` to its `Statement` in the &quot;then&quot; branch.</rdfs:comment>
         <rdfs:label xml:lang="en">has then branch</rdfs:label>
     </owl:ObjectProperty>
     
@@ -1052,6 +1082,20 @@
     
 
 
+    <!-- http://rdf.webofcode.org/woc/isCaseExpressionOf -->
+
+    <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isCaseExpressionOf">
+        <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/isSubExpressionOf"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Expression"/>
+        <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/CaseLabeledBlock"/>
+        <rdfs:comment>Relates an `Expression` used as &quot;case value&quot; by a `Case Labeled Block` to the statement itself.</rdfs:comment>
+        <rdfs:label>is case expression of</rdfs:label>
+    </owl:ObjectProperty>
+    
+
+
     <!-- http://rdf.webofcode.org/woc/isCatchClauseOf -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isCatchClauseOf">
@@ -1160,7 +1204,7 @@
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Statement"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/IfThenElseStatement"/>
-        <rdfs:comment xml:lang="en">The isElseBranchOf property relates the statement in an else branch to the corresponding If-then-else statement</rdfs:comment>
+        <rdfs:comment xml:lang="en">Relates a `Statement` from an &quot;else&quot; branch to its corresponding `If-Then-Else Statement`.</rdfs:comment>
         <rdfs:label xml:lang="en">is else branch of</rdfs:label>
     </owl:ObjectProperty>
     
@@ -1540,6 +1584,20 @@
     
 
 
+    <!-- http://rdf.webofcode.org/woc/isSwitchExpressionOf -->
+
+    <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isSwitchExpressionOf">
+        <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/isSubExpressionOf"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Expression"/>
+        <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/SwitchStatement"/>
+        <rdfs:comment>Relates an `Expression` used as &quot;switch value&quot; by a `Switch Statement` to the statement itself.</rdfs:comment>
+        <rdfs:label>is switch expression of</rdfs:label>
+    </owl:ObjectProperty>
+    
+
+
     <!-- http://rdf.webofcode.org/woc/isSwitchLabelOf -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isSwitchLabelOf">
@@ -1547,7 +1605,7 @@
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/LabeledBlock"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/SwitchStatement"/>
-        <rdfs:comment xml:lang="en">The isSwitchLabelOf property relates a case labeled block or a default block to the corresponding switch statement.</rdfs:comment>
+        <rdfs:comment xml:lang="en">Relates a `Labeled Block` to the `Switch Statement` containing it.</rdfs:comment>
         <rdfs:label xml:lang="en">is switch label of</rdfs:label>
     </owl:ObjectProperty>
     
@@ -1575,7 +1633,7 @@
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Statement"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/IfThenElseStatement"/>
-        <rdfs:comment xml:lang="en">The isThenBranchOf property relates a statement enclosed in a then branch to the corresponding If-then-else statement</rdfs:comment>
+        <rdfs:comment xml:lang="en">Relates a `Statement` from a &quot;then&quot; branch to its corresponding `If-Then-Else Statement`.</rdfs:comment>
         <rdfs:label xml:lang="en">is then branch of</rdfs:label>
     </owl:ObjectProperty>
     
@@ -2148,7 +2206,7 @@
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/LabeledBlock"/>
         <rdfs:subClassOf>
             <owl:Restriction>
-                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasSubExpression"/>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasCaseExpression"/>
                 <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
                 <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/Expression"/>
             </owl:Restriction>
@@ -2405,7 +2463,7 @@ Control Flow Statements break up the flow of execution by employing decision mak
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/DecisionMakingStatement">
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/ControlFlowStatement"/>
-        <rdfs:comment xml:lang="en">A Decision Making Statement, that is a statement that break up the flow of execution by employing decision making. It can either be a if-then-else statement or a switch statement.</rdfs:comment>
+        <rdfs:comment xml:lang="en">A statement that break up the flow of execution by employing decision making. It can either be a if-then-else statement or a switch statement.</rdfs:comment>
         <rdfs:label xml:lang="en">Decision Making Statement</rdfs:label>
     </owl:Class>
     
@@ -2655,6 +2713,12 @@ Control Flow Statements break up the flow of execution by employing decision mak
         </rdfs:subClassOf>
         <rdfs:subClassOf>
             <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isCaseExpressionOf"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/CaseLabeledBlock"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
                 <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isConditionOf"/>
                 <owl:allValuesFrom>
                     <owl:Class>
@@ -2708,6 +2772,12 @@ Control Flow Statements break up the flow of execution by employing decision mak
             <owl:Restriction>
                 <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isRightHandSideOf"/>
                 <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/AssignmentExpression"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isSwitchExpressionOf"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/SwitchStatement"/>
             </owl:Restriction>
         </rdfs:subClassOf>
         <rdfs:subClassOf>
@@ -3004,9 +3074,16 @@ Control Flow Statements break up the flow of execution by employing decision mak
                 <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/Statement"/>
             </owl:Restriction>
         </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasElseBranch"/>
+                <owl:maxQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:maxQualifiedCardinality>
+                <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/Statement"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
         <owl:disjointWith rdf:resource="http://rdf.webofcode.org/woc/SwitchStatement"/>
-        <rdfs:comment xml:lang="en">A If-then-else statement</rdfs:comment>
-        <rdfs:label xml:lang="en">If-then-else statement</rdfs:label>
+        <rdfs:comment xml:lang="en">A `Decision Making Statement` that takes a boolean `Expression` as its &quot;condition&quot; and proceeds to execute its &quot;then&quot; or &quot;else&quot; branches depending on whether the &quot;condition&quot; evalutates to &quot;True&quot; or &quot;False&quot;. The &quot;else&quot; branch may be optional, and thus nothin is executed when it is absent and the &quot;condition&quot; evaluates to &quot;False&quot;.</rdfs:comment>
+        <rdfs:label xml:lang="en">If-Then-Else Statement</rdfs:label>
     </owl:Class>
     
 
@@ -3076,6 +3153,13 @@ Control Flow Statements break up the flow of execution by employing decision mak
             <owl:Restriction>
                 <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasNextStatement"/>
                 <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/LabeledBlock"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isSwitchLabelOf"/>
+                <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+                <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/SwitchStatement"/>
             </owl:Restriction>
         </rdfs:subClassOf>
         <rdfs:comment xml:lang="en">A labeled block of code, namely a case-labeled block or a default-labeled block</rdfs:comment>
@@ -3544,6 +3628,18 @@ Control Flow Statements break up the flow of execution by employing decision mak
         </rdfs:subClassOf>
         <rdfs:subClassOf>
             <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isElseBranchOf"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/IfThenElseStatement"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isThenBranchOf"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/IfThenElseStatement"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
                 <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasLine"/>
                 <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
                 <owl:onDataRange rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
@@ -3568,12 +3664,19 @@ Control Flow Statements break up the flow of execution by employing decision mak
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/DecisionMakingStatement"/>
         <rdfs:subClassOf>
             <owl:Restriction>
-                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasSubExpression"/>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasSwitchLabel"/>
+                <owl:minQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:minQualifiedCardinality>
+                <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/LabeledBlock"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasSwitchExpression"/>
                 <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
                 <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/Expression"/>
             </owl:Restriction>
         </rdfs:subClassOf>
-        <rdfs:comment xml:lang="en">A switch statement</rdfs:comment>
+        <rdfs:comment xml:lang="en">A `Decision Making Statement` that takes an `Expression` evaluating to a &quot;switch value&quot; and declares a predefined set of `Labeled Block`s. The &quot;switch value&quot; is compared sequentially with each of the &quot;case values&quot; declared by the `Case Labeled Block`s, executing their blocks on a match. The sequential comparison is interrupted if an executed block contains a corresponding `Break Statement`. If present and reached, the `Default Labeled Block` is executed regardless of the &quot;switch value&quot;.</rdfs:comment>
         <rdfs:label xml:lang="en">Switch Statement</rdfs:label>
     </owl:Class>
     
