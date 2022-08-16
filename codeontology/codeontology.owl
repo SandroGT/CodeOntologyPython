@@ -508,6 +508,20 @@
     
 
 
+    <!-- http://rdf.webofcode.org/woc/hasLibrary -->
+
+    <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasLibrary">
+        <rdfs:subPropertyOf rdf:resource="http://rdf-vocabulary.ddialliance.org/xkos#isPartOf"/>
+        <owl:inverseOf rdf:resource="http://rdf.webofcode.org/woc/isLibraryOf"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Package"/>
+        <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Library"/>
+        <rdfs:comment>Relates a `Package` to the `Library` it belongs to.</rdfs:comment>
+        <rdfs:label>has library</rdfs:label>
+    </owl:ObjectProperty>
+    
+
+
     <!-- http://rdf.webofcode.org/woc/hasMethod -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasMethod">
@@ -613,9 +627,10 @@
         <rdfs:subPropertyOf rdf:resource="http://rdf-vocabulary.ddialliance.org/xkos#isPartOf"/>
         <owl:inverseOf rdf:resource="http://rdf.webofcode.org/woc/isProjectOf"/>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
-        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Package"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Library"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Project"/>
-        <rdfs:comment>The hasProject property relates a package to the project it belongs to.</rdfs:comment>
+        <rdfs:comment>Relates a `Library` to the `Project` it belongs to.</rdfs:comment>
         <rdfs:label xml:lang="en">has project</rdfs:label>
     </owl:ObjectProperty>
     
@@ -730,7 +745,7 @@
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Project"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Project"/>
-        <rdfs:comment xml:lang="en">The hasSubProject property relates a project to its subprojects</rdfs:comment>
+        <rdfs:comment xml:lang="en">Relates a `Project` to its sub-`Project`s.</rdfs:comment>
         <rdfs:label xml:lang="en">has subproject</rdfs:label>
     </owl:ObjectProperty>
     
@@ -1246,6 +1261,19 @@
     
 
 
+    <!-- http://rdf.webofcode.org/woc/isLibraryOf -->
+
+    <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isLibraryOf">
+        <rdfs:subPropertyOf rdf:resource="http://rdf-vocabulary.ddialliance.org/xkos#hasPart"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Library"/>
+        <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Package"/>
+        <rdfs:comment>Relates a `Library` to the `Package`s it defines.</rdfs:comment>
+        <rdfs:label>is library of</rdfs:label>
+    </owl:ObjectProperty>
+    
+
+
     <!-- http://rdf.webofcode.org/woc/isMethodOf -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isMethodOf">
@@ -1330,10 +1358,11 @@
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isProjectOf">
         <rdfs:subPropertyOf rdf:resource="http://rdf-vocabulary.ddialliance.org/xkos#hasPart"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Project"/>
-        <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Package"/>
-        <rdfs:comment xml:lang="en">The isProjectOf property relates a project to the packages it contains.</rdfs:comment>
+        <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Library"/>
+        <rdfs:comment xml:lang="en">Relates a `Project` to the `Library` it defines.</rdfs:comment>
         <rdfs:label xml:lang="en">is project of</rdfs:label>
     </owl:ObjectProperty>
     
@@ -1449,7 +1478,7 @@
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Project"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Project"/>
-        <rdfs:comment xml:lang="en">The isSubProjectOf property relates a project to its parent project.</rdfs:comment>
+        <rdfs:comment xml:lang="en">Relates a `Project` to its parent `Project`.</rdfs:comment>
         <rdfs:label xml:lang="en">is subproject of</rdfs:label>
     </owl:ObjectProperty>
     
@@ -3086,8 +3115,21 @@ Control Flow Statements break up the flow of execution by employing decision mak
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/Library">
         <rdfs:subClassOf>
             <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasProject"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Project"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
                 <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isDependencyOf"/>
                 <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Project"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isLibraryOf"/>
+                <owl:minQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:minQualifiedCardinality>
+                <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/Package"/>
             </owl:Restriction>
         </rdfs:subClassOf>
         <rdfs:subClassOf>
@@ -3290,6 +3332,13 @@ Control Flow Statements break up the flow of execution by employing decision mak
                 </owl:allValuesFrom>
             </owl:Restriction>
         </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasLibrary"/>
+                <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+                <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/Library"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
         <rdfs:comment xml:lang="en">A distinctive namespace to help identify some of the named entities it contains even in outer scopes, avoiding name collisions.</rdfs:comment>
         <rdfs:label xml:lang="en">Package</rdfs:label>
     </owl:Class>
@@ -3395,6 +3444,25 @@ Control Flow Statements break up the flow of execution by employing decision mak
             <owl:Restriction>
                 <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasDependency"/>
                 <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Library"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasSubProject"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Project"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isSubProjectOf"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Project"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isProjectOf"/>
+                <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+                <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/Library"/>
             </owl:Restriction>
         </rdfs:subClassOf>
         <rdfs:comment xml:lang="en">A development version of the source code with additional information for building and/or distribution. It must point to a source root that defines a `Library`.</rdfs:comment>
