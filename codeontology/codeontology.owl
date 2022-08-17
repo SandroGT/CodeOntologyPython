@@ -344,9 +344,9 @@
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasDeclaration">
         <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/isDeclaredBy"/>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
-        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Variable"/>
-        <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/VariableDeclarationStatement"/>
-        <rdfs:comment xml:lang="en">Relates a `Variable` to the `Statement` it is declared by.</rdfs:comment>
+        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
+        <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/DeclarationStatement"/>
+        <rdfs:comment xml:lang="en">Relates a `Code Element` to the `Statement` it is declared by.</rdfs:comment>
         <rdfs:label xml:lang="en">has declaration</rdfs:label>
     </owl:ObjectProperty>
     
@@ -946,6 +946,19 @@
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Type"/>
         <rdfs:comment xml:lang="en">Relates an entity associable to a type to its `Type`.</rdfs:comment>
         <rdfs:label xml:lang="en">has type</rdfs:label>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://rdf.webofcode.org/woc/hasVariableDeclaration -->
+
+    <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasVariableDeclaration">
+        <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/hasDeclaration"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Variable"/>
+        <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/VariableDeclarationStatement"/>
+        <rdfs:comment>Relates a `Variable` to the `Statement` it is declared by.</rdfs:comment>
+        <rdfs:label>has variable declaration</rdfs:label>
     </owl:ObjectProperty>
     
 
@@ -2304,12 +2317,6 @@
         </rdfs:subClassOf>
         <rdfs:subClassOf>
             <owl:Restriction>
-                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasDeclaration"/>
-                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/ClassDeclarationStatement"/>
-            </owl:Restriction>
-        </rdfs:subClassOf>
-        <rdfs:subClassOf>
-            <owl:Restriction>
                 <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasFormalTypeParameter"/>
                 <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/TypeVariable"/>
             </owl:Restriction>
@@ -2359,17 +2366,6 @@
     
 
 
-    <!-- http://rdf.webofcode.org/woc/ClassDeclarationStatement -->
-
-    <owl:Class rdf:about="http://rdf.webofcode.org/woc/ClassDeclarationStatement">
-        <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/DeclarationStatement"/>
-        <owl:disjointWith rdf:resource="http://rdf.webofcode.org/woc/VariableDeclarationStatement"/>
-        <rdfs:comment xml:lang="en">A statement that corresponds to the declaration of a local class</rdfs:comment>
-        <rdfs:label xml:lang="en">Class Declaration Statement</rdfs:label>
-    </owl:Class>
-    
-
-
     <!-- http://rdf.webofcode.org/woc/ClassInstanceCreationExpression -->
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/ClassInstanceCreationExpression">
@@ -2401,6 +2397,12 @@
             <owl:Restriction>
                 <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasAnnotation"/>
                 <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Annotation"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasDeclaration"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/DeclarationStatement"/>
             </owl:Restriction>
         </rdfs:subClassOf>
         <rdfs:subClassOf>
@@ -2518,8 +2520,8 @@ Control Flow Statements break up the flow of execution by employing decision mak
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/DeclarationStatement">
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Statement"/>
-        <rdfs:comment xml:lang="en">A statement that holds a declaration</rdfs:comment>
-        <rdfs:label xml:lang="en">Declaration statement</rdfs:label>
+        <rdfs:comment xml:lang="en">A `Statement` that holds a declaration.</rdfs:comment>
+        <rdfs:label xml:lang="en">Declaration Statement</rdfs:label>
     </owl:Class>
     
 
@@ -2880,7 +2882,7 @@ Control Flow Statements break up the flow of execution by employing decision mak
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Variable"/>
         <rdfs:subClassOf>
             <owl:Restriction>
-                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasDeclaration"/>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasVariableDeclaration"/>
                 <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/FieldDeclarationStatement"/>
             </owl:Restriction>
         </rdfs:subClassOf>
@@ -3064,7 +3066,7 @@ Control Flow Statements break up the flow of execution by employing decision mak
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Variable"/>
         <rdfs:subClassOf>
             <owl:Restriction>
-                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasDeclaration"/>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasVariableDeclaration"/>
                 <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/GlobalVariableDeclarationStatement"/>
             </owl:Restriction>
         </rdfs:subClassOf>
@@ -3313,7 +3315,7 @@ Control Flow Statements break up the flow of execution by employing decision mak
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Variable"/>
         <rdfs:subClassOf>
             <owl:Restriction>
-                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasDeclaration"/>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasVariableDeclaration"/>
                 <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/LocalVariableDeclarationStatement"/>
             </owl:Restriction>
         </rdfs:subClassOf>
@@ -3908,6 +3910,12 @@ synchronized &lt;Expression&gt; &lt;Block&gt;</rdfs:comment>
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/Variable">
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Modifiable"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasVariableDeclaration"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/VariableDeclarationStatement"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
         <rdfs:subClassOf>
             <owl:Restriction>
                 <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isReferencedBy"/>
