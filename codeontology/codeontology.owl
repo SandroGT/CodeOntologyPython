@@ -3848,16 +3848,6 @@
     
 
 
-    <!-- http://rdf.webofcode.org/woc/GradleProject -->
-
-    <owl:Class rdf:about="http://rdf.webofcode.org/woc/GradleProject">
-        <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Project"/>
-        <rdfs:comment xml:lang="en">A Gradle project.</rdfs:comment>
-        <rdfs:label xml:lang="en">Gradle Project</rdfs:label>
-    </owl:Class>
-    
-
-
     <!-- http://rdf.webofcode.org/woc/IfThenElseStatement -->
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/IfThenElseStatement">
@@ -4265,16 +4255,6 @@
         </rdfs:subClassOf>
         <rdfs:comment xml:lang="en">Folds the flow of execution on itself employing &quot;looping&quot;, declaring a block of code (&quot;loop body&quot;) susceptible to multiple executions according to a certain condition (eventually, the &quot;loop condition&quot;).</rdfs:comment>
         <rdfs:label xml:lang="en">Loop Statement</rdfs:label>
-    </owl:Class>
-    
-
-
-    <!-- http://rdf.webofcode.org/woc/MavenProject -->
-
-    <owl:Class rdf:about="http://rdf.webofcode.org/woc/MavenProject">
-        <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Project"/>
-        <rdfs:comment xml:lang="en">A Maven project.</rdfs:comment>
-        <rdfs:label xml:lang="en">Maven Project</rdfs:label>
     </owl:Class>
     
 
@@ -5311,187 +5291,6 @@ synchronized &lt;`Expression`&gt; &lt;`Block Statement`&gt;</rdfs:comment>
     <!-- 
     ///////////////////////////////////////////////////////////////////////////////////////
     //
-    // Individuals
-    //
-    ///////////////////////////////////////////////////////////////////////////////////////
-     -->
-
-    
-
-
-    <!-- http://rdf.webofcode.org/woc/Abstract -->
-
-    <owl:NamedIndividual rdf:about="http://rdf.webofcode.org/woc/Abstract">
-        <rdf:type rdf:resource="http://rdf.webofcode.org/woc/Modifier"/>
-        <rdfs:comment xml:lang="en">The abstract modifier</rdfs:comment>
-        <rdfs:label xml:lang="en">Abstract</rdfs:label>
-    </owl:NamedIndividual>
-    
-
-
-    <!-- http://rdf.webofcode.org/woc/Boolean -->
-
-    <owl:NamedIndividual rdf:about="http://rdf.webofcode.org/woc/Boolean">
-        <rdf:type rdf:resource="http://rdf.webofcode.org/woc/PrimitiveType"/>
-        <rdfs:comment xml:lang="en">The boolean type</rdfs:comment>
-        <rdfs:label xml:lang="en">Boolean</rdfs:label>
-    </owl:NamedIndividual>
-    
-
-
-    <!-- http://rdf.webofcode.org/woc/Byte -->
-
-    <owl:NamedIndividual rdf:about="http://rdf.webofcode.org/woc/Byte">
-        <rdf:type rdf:resource="http://rdf.webofcode.org/woc/PrimitiveType"/>
-        <rdfs:comment xml:lang="en">The byte type</rdfs:comment>
-        <rdfs:label xml:lang="en">Byte</rdfs:label>
-    </owl:NamedIndividual>
-    
-
-
-    <!-- http://rdf.webofcode.org/woc/Char -->
-
-    <owl:NamedIndividual rdf:about="http://rdf.webofcode.org/woc/Char">
-        <rdf:type rdf:resource="http://rdf.webofcode.org/woc/PrimitiveType"/>
-        <rdfs:comment xml:lang="en">The char type</rdfs:comment>
-        <rdfs:label xml:lang="en">Char</rdfs:label>
-    </owl:NamedIndividual>
-    
-
-
-    <!-- http://rdf.webofcode.org/woc/Default -->
-
-    <owl:NamedIndividual rdf:about="http://rdf.webofcode.org/woc/Default">
-        <rdf:type rdf:resource="http://rdf.webofcode.org/woc/AccessModifier"/>
-        <rdfs:comment xml:lang="en">The default modifier</rdfs:comment>
-        <rdfs:label xml:lang="en">Default</rdfs:label>
-    </owl:NamedIndividual>
-    
-
-
-    <!-- http://rdf.webofcode.org/woc/Double -->
-
-    <owl:NamedIndividual rdf:about="http://rdf.webofcode.org/woc/Double">
-        <rdf:type rdf:resource="http://rdf.webofcode.org/woc/PrimitiveType"/>
-        <rdfs:comment xml:lang="en">The double type</rdfs:comment>
-        <rdfs:label xml:lang="en">Double</rdfs:label>
-    </owl:NamedIndividual>
-    
-
-
-    <!-- http://rdf.webofcode.org/woc/Final -->
-
-    <owl:NamedIndividual rdf:about="http://rdf.webofcode.org/woc/Final">
-        <rdf:type rdf:resource="http://rdf.webofcode.org/woc/Modifier"/>
-        <rdfs:comment xml:lang="en">The final modifier</rdfs:comment>
-        <rdfs:label xml:lang="en">Final</rdfs:label>
-    </owl:NamedIndividual>
-    
-
-
-    <!-- http://rdf.webofcode.org/woc/Float -->
-
-    <owl:NamedIndividual rdf:about="http://rdf.webofcode.org/woc/Float">
-        <rdf:type rdf:resource="http://rdf.webofcode.org/woc/PrimitiveType"/>
-        <rdfs:comment xml:lang="en">The float type</rdfs:comment>
-        <rdfs:label xml:lang="en">Float</rdfs:label>
-    </owl:NamedIndividual>
-    
-
-
-    <!-- http://rdf.webofcode.org/woc/Int -->
-
-    <owl:NamedIndividual rdf:about="http://rdf.webofcode.org/woc/Int">
-        <rdf:type rdf:resource="http://rdf.webofcode.org/woc/PrimitiveType"/>
-        <rdfs:comment xml:lang="en">The int type</rdfs:comment>
-        <rdfs:label xml:lang="en">Int</rdfs:label>
-    </owl:NamedIndividual>
-    
-
-
-    <!-- http://rdf.webofcode.org/woc/Long -->
-
-    <owl:NamedIndividual rdf:about="http://rdf.webofcode.org/woc/Long">
-        <rdf:type rdf:resource="http://rdf.webofcode.org/woc/PrimitiveType"/>
-        <rdfs:comment xml:lang="en">The long type</rdfs:comment>
-        <rdfs:label xml:lang="en">Long</rdfs:label>
-    </owl:NamedIndividual>
-    
-
-
-    <!-- http://rdf.webofcode.org/woc/Private -->
-
-    <owl:NamedIndividual rdf:about="http://rdf.webofcode.org/woc/Private">
-        <rdf:type rdf:resource="http://rdf.webofcode.org/woc/AccessModifier"/>
-        <rdfs:comment xml:lang="en">The private modifier</rdfs:comment>
-        <rdfs:label xml:lang="en">Private</rdfs:label>
-    </owl:NamedIndividual>
-    
-
-
-    <!-- http://rdf.webofcode.org/woc/Protected -->
-
-    <owl:NamedIndividual rdf:about="http://rdf.webofcode.org/woc/Protected">
-        <rdf:type rdf:resource="http://rdf.webofcode.org/woc/AccessModifier"/>
-        <rdfs:comment xml:lang="en">The protected modifier</rdfs:comment>
-        <rdfs:label xml:lang="en">Protected</rdfs:label>
-    </owl:NamedIndividual>
-    
-
-
-    <!-- http://rdf.webofcode.org/woc/Public -->
-
-    <owl:NamedIndividual rdf:about="http://rdf.webofcode.org/woc/Public">
-        <rdf:type rdf:resource="http://rdf.webofcode.org/woc/AccessModifier"/>
-        <rdfs:comment xml:lang="en">The public modifier</rdfs:comment>
-        <rdfs:label xml:lang="en">Public</rdfs:label>
-    </owl:NamedIndividual>
-    
-
-
-    <!-- http://rdf.webofcode.org/woc/Short -->
-
-    <owl:NamedIndividual rdf:about="http://rdf.webofcode.org/woc/Short">
-        <rdf:type rdf:resource="http://rdf.webofcode.org/woc/PrimitiveType"/>
-        <rdfs:comment xml:lang="en">The short type</rdfs:comment>
-        <rdfs:label xml:lang="en">Short</rdfs:label>
-    </owl:NamedIndividual>
-    
-
-
-    <!-- http://rdf.webofcode.org/woc/Static -->
-
-    <owl:NamedIndividual rdf:about="http://rdf.webofcode.org/woc/Static">
-        <rdf:type rdf:resource="http://rdf.webofcode.org/woc/Modifier"/>
-        <rdfs:comment xml:lang="en">The static modifier</rdfs:comment>
-        <rdfs:label xml:lang="en">Static</rdfs:label>
-    </owl:NamedIndividual>
-    
-
-
-    <!-- http://rdf.webofcode.org/woc/Synchronized -->
-
-    <owl:NamedIndividual rdf:about="http://rdf.webofcode.org/woc/Synchronized">
-        <rdf:type rdf:resource="http://rdf.webofcode.org/woc/Modifier"/>
-        <rdfs:comment xml:lang="en">The synchronized modifier</rdfs:comment>
-        <rdfs:label xml:lang="en">Synchronized</rdfs:label>
-    </owl:NamedIndividual>
-    
-
-
-    <!-- http://rdf.webofcode.org/woc/Volatile -->
-
-    <owl:NamedIndividual rdf:about="http://rdf.webofcode.org/woc/Volatile">
-        <rdf:type rdf:resource="http://rdf.webofcode.org/woc/Modifier"/>
-        <rdfs:comment xml:lang="en">The volatile modifier</rdfs:comment>
-        <rdfs:label xml:lang="en">Volatile</rdfs:label>
-    </owl:NamedIndividual>
-    
-
-
-    <!-- 
-    ///////////////////////////////////////////////////////////////////////////////////////
-    //
     // General axioms
     //
     ///////////////////////////////////////////////////////////////////////////////////////
@@ -5637,28 +5436,6 @@ synchronized &lt;`Expression`&gt; &lt;`Block Statement`&gt;</rdfs:comment>
             <rdf:Description rdf:about="http://rdf.webofcode.org/woc/GlobalVariableDeclarationStatement"/>
             <rdf:Description rdf:about="http://rdf.webofcode.org/woc/LocalVariableDeclarationStatement"/>
         </owl:members>
-    </rdf:Description>
-    <rdf:Description>
-        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AllDifferent"/>
-        <owl:distinctMembers rdf:parseType="Collection">
-            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Abstract"/>
-            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Boolean"/>
-            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Byte"/>
-            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Char"/>
-            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Default"/>
-            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Double"/>
-            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Final"/>
-            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Float"/>
-            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Int"/>
-            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Long"/>
-            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Private"/>
-            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Protected"/>
-            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Public"/>
-            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Short"/>
-            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Static"/>
-            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Synchronized"/>
-            <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Volatile"/>
-        </owl:distinctMembers>
     </rdf:Description>
 </rdf:RDF>
 
