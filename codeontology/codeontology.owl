@@ -983,6 +983,19 @@
     
 
 
+    <!-- http://rdf.webofcode.org/woc/imports -->
+
+    <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/imports">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+        <owl:inverseOf rdf:resource="http://rdf.webofcode.org/woc/isImportedBy"/>
+        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/ImportStatement"/>
+        <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
+        <rdfs:comment>Relates an `Import Statement` to the entities it imports.</rdfs:comment>
+        <rdfs:label>imports</rdfs:label>
+    </owl:ObjectProperty>
+    
+
+
     <!-- http://rdf.webofcode.org/woc/invokes -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/invokes">
@@ -1331,6 +1344,17 @@
         </rdfs:range>
         <rdfs:comment xml:lang="en">Relates an `Interface` to the `Class`es implementing it.</rdfs:comment>
         <rdfs:label xml:lang="en">is implemented by</rdfs:label>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://rdf.webofcode.org/woc/isImportedBy -->
+
+    <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isImportedBy">
+        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
+        <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/ImportStatement"/>
+        <rdfs:comment>Relates an entity to the `Import Statement` it is imported by.</rdfs:comment>
+        <rdfs:label>is imported by</rdfs:label>
     </owl:ObjectProperty>
     
 
@@ -2417,6 +2441,12 @@
                 <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
             </owl:Restriction>
         </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isImportedBy"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/ImportStatement"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
         <rdfs:comment xml:lang="en">A generic element in source code</rdfs:comment>
         <rdfs:label xml:lang="en">Code Element</rdfs:label>
     </owl:Class>
@@ -3137,7 +3167,14 @@ Control Flow Statements break up the flow of execution by employing decision mak
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/ImportStatement">
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/Statement"/>
-        <rdfs:comment>An import statement</rdfs:comment>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/imports"/>
+                <owl:minQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:minQualifiedCardinality>
+                <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:comment>Specifies external entities to include in the local namespace.</rdfs:comment>
         <rdfs:label>Import Statement</rdfs:label>
     </owl:Class>
     
