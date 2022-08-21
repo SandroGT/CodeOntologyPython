@@ -1,6 +1,6 @@
 from codeontology import *
 from codeontology.rdfization.python.explorer.structure import Project, Library, Package
-from codeontology.rdfization.python.explorer.pypi import Pypi
+from codeontology.rdfization.python.explorer.pypi import PyPI
 
 
 class Explorer:
@@ -53,7 +53,7 @@ class Explorer:
         self.__root_download_abs_path = os.path.abspath(root_download_path)
 
         if self.__to_explore_project_name:
-            abs_projects_paths = [python.explorer.Pypi.download_project(
+            abs_projects_paths = [python.explorer.PyPI.download_project(
                 self.__to_explore_project_name,
                 self.__to_explore_project_version,
                 self.__root_download_abs_path
@@ -81,7 +81,7 @@ class Explorer:
                     for d in pl.get_dependencies():
                         if not is_already_downloaded(d):
                             new.append(
-                                Pypi.download_project(d.name)
+                                PyPI.download_project(d.name)
                             )
                 for n in new:
                     self.__to_translate.append(n)
