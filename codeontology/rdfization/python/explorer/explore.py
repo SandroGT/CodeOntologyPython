@@ -59,6 +59,7 @@ class Explorer:
                 self.__root_download_abs_path
             )]
         else:
+            # TODO the specified path links to a project or library and only one
             abs_projects_paths = self.__find_projects(self.__to_explore_abs_path)
 
         # Here I have a list of projects or libraries
