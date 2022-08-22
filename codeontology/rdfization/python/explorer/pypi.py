@@ -70,7 +70,7 @@ class PyPI:
         self._downloads_cache.add(folder_path)
         return os.path.join(self.abs_download_path, folder_path)
 
-    def download_project(self, project_name: str, project_version: str) -> str:
+    def download_project(self, project_name: str, project_version: str = "") -> str:
 
         # Check input
         if not self.is_valid_prj_version(project_version):
@@ -128,18 +128,16 @@ class PyPI:
         return project_path
 
     @staticmethod
-    def is_existing_project(project_name: str) -> bool:
-
-        process = subprocess.Popen(
-            [sys.executable,
-             "-m", "pip",
-             "index", "versions", project_name],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-        out, _ = process.communicate()
-
-        return process.returncode == 0
+    def is_existing_project(project_name: str, project_version: str = "") -> bool:
+        available_versions = PyPI._get_project_versions(project_name)
+        # return available_versions and project_version in available_versions if project_version else True
+        if available_versions:
+            if project_version:
+                return project_version in available_versions
+            else:
+                return True
+        else:
+            return False
 
     @staticmethod
     def _get_project_versions(project_name: str) -> List[str]:

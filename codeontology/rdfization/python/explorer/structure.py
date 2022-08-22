@@ -3,6 +3,7 @@ import re as regex
 from codeontology import *
 from codeontology.rdfization.python import explorer
 
+
 class Project:
     individual: ontology.Project
     abs_path: str
@@ -16,7 +17,7 @@ class Project:
     __PROJECT_SETUP_FILE = "setup.py"
     __PROJECT_CONF_FILE = "setup.cfg"
 
-    def __init__(self, abs_path):
+    def __init__(self, abs_path: str):
 
         # Check input
         if not abs_path:
@@ -25,12 +26,13 @@ class Project:
             raise Exception(f"Specified path '{abs_path}' is not a valid directory")
         if not abs_path == os.path.abspath(abs_path):
             raise Exception(f"Specified path '{abs_path}' is not an absolute path value")
-        if not self.is_project(abs_path):
+        if not explorer.structure.Project.is_project(abs_path):
             raise Exception(f"Specified path '{abs_path}' is not a valid project path")
 
         # Init
         assert explorer.structure.Project._cached_projects.get(abs_path, None) is None
 
+        self.individual = ontology.Project()
         self.abs_path = abs_path
         self.abs_setup_file_path = os.path.join(self.abs_path, self.__PROJECT_SETUP_FILE)
 
@@ -43,7 +45,7 @@ class Project:
         # Get libraries
         packages = setup_dict.get("packages", None)
         if not packages:
-            raise Exception(f"No declared 'packages' inside '{self.abs_setup_file_path}'")
+            raise Exception(f"No declared packages inside '{self.abs_setup_file_path}'")
         root_libraries_names = set([pkg.split(".")[0] for pkg in packages])
         package_dir = setup_dict.get("package_dir", None)
         root_libraries_paths = set()
@@ -67,12 +69,20 @@ class Project:
             self.libraries.add(explorer.structure.Library(root_lib_path))
 
         # Get dependencies
+        self.dependencies = set()
         install_requires = setup_dict.get("install_requires", setup_dict.get("requires", None))
+        if not install_requires:
+            raise Exception(f"No declared dependencies inside '{self.abs_setup_file_path}'")
         # 'requires' is the deprecated version of 'install_requires', but could be found
         for requirement in install_requires:
-            project_name =
-
-
+            project_name, project_version = self._parse_requirement(requirement)
+            assert PyPI.is_existing_project(project_name, project_version), \
+                f"{project_name}=={project_version}" if project_version else f"{project_name}" + \
+                f" is not an existing downloadable project"
+            project_abs_path = glob_pypi.download_project(project_name, project_version)
+            project = explorer.structure.Project.retrieve_or_create(project_abs_path)
+            for library in project.libraries:
+                self.dependencies.add(library)
 
         # Get Python version
         python_requires = setup_dict.get("python_requires", None)
@@ -87,31 +97,58 @@ class Project:
         python_abs_source_path = glob_pypi.download_python_source(python_version)
         self.python = explorer.structure.Library(python_abs_source_path)
 
+        # Complete individual info
 
+        self.individual.hasBuildFile = self.__PROJECT_SETUP_FILE
+
+        self.individual.hasDependency.append(self.python.individual)
+        assert self.individual in self.python.individual.isDependencyOf
+        for library in self.dependencies:
+            self.individual.hasDependency.append(library.individual)
+            assert self.individual in library.individual.isDependencyOf
 
         name = setup_dict.get("name", None)
-
+        if not name:
+            raise Exception(f"How can '{self.abs_setup_file_path}' not declare a name!!!")
         version = setup_dict.get("version", None)
+        self.individual.hasName = f"{name}-{version}" if version else f"{name}"
 
         description = setup_dict.get("description", None)
-
+        if description:
+            self.individual.hasComment = description
         long_description = setup_dict.get("long_description", None)
+        if long_description:
+            self.individual.hasComment = long_description
 
-        python_requires = setup_dict.get("python_requires", None)  # python version
+        # Check properties
 
-        packages = setup_dict.get("packages", None)  # to find libraries
-
-        install_requires = setup_dict.get("install_requires", None)  # dependencies
-        requires = setup_dict.get("requires", None)  # deprecated version of install_requires, but could be found
-
-        # Create individual
-        # TODO
+        for library in self.libraries:
+            assert library.individual in self.individual.isProjectOf
 
     def __hash__(self):
         return self.abs_path.__hash__()
 
     def __eq__(self, other):
         return self.abs_path == getattr(other, "abs_path", None)
+
+    @staticmethod
+    def retrieve_or_create(abs_path: str):
+
+        # Check input
+        if not abs_path:
+            raise Exception("'abs_path' has not been specified")
+        if not os.path.isdir(abs_path):
+            raise Exception(f"Specified path '{abs_path}' is not a valid directory")
+        if not abs_path == os.path.abspath(abs_path):
+            raise Exception(f"Specified path '{abs_path}' is not an absolute path value")
+        if not explorer.structure.Project.is_project(abs_path):
+            raise Exception(f"Specified path '{abs_path}' is not a valid project path")
+
+        project = explorer.structure.Project._cached_projects.get(abs_path, None)
+        if not project:
+            project = explorer.structure.Project(abs_path)
+        assert project
+        return project
 
     def _get_setup_file_content(self) -> Dict:
         from contextlib import contextmanager
@@ -138,6 +175,7 @@ class Project:
                 # Restore saved values
                 os.chdir(saved_cwd)
                 sys.stdout, sys.stderr = saved_stdout, saved_stderr
+                # sys.modules = saved_sys_modules.copy()
                 del sys.modules[os.path.basename(self.__PROJECT_SETUP_FILE)]
 
         # Use mocking and a context manager to read the setup file content securely
@@ -157,21 +195,24 @@ class Project:
 
     @staticmethod
     def _parse_requirement(requirement: str):
-        assert regex.match(r"^[\w\d.,;'<>= ]+$", requirement), f"Unexpected format for {requirement}"
-        requirement = regex.sub(" ", "", requirement)
+        assert regex.match(r"^[\w\d\-.,;'<>= ]+$", requirement), f"Unexpected format for {requirement}"
+        requirement = regex.sub(r" ", r"", requirement)
         requirement = requirement.split(";")[0]
         list_requirement = [requirement]
-        if "==" in requirement: list_requirement = requirement.split("==")
+        if "==" in requirement:
+            list_requirement = requirement.split("==")
         else:
-            if "<" in requirement: list_requirement = requirement.split("<")
-            elif ">" in requirement: list_requirement = requirement.split(">")
+            if "<" in requirement:
+                list_requirement = requirement.split("<")
+            elif ">" in requirement:
+                list_requirement = requirement.split(">")
             if len(list_requirement) > 1:
                 if "=" in list_requirement[1]:
                     assert list_requirement[1].startswith("=")
                     list_requirement[1] = list_requirement[1][1:]
         assert 1 <= len(list_requirement) <= 2
         project_name = list_requirement[0]
-        project_version = list_requirement[1] if len(list_requirement) == 2 else None
+        project_version = list_requirement[1] if len(list_requirement) == 2 else ""
         return project_name, project_version
 
     @staticmethod
@@ -199,7 +240,7 @@ class Library:
             raise Exception(f"Specified path '{abs_path}' is not a valid directory")
         if not abs_path == os.path.abspath(abs_path):
             raise Exception(f"Specified path '{abs_path}' is not an absolute path value")
-        if not self.is_library(abs_path):
+        if not explorer.structure.Library.is_library(abs_path):
             raise Exception(f"Specified path '{abs_path}' is not a valid library path")
         if project and not isinstance(project, explorer.structure.Project):
             raise Exception(f"Wrong 'project' type, expected 'Project', obtained '{type(project)}''")
@@ -207,13 +248,27 @@ class Library:
             raise Exception(f"Specified path '{abs_path}' is not part of '{project.abs_path}'")
 
         # Init
+        self.individual = ontology.Library()
         self.abs_path = abs_path
         self.project = project
         self.root_package = explorer.structure.Package(abs_path, self)
         self.dependencies = self.project.dependencies if self.project else None
 
-        # Create individual
-        # TODO
+        # Complete individual info
+
+        for library in self.dependencies:
+            self.individual.hasDependency.append(library.individual)
+            assert self.individual in library.individual.isDependencyOf
+
+        self.individual.hasName = explorer.structure.Library.build_name(self.abs_path)
+
+        if self.project:
+            self.individual.hasProject = project.individual
+
+        # Check properties
+
+        for package in self.root_package.get_packages():
+            assert package.individual in self.individual.isLibraryOf
 
     def __hash__(self):
         return self.abs_path.__hash__()
@@ -222,14 +277,23 @@ class Library:
         return self.abs_path == getattr(other, "abs_path", None)
 
     @staticmethod
+    def build_name(abs_path: str) -> str:
+        if explorer.structure.Package.is_package_path(abs_path):
+            return abs_path.split(os.path.sep)[-2]
+        else:
+            assert explorer.structure.Package.is_module_path(abs_path)
+            return os.path.splitext(abs_path.split(os.path.sep)[-1])[0]
+
+    @staticmethod
     def is_library(abs_path) -> bool:
         assert abs_path == os.path.abspath(abs_path)
         return \
             os.path.isdir(abs_path) and \
-            explorer.structure.Package.is_package_path(abs_path) and \
+            (explorer.structure.Package.is_package_path(abs_path) or
+             explorer.structure.Package.is_module_path(abs_path)) and \
             not explorer.structure.Package.is_package_path(os.path.normpath(os.path.join(abs_path, "..")))
 
-    def __get_de_facto_dependencies(self):
+    def _get_de_facto_dependencies(self):
         # TODO this could be a starting point to allow to analyze libraries and not necessarily projects
         dependencies = set()
         for imported_name in self.root_package.get_imported_names():
@@ -254,7 +318,7 @@ class Package:  # or module, since ontologically speaking a module is a package
             raise Exception(f"Specified path '{abs_path}' is not a valid directory")
         if not abs_path == os.path.abspath(abs_path):
             raise Exception(f"Specified path '{abs_path}' is not an absolute path value")
-        if not (self.is_package_path(abs_path) or self.is_module_path(abs_path)):
+        if not (explorer.structure.Package.is_package_path(abs_path) or explorer.structure.Package.is_module_path(abs_path)):
             raise Exception(f"Specified path '{abs_path}' is not a valid package or module")
         if not abs_path.startswith(library.abs_path):
             raise Exception(f"Specified path '{abs_path}' is not part of '{library.abs_path}'")
@@ -266,6 +330,7 @@ class Package:  # or module, since ontologically speaking a module is a package
             raise Exception(f"Specified path '{abs_path}' is not part of '{library.abs_path}'")
 
         # Init
+        self.individual = ontology.Package()
         self.abs_path = ""
         self.library = library
         self.direct_packages = set()
@@ -285,8 +350,14 @@ class Package:  # or module, since ontologically speaking a module is a package
             # Define only the module-package
             self.abs_path = abs_path
 
-        # Create individual
-        # TODO
+        # Complete individual info
+
+        self.individual.hasFullyQualifiedName = \
+            explorer.structure.Package.build_full_name(self.abs_path, self.library.abs_path)
+
+        self.individual.hasSimpleName = self.individual.hasFullyQualifiedName.split(".")[-1]
+
+        self.individual.hasLibrary = library.individual
 
     def __hash__(self):
         return self.abs_path.__hash__()
@@ -305,6 +376,16 @@ class Package:  # or module, since ontologically speaking a module is a package
         else:
             for package in self.direct_packages:
                 yield from package.get_imported_names()
+
+    def get_packages(self) -> Iterator[explorer.structure.Package]:
+        yield self
+        for sub_package in self.direct_packages:
+            yield from sub_package.get_packages()
+
+    @staticmethod
+    def build_full_name(abs_path: str, library_path: str) -> str:
+        library_name = explorer.structure.Library.build_name(library_path)
+        return library_name + abs_path.split(library_name)[1].replace(os.path.sep, ".")
 
     @staticmethod
     def is_package_path(abs_path) -> bool:

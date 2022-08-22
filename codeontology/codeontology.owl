@@ -1951,6 +1951,7 @@
 
     <owl:DatatypeProperty rdf:about="http://rdf.webofcode.org/woc/hasFullyQualifiedName">
         <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/hasName"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain>
             <owl:Class>
                 <owl:unionOf rdf:parseType="Collection">
@@ -1959,11 +1960,12 @@
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Function"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/GlobalVariable"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Interface"/>
+                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Package"/>
                 </owl:unionOf>
             </owl:Class>
         </rdfs:domain>
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
-        <rdfs:comment xml:lang="en">Links a `Class`, `Enum` or `Interface`, `Function` or `Global Variable` to its full name, taking into account the namespace (`Package`) that defines it. For example, the `Class` &quot;String&quot; from &quot;Java.lang&quot; should be linked to the string &quot;java.lang.string&quot;.</rdfs:comment>
+        <rdfs:comment xml:lang="en">Links a `Class`, `Enum` or `Interface`, `Function`, `Global Variable` or `Package` to its full name, taking into account the namespace (`Package`) that defines it. For example, the `Class` &quot;String&quot; from &quot;Java.lang&quot; should be linked to the string &quot;java.lang.string&quot;.</rdfs:comment>
         <rdfs:label xml:lang="en">has fully-qualified name</rdfs:label>
     </owl:DatatypeProperty>
     
@@ -2049,6 +2051,7 @@
 
     <owl:DatatypeProperty rdf:about="http://rdf.webofcode.org/woc/hasSimpleName">
         <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/hasName"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain>
             <owl:Class>
                 <owl:unionOf rdf:parseType="Collection">
@@ -2057,11 +2060,12 @@
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Function"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/GlobalVariable"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Interface"/>
+                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Package"/>
                 </owl:unionOf>
             </owl:Class>
         </rdfs:domain>
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
-        <rdfs:comment xml:lang="en">Links a `Class`, `Enum` or `Interface`, `Function` or `Global Variable` to its simple name. For example, the `Class` &quot;String&quot; from &quot;Java.lang&quot; should be linked to the string &quot;String&quot;.</rdfs:comment>
+        <rdfs:comment xml:lang="en">Links a `Class`, `Enum` or `Interface`, `Function`, `Global Variable` or `Package` to its simple name. For example, the `Class` &quot;String&quot; from &quot;Java.lang&quot; should be linked to the string &quot;String&quot;.</rdfs:comment>
         <rdfs:label xml:lang="en">has simple name</rdfs:label>
     </owl:DatatypeProperty>
     
@@ -4432,6 +4436,36 @@
             </owl:Class>
         </rdfs:subClassOf>
         <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasFullyQualifiedName"/>
+                        <owl:allValuesFrom rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasFullyQualifiedName"/>
+                        <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+                        <owl:onDataRange rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasSimpleName"/>
+                        <owl:allValuesFrom rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasSimpleName"/>
+                        <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+                        <owl:onDataRange rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
             <owl:Restriction>
                 <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isPackageOf"/>
                 <owl:allValuesFrom>
@@ -4619,21 +4653,6 @@
             <owl:Class>
                 <owl:intersectionOf rdf:parseType="Collection">
                     <owl:Restriction>
-                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasBuildFile"/>
-                        <owl:allValuesFrom rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
-                    </owl:Restriction>
-                    <owl:Restriction>
-                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasBuildFile"/>
-                        <owl:maxQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:maxQualifiedCardinality>
-                        <owl:onDataRange rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
-                    </owl:Restriction>
-                </owl:intersectionOf>
-            </owl:Class>
-        </rdfs:subClassOf>
-        <rdfs:subClassOf>
-            <owl:Class>
-                <owl:intersectionOf rdf:parseType="Collection">
-                    <owl:Restriction>
                         <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasName"/>
                         <owl:allValuesFrom rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
                     </owl:Restriction>
@@ -4655,6 +4674,12 @@
             <owl:Restriction>
                 <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasSubProject"/>
                 <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Project"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasBuildFile"/>
+                <owl:allValuesFrom rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
             </owl:Restriction>
         </rdfs:subClassOf>
         <rdfs:comment xml:lang="en">A development version of the source code with additional information for building and/or distribution. It must point to a source root that defines a `Library`.</rdfs:comment>
