@@ -1,15 +1,17 @@
 # SEE https://pip.pypa.io/en/stable/user_guide/#using-pip-from-your-program
 
+import os
 import re as regex
 import requests
+import shutil
 import subprocess
 import sys
 import tarfile
-
-from codeontology import *
+from typing import List, Set
 
 
 class PyPI:
+    # IDEA may need to specify a Python and 'pip' version to avoid download errors.
     abs_download_path: str
     _downloads_cache: Set[str]
     norm_python_versions: List[str]
@@ -52,39 +54,36 @@ class PyPI:
         os.remove(archive_path)
 
         # Store only the 'Lib' folder with the standard library packages
+        downloaded_python_folder = f"Python-{python_version}"
         stdlib_folder = "Lib"
-        os.rename(
-            os.path.join(self.abs_download_path, self.build_dir_name(python_version), stdlib_folder),
-            os.path.join(self.abs_download_path, stdlib_folder)
-        )
-        shutil.rmtree(os.path.join(self.abs_download_path, self.build_dir_name(python_version)))
-        os.rename(
-            os.path.join(self.abs_download_path, stdlib_folder),
-            os.path.join(self.abs_download_path, self.build_dir_name(python_version))
-        )
+        python_source_path = os.path.join(self.abs_download_path, self.build_dir_name(python_version))
+        os.rename(os.path.join(self.abs_download_path, downloaded_python_folder, stdlib_folder), python_source_path)
+        shutil.rmtree(os.path.join(self.abs_download_path, downloaded_python_folder))
+
+        # Create an init file to make it appear a library
+        with open(os.path.join(python_source_path, "__init__.py"), "w"):
+            pass
 
         # Cache and return the final Python source folder path
-        folder_path = os.path.join(self.abs_download_path, self.build_dir_name(python_version))
-        assert os.path.isdir(folder_path), f"{folder_path} is not an existing directory"
-        assert folder_path == os.path.abspath(folder_path), f"{folder_path} is not an absolute path"
-        self._downloads_cache.add(folder_path)
-        return os.path.join(self.abs_download_path, folder_path)
+        assert os.path.isdir(python_source_path), f"{python_source_path} is not an existing directory"
+        assert python_source_path == os.path.abspath(python_source_path), f"{python_source_path} is not an absolute path"
+        self._downloads_cache.add(python_source_path)
+        return python_source_path
 
     def download_project(self, project_name: str, project_version: str = "") -> str:
 
         # Check input
-        if not self.is_valid_prj_version(project_version):
+        if project_version and not self.is_valid_prj_version(project_version):
             raise Exception(f"Specified version {project_version} has an invalid format")
-        available_versions = self._get_project_versions(project_name)
+        available_versions = self.get_project_versions(project_name)
         if not available_versions:
             raise Exception(f"Project name {project_name} not found in PyPI")
-        if project_version not in available_versions:
+        if project_version and project_version not in available_versions:
             raise Exception(f"Specified project version {project_version} not available in PyPI")
 
-        if project_version:
-            download_target = f"{project_name}=={project_version}"
-        else:
-            download_target = project_name
+        if not project_version:
+            project_version = available_versions[0]
+        download_target = f"{project_name}=={project_version}"
 
         # Create a temporary directory in which to download the source archive
         assert os.path.isdir(self.abs_download_path), f"{self.abs_download_path} is not an existing directory"
@@ -93,6 +92,9 @@ class PyPI:
         os.mkdir(abs_temp_path)
 
         # Download only the project source archive
+        # TODO upgrade 'pip' and 'setuptools'
+        # IDEA when 'Library'es analysis will be supported, there will be no need to download dependencies one by one
+        #  but installing the root project will be enough
         process = subprocess.Popen(
             [sys.executable,
              "-m", "pip",
@@ -113,10 +115,11 @@ class PyPI:
             f_archive.extractall(abs_temp_path)
         os.remove(abs_archive_path)
 
-        # Move the extracted project folder to the download directory
+        # Move the extracted project folder to the download directory with standard name
         assert len(os.listdir(abs_temp_path)) == 1, f"there are {len(os.listdir(abs_temp_path))} files"
-        project_folder = os.listdir(abs_temp_path)[0]
-        project_path = shutil.move(os.path.join(abs_temp_path, project_folder), self.abs_download_path)
+        temp_project_path = os.path.join(abs_temp_path, os.listdir(abs_temp_path)[0])
+        project_path = os.path.join(self.abs_download_path, self.build_dir_name(project_version, project_name))
+        os.rename(temp_project_path, project_path)
         assert os.path.isdir(project_path), f"{project_path} is not an existing directory"
         assert project_path == os.path.abspath(project_path), f"{project_path} is not an absolute path"
 
@@ -129,7 +132,7 @@ class PyPI:
 
     @staticmethod
     def is_existing_project(project_name: str, project_version: str = "") -> bool:
-        available_versions = PyPI._get_project_versions(project_name)
+        available_versions = PyPI.get_project_versions(project_name)
         # return available_versions and project_version in available_versions if project_version else True
         if available_versions:
             if project_version:
@@ -140,7 +143,7 @@ class PyPI:
             return False
 
     @staticmethod
-    def _get_project_versions(project_name: str) -> List[str]:
+    def get_project_versions(project_name: str) -> List[str]:
 
         process = subprocess.Popen(
             [sys.executable,
@@ -185,7 +188,10 @@ class PyPI:
 
     @staticmethod
     def build_dir_name(version: str, name: str = "Python") -> str:
-        return f"{name}-{version}"
+        dir_name = name.lower() + "_"
+        for version_number in version.split("."):
+            dir_name += f"{int(version_number):03}"
+        return dir_name
 
     def is_valid_prj_version(self, version: str) -> bool:
         return bool(regex.match(self._REGEX_PRJ_VERSION, version))
