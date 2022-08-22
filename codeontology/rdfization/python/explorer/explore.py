@@ -24,12 +24,13 @@ class Explorer:
             max_recursions: int = 0,
             root_download_path: str = os.path.normpath("./_downloads")
     ):
-        # --- Check arguments ---
+        # Check input
+
         # TODO Improve arguments check without using assertions
 
         # Only one or the other, not both a local path and a name of a pip project to explore
         if to_explore_local_path:
-            assert os.path.isdir(root_download_path)
+            assert os.path.isdir(root_download_path), f"{root_download_path} is not an existing directory"
             assert not to_explore_project_name
         else:
             assert to_explore_project_name

@@ -12,29 +12,32 @@ from codeontology import *
 class PyPI:
     abs_download_path: str
     _downloads_cache: Set[str]
-    _python_versions: List[str]
+    norm_python_versions: List[str]
 
     _REGEX_PRJ_VERSION: str = r"[0-9]+(\.[0-9]+)*"
-    _REGEX_PY_VERSION: str = r"[3](\.[0-9]+){2}"
+    _REGEX_PY_VERSION: str = r"[3](\.[0-9]+){0,2}"
 
     def __init__(self, download_path: str):
         assert os.path.isdir(download_path), f"{download_path} is not an existing directory"
         self.abs_download_path = os.path.abspath(download_path)
-        self._python_versions = self._get_python_versions()
+        self.norm_python_versions = self._get_norm_python_versions()
         self._downloads_cache = set()
 
     def download_python_source(self, python_version: str = "") -> str:
         if not python_version:
-            python_version = self._python_versions[0]
+            python_version = self.norm_python_versions[0]
         else:
-            if not self._is_valid_py_version(python_version):
+            python_version = self.normalize_python_version(python_version)
+
+            if not self.is_valid_py_version(python_version):
                 raise Exception(f"Specified version {python_version} has an invalid format")
-            if python_version not in self._python_versions:
+            python_version = self.normalize_python_version(python_version)
+            if python_version not in self.norm_python_versions:
                 raise Exception(f"Specified Python version {python_version} is unknown")
 
         # Request the source archive
         download_url = f"https://www.python.org/ftp/python/{python_version}/Python-{python_version}.tgz"
-        archive_path = os.path.join(self.abs_download_path, f"{self._build_dir_name(python_version)}.tgz")
+        archive_path = os.path.join(self.abs_download_path, f"{self.build_dir_name(python_version)}.tgz")
         response = requests.get(download_url)
         if not response.status_code == 200:
             raise Exception(f"Unable to find the specified Python version {python_version}, something went wrong")
@@ -43,13 +46,25 @@ class PyPI:
         with open(archive_path, "wb") as f:
             f.write(response.content)
 
-        # Extract it and delete the archive
+        # Extract and delete the archive
         with tarfile.open(archive_path) as f:
             f.extractall(self.abs_download_path)
         os.remove(archive_path)
 
+        # Store only the 'Lib' folder with the standard library packages
+        stdlib_folder = "Lib"
+        os.rename(
+            os.path.join(self.abs_download_path, self.build_dir_name(python_version), stdlib_folder),
+            os.path.join(self.abs_download_path, stdlib_folder)
+        )
+        shutil.rmtree(os.path.join(self.abs_download_path, self.build_dir_name(python_version)))
+        os.rename(
+            os.path.join(self.abs_download_path, stdlib_folder),
+            os.path.join(self.abs_download_path, self.build_dir_name(python_version))
+        )
+
         # Cache and return the final Python source folder path
-        folder_path = os.path.join(self.abs_download_path, self._build_dir_name(python_version))
+        folder_path = os.path.join(self.abs_download_path, self.build_dir_name(python_version))
         assert os.path.isdir(folder_path), f"{folder_path} is not an existing directory"
         assert folder_path == os.path.abspath(folder_path), f"{folder_path} is not an absolute path"
         self._downloads_cache.add(folder_path)
@@ -58,7 +73,7 @@ class PyPI:
     def download_project(self, project_name: str, project_version: str) -> str:
 
         # Check input
-        if not self._is_valid_prj_version(project_version):
+        if not self.is_valid_prj_version(project_version):
             raise Exception(f"Specified version {project_version} has an invalid format")
         available_versions = self._get_project_versions(project_name)
         if not available_versions:
@@ -146,7 +161,7 @@ class PyPI:
 
         return versions
 
-    def _get_python_versions(self) -> List[str]:
+    def _get_norm_python_versions(self) -> List[str]:
         releases_url = "https://www.python.org/downloads/"
         regex_html_release = r'<a href="/downloads/release/python-[0-9]+/">Python (' + \
                              self._REGEX_PY_VERSION + \
@@ -158,6 +173,8 @@ class PyPI:
         for release_match in regex.finditer(regex_html_release, releases_html):
             released_version = regex.search(self._REGEX_PY_VERSION + r'(?=<)',
                                             release_match.group(0)).group(0)
+            assert released_version == self.normalize_python_version(released_version), \
+                   f"Wrong assumption, '{released_version}' is not normalized"
             versions.append(released_version)
         return versions
 
@@ -166,14 +183,25 @@ class PyPI:
             assert regex.match(self._REGEX_PY_VERSION, version), f"invalid Python version {version}"
         else:
             assert regex.match(self._REGEX_PRJ_VERSION, version), f"invalid project version {version}"
-        return self._build_dir_name(version, name) in self._downloads_cache
+        return self.build_dir_name(version, name) in self._downloads_cache
 
     @staticmethod
-    def _build_dir_name(version: str, name: str = "Python") -> str:
+    def build_dir_name(version: str, name: str = "Python") -> str:
         return f"{name}-{version}"
 
-    def _is_valid_prj_version(self, version: str) -> bool:
+    def is_valid_prj_version(self, version: str) -> bool:
         return bool(regex.match(self._REGEX_PRJ_VERSION, version))
 
-    def _is_valid_py_version(self, version: str) -> bool:
+    def is_valid_py_version(self, version: str) -> bool:
         return bool(regex.match(self._REGEX_PY_VERSION, version))
+
+    def normalize_python_version(self, version: str) -> str:
+        # Example
+        # - 3 becomes 3.0.0
+        # - 3.4 becomes 3.4.0
+        # - 3.6.2 stays this way
+        # - 3.8.2.1 throws exception, invalid format
+        assert self.is_valid_py_version(version)
+        version_nums_list = version.split(".")
+        assert 0 < len(version_nums_list) < 4
+        return ".".join(version_nums_list + ["0"] * (3-len(version_nums_list)))
