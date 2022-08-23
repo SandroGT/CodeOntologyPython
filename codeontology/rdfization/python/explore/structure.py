@@ -3,7 +3,6 @@ import os
 import re as regex
 from typing import Dict, Iterator, Set
 
-import codeontology
 from codeontology import ontology
 from codeontology.rdfization.python import global_pypi
 
@@ -17,6 +16,7 @@ class Project:
     libraries: Set[Library]
     python: Library
     dependencies: Set[Library]
+    root: bool
 
     _cached_projects: Dict[str, Project] = dict()
 
@@ -37,6 +37,7 @@ class Project:
 
         # Init
         assert Project._cached_projects.get(abs_path, None) is None
+        self.root = root
 
         self.individual = ontology.Project()
         self.abs_path = abs_path
@@ -47,6 +48,13 @@ class Project:
 
         # Extract the useful content
         # SEE allowed keys for the setup file at https://setuptools.pypa.io/en/latest/references/keywords.html
+
+        name = setup_dict.get("name", "")
+        if not name:
+            raise Exception(f"How can '{self.abs_setup_file_path}' not declare a name!!!")
+        version = setup_dict.get("version", "")
+        if not version:
+            raise Exception(f"How can '{self.abs_setup_file_path}' not declare a version!!!")
 
         # Get Python version
         if root:
@@ -63,6 +71,24 @@ class Project:
             self.python = Library(python_abs_source_path)
         else:
             self.python = None
+
+        # Get dependencies
+        self.dependencies = set()
+        install_requires = setup_dict.get("install_requires", setup_dict.get("requires", None))
+        if install_requires:
+            for requirement in install_requires:
+                # TODO find a better way to deal with download errors
+                # IDEA for downloads should use a pip version that goes along with the downloaded Python version.
+                try:
+                    project_name, project_version = self._parse_requirement(requirement)
+                    assert global_pypi.is_existing_project(project_name, project_version), \
+                        f"{project_name}=={project_version}" if project_version else f"{project_name}" + \
+                        f" is not an existing downloadable project"
+                    project = Project.retrieve_or_create(project_name, project_version)
+                    for library in project.libraries:
+                        self.dependencies.add(library)
+                except Exception:
+                    continue
 
         # Get libraries
         packages = setup_dict.get("packages", None)
@@ -86,27 +112,27 @@ class Project:
                     root_lib_path = os.path.join(self.abs_path, root_lib_dir, root_lib_name)
                     assert Library.is_library(root_lib_path)
                     root_libraries_paths.add(root_lib_path)
-        self.libraries = set()
-        for root_lib_path in root_libraries_paths:
-            self.libraries.add(Library(root_lib_path))
+        else:
+            def search_root(abs_path):
+                for file in os.listdir(abs_path):
+                    abs_file = os.path.join(abs_path, file)
+                    if os.path.isdir(abs_file) and file.lower() == name.lower() or \
+                       os.path.isfile(abs_file) and file.lower() == name.lower() + ".py":
+                        return abs_file
+                for file in os.listdir(abs_path):
+                    abs_file = os.path.join(abs_path, file)
+                    if os.path.isdir(abs_file):
+                        r = search_root(abs_file)
+                        if r:
+                            return r
+            root_lib_path = search_root(self.abs_path)
+            assert root_lib_path
+            root_libraries_paths.add(root_lib_path)
 
-        # Get dependencies
-        self.dependencies = set()
-        install_requires = setup_dict.get("install_requires", setup_dict.get("requires", None))
-        if install_requires:
-            for requirement in install_requires:
-                # TODO find a better way to deal with download errors
-                # IDEA for downloads should use a pip version that goes along with the downloaded Python version.
-                try:
-                    project_name, project_version = self._parse_requirement(requirement)
-                    assert global_pypi.is_existing_project(project_name, project_version), \
-                        f"{project_name}=={project_version}" if project_version else f"{project_name}" + \
-                        f" is not an existing downloadable project"
-                    project = Project.retrieve_or_create(project_name, project_version)
-                    for library in project.libraries:
-                        self.dependencies.add(library)
-                except Exception:
-                    continue
+        self.libraries = set()
+        assert root_libraries_paths, f"Cannot have no libraries in {self.abs_path}"
+        for root_lib_path in root_libraries_paths:
+            self.libraries.add(Library(root_lib_path, self))
 
         # Complete individual info
 
@@ -119,12 +145,6 @@ class Project:
             self.individual.hasDependency.append(library.individual)
             assert self.individual in library.individual.isDependencyOf
 
-        name = setup_dict.get("name", "")
-        if not name:
-            raise Exception(f"How can '{self.abs_setup_file_path}' not declare a name!!!")
-        version = setup_dict.get("version", "")
-        if not version:
-            raise Exception(f"How can '{self.abs_setup_file_path}' not declare a version!!!")
         self.name = name
         self.version = version
         self.individual.hasName = f"{name}-{version}"
@@ -162,6 +182,10 @@ class Project:
         assert project
         return project
 
+    def get_packages(self) -> Iterator[Package]:
+        for library in self.libraries:
+            yield from library.root_package.get_packages()
+
     def _get_setup_file_content(self) -> Dict:
         from contextlib import contextmanager
         from importlib import import_module
@@ -182,6 +206,7 @@ class Project:
 
             try:
                 yield
+
             finally:
                 # Restore previous values
                 sys.stdout, sys.stderr = saved_stdout, saved_stderr

@@ -2,7 +2,7 @@ import os
 from typing import *
 
 from codeontology.rdfization.python import global_pypi
-from codeontology.rdfization.python.explorer.structure import Project, Library
+from codeontology.rdfization.python.explore.structure import Project
 
 
 class Explorer:
@@ -13,12 +13,10 @@ class Explorer:
     _max_recursions: int
     _root_download_abs_path: str
 
-    _results: list
-    _to_explore_abs_path_queue: list[(str, int)]
-    _to_translate: List[Union[Project, Library]]
+    _to_translate: List[Project]
 
     def __init__(
-            self, /,
+            self, *,
             to_explore_local_path: str = "",
             to_explore_project_name: str = "",
             to_explore_project_version: str = "",
@@ -75,3 +73,6 @@ class Explorer:
                             new_to_translate.append(library.project)
                             self._to_translate.append(library.project)
                 to_expand_project_list = new_to_translate.copy()
+
+    def get_projects(self):
+        return self._to_translate
