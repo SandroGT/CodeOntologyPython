@@ -1,7 +1,7 @@
 from __future__ import annotations
 import os
 import re as regex
-from typing import Dict, Iterator, Set
+from typing import Dict, Iterator, Set, Tuple, List
 
 from codeontology import ontology
 from codeontology.rdfization.python import global_pypi
@@ -9,46 +9,43 @@ from codeontology.rdfization.python import global_pypi
 
 class Project:
     individual: ontology.Project
-    abs_path: str
+    abs_project_path: str
+    abs_install_path: str
+    abs_setup_file_path: str
     name: str
     version: str
-    abs_setup_file_path: str
     libraries: Set[Library]
-    python: Library
+    python: Set[Library]
     dependencies: Set[Library]
-    root: bool
-
-    _cached_projects: Dict[str, Project] = dict()
 
     __PROJECT_SETUP_FILE = "setup.py"
-    __PROJECT_CONF_FILE = "setup.cfg"
 
-    def __init__(self, abs_path: str, root: bool = False):
+    def __init__(self, abs_project_path: str, abs_install_path: str, installed_packages: List[str]):
 
         # Check input
-        if not abs_path:
-            raise Exception("'abs_path' has not been specified")
-        if not os.path.isdir(abs_path):
-            raise Exception(f"Specified path '{abs_path}' is not a valid directory")
-        if not abs_path == os.path.abspath(abs_path):
-            raise Exception(f"Specified path '{abs_path}' is not an absolute path value")
-        if not Project.is_project(abs_path):
-            raise Exception(f"Specified path '{abs_path}' is not a valid project path")
+        if not os.path.isdir(abs_project_path):
+            raise Exception(f"Specified path '{abs_project_path}' is not a valid directory")
+        if not abs_project_path == os.path.abspath(abs_project_path):
+            raise Exception(f"Specified path '{abs_project_path}' is not an absolute path value")
+        if not Project.is_project(abs_project_path):
+            raise Exception(f"Specified path '{abs_project_path}' is not a valid project path")
+        if not os.path.isdir(abs_install_path):
+            raise Exception(f"Specified path '{abs_install_path}' is not a valid directory")
+        if not abs_install_path == os.path.abspath(abs_install_path):
+            raise Exception(f"Specified path '{abs_install_path}' is not an absolute path value")
 
         # Init
-        assert Project._cached_projects.get(abs_path, None) is None
-        self.root = root
-
         self.individual = ontology.Project()
-        self.abs_path = abs_path
-        self.abs_setup_file_path = os.path.join(self.abs_path, self.__PROJECT_SETUP_FILE)
+        self.abs_project_path = abs_project_path
+        self.abs_install_path = abs_install_path
+        install_path_files = {file for file in os.listdir(self.abs_install_path)}
+        self.abs_setup_file_path = os.path.join(self.abs_project_path, self.__PROJECT_SETUP_FILE)
 
         # Read the setup file
         setup_dict = self._get_setup_file_content()
-
-        # Extract the useful content
         # SEE allowed keys for the setup file at https://setuptools.pypa.io/en/latest/references/keywords.html
 
+        # Get project name and version from setup
         name = setup_dict.get("name", "")
         if not name:
             raise Exception(f"How can '{self.abs_setup_file_path}' not declare a name!!!")
@@ -56,91 +53,150 @@ class Project:
         if not version:
             raise Exception(f"How can '{self.abs_setup_file_path}' not declare a version!!!")
 
-        # Get Python version
-        if root:
-            python_requires = setup_dict.get("python_requires", None)
-            if python_requires:
-                # Take exactly the specified version, not caring about upper or lower bounds
-                python_version = global_pypi.normalize_python_version(regex.sub(r"[<>=]", "", python_requires))
-            else:
-                # We automatically assume the latest if one is not specified
-                # FIXME latest usually are in a 'bugfix' status, which is not ideal
-                python_version = global_pypi.norm_python_versions[0]
-            assert global_pypi.is_valid_py_version(python_version), f"Generated an invalid Python version {python_version}"
-            python_abs_source_path = global_pypi.download_python_source(python_version)
-            self.python = Library(python_abs_source_path)
+        # Get Python version and Python libraries
+        self.python = set()
+        python_requires = setup_dict.get("python_requires", None)
+        if python_requires:
+            # Take exactly the specified version, not caring about upper or lower bounds
+            python_version = global_pypi.normalize_python_version(regex.sub(r"[<>=]", "", python_requires))
         else:
-            self.python = None
+            # We automatically assume the latest if one is not specified
+            # FIXME latest Python versions usually are in a 'bugfix' status, which is not ideal
+            python_version = global_pypi.norm_python_versions[0]
+        if not global_pypi.is_valid_py_version(python_version):
+            raise Exception(f"Generated an invalid Python version '{python_version}'")
+        python_abs_source_path = global_pypi.download_python_source(python_version)
+        python_abs_source_content = {os.path.join(python_abs_source_path, file) for file in os.listdir(python_abs_source_path)}
+        for file in os.listdir(python_abs_source_path):
+            abs_file = os.path.join(python_abs_source_path, file)
+            if Library.is_library(abs_file):
+                self.python.add(Library(abs_file))
 
-        # Get dependencies
-        self.dependencies = set()
-        install_requires = setup_dict.get("install_requires", setup_dict.get("requires", None))
-        if install_requires:
-            for requirement in install_requires:
-                # TODO find a better way to deal with download errors
-                # IDEA for downloads should use a pip version that goes along with the downloaded Python version.
-                try:
-                    project_name, project_version = self._parse_requirement(requirement)
-                    assert global_pypi.is_existing_project(project_name, project_version), \
-                        f"{project_name}=={project_version}" if project_version else f"{project_name}" + \
-                        f" is not an existing downloadable project"
-                    project = Project.retrieve_or_create(project_name, project_version)
-                    for library in project.libraries:
-                        self.dependencies.add(library)
-                except Exception:
-                    continue
-
-        # Get libraries
+        # Get root packages (libraries) from setup
         packages = setup_dict.get("packages", None)
         if not packages:
             raise Exception(f"No declared packages inside '{self.abs_setup_file_path}'")
-        root_libraries_names = set([pkg.split(".")[0] for pkg in packages])
+        root_packages_names = set([pkg.split(".")[0] for pkg in packages])
         package_dir = setup_dict.get("package_dir", None)
         root_libraries_paths = set()
         if package_dir:
-            src_dir = package_dir.get("", None)
-            if src_dir:
+            source_dir = package_dir.get("", None)
+            if source_dir:
                 assert len(package_dir.keys()) == 1, f"Misinterpreted key 'package_dir' on '{self.abs_setup_file_path}'"
-                for root_lib_name in root_libraries_names:
-                    root_lib_path = os.path.join(self.abs_path, src_dir, root_lib_name)
+                for root_pkg_name in root_packages_names:
+                    root_lib_path = os.path.join(self.abs_project_path, source_dir, root_pkg_name)
                     assert Library.is_library(root_lib_path), f"{root_lib_path} is not a 'Library' path"
                     root_libraries_paths.add(root_lib_path)
             else:
-                for root_lib_name in root_libraries_names:
-                    root_lib_dir = package_dir.get(root_lib_name, None)
-                    assert root_lib_dir, f"Unable to find root directory for {root_lib_name} 'Library'"
-                    root_lib_path = os.path.join(self.abs_path, root_lib_dir, root_lib_name)
+                for root_pkg_name in root_packages_names:
+                    root_lib_dir = package_dir.get(root_pkg_name, None)
+                    assert root_lib_dir, f"Unable to find root directory for {root_pkg_name} 'Library'"
+                    root_lib_path = os.path.join(self.abs_project_path, root_lib_dir, root_pkg_name)
                     assert Library.is_library(root_lib_path)
                     root_libraries_paths.add(root_lib_path)
         else:
-            def search_root(abs_path):
+            # If not specified, search for a directory named after the project
+            def search_for_root(abs_path: str) -> str:
                 for file in os.listdir(abs_path):
                     abs_file = os.path.join(abs_path, file)
                     if os.path.isdir(abs_file) and file.lower() == name.lower() or \
-                       os.path.isfile(abs_file) and file.lower() == name.lower() + ".py":
+                            os.path.isfile(abs_file) and file.lower() == name.lower() + ".py":
                         return abs_file
                 for file in os.listdir(abs_path):
                     abs_file = os.path.join(abs_path, file)
                     if os.path.isdir(abs_file):
-                        r = search_root(abs_file)
-                        if r:
-                            return r
-            root_lib_path = search_root(self.abs_path)
-            assert root_lib_path
+                        search_result = search_for_root(abs_file)
+                        if search_result:
+                            return search_result
+            root_lib_path = search_for_root(self.abs_project_path)
+            assert root_lib_path, f"some library root should be found in '{self.abs_project_path}'"
             root_libraries_paths.add(root_lib_path)
-
-        self.libraries = set()
-        assert root_libraries_paths, f"Cannot have no libraries in {self.abs_path}"
+        if not root_libraries_paths:
+            raise Exception(f"Cannot have no libraries in {self.abs_project_path}")
         for root_lib_path in root_libraries_paths:
+            assert os.path.basename(root_lib_path) in install_path_files
+
+        libraries_paths = set()
+        libraries_names = set()
+        self.libraries = set()
+        for root_lib_path in root_libraries_paths:
+            assert os.path.basename(root_lib_path) in install_path_files, f"'{os.path.basename(root_lib_path)}' not in {self.abs_install_path} ({install_path_files})"
+            assert Package.is_package_path(root_lib_path), f"'{root_lib_path}' is not a 'Package'"
+            libraries_paths.add(root_lib_path)
+            libraries_names.add(os.path.splitext(os.path.basename(root_lib_path))[0])
             self.libraries.add(Library(root_lib_path, self))
+
+        # Find the distribution files of the installed dependencies
+        installed_distributions = set()
+        for file in install_path_files:
+            if file.endswith("dist-info"):
+                abs_file = os.path.join(abs_install_path, file)
+                assert os.path.isdir(abs_file), f"{abs_file}"
+                if "top_level.txt" in os.listdir(abs_file):
+                    with open(os.path.join(abs_file, "top_level.txt"), "r", encoding="utf8") as f:
+                        lines = f.readlines()
+                        assert len(lines) == 1, f"{len(lines)}"
+                        lib_distribution_file = lines[0].strip()
+                else:
+                    lib_distribution_file = file.split("-")[0]
+                assert lib_distribution_file, f"{lib_distribution_file}"
+                abs_lib_distribution_file = os.path.join(abs_install_path, lib_distribution_file)
+                if os.path.exists(abs_lib_distribution_file):
+                    assert os.path.isdir(abs_lib_distribution_file), f"{abs_lib_distribution_file}"
+                else:
+                    abs_lib_distribution_file += ".py"
+                    assert os.path.isfile(abs_lib_distribution_file), f"{abs_lib_distribution_file}"
+                installed_distributions.add(lib_distribution_file)
+
+        # Get dependencies from the setup
+        install_requires = setup_dict.get("install_requires", setup_dict.get("requires", None))
+        if install_requires:
+            # Nothing to check with that info for now, since not all the specified requirements always get installed,
+            # and this is not necessarily a problem, especially if they dont respect requirements
+            pass
+        else:
+            assert not installed_distributions
+
+        # Get dependencies from installed packages
+        self.dependencies = set()
+        for distribution in installed_distributions:
+            assert "-" not in distribution, f"{distribution}"
+
+            # get absolute path
+            abs_distribution_path = os.path.join(abs_install_path, distribution)
+            assert os.path.exists(abs_distribution_path), f"{abs_distribution_path}"
+
+            # Skip installed project, use the source
+            if os.path.basename(abs_distribution_path) in libraries_names:
+                continue
+
+            # Search libraries in that distribution
+            if not os.path.isdir(abs_distribution_path):
+                abs_distribution_path += ".py"
+                assert os.path.isfile(abs_distribution_path) and Library.is_library(abs_distribution_path)
+            assert os.path.exists(abs_distribution_path)
+            new_paths = {abs_distribution_path}
+            while new_paths:
+                to_check = new_paths.copy()
+                new_paths = set()
+                for abs_path in to_check:
+                    if Library.is_library(abs_path):
+                        self.dependencies.add(Library(abs_path))
+                    else:
+                        assert os.path.isdir(abs_path)
+                        for file in os.listdir(abs_path):
+                            new_paths.add(os.path.join(abs_path, file))
+        assert len(self.dependencies) == len(installed_packages) - len(self.libraries), \
+               f"{len(self.dependencies)} == {len(installed_packages) - len(self.libraries)}"
 
         # Complete individual info
 
         self.individual.hasBuildFile = self.__PROJECT_SETUP_FILE
 
-        if root:
-            self.individual.hasDependency.append(self.python.individual)
-            assert self.individual in self.python.individual.isDependencyOf
+        for library in self.python:
+            assert isinstance(library, Library)
+            self.individual.hasDependency.append(library.individual)
+            assert self.individual in library.individual.isDependencyOf
         for library in self.dependencies:
             self.individual.hasDependency.append(library.individual)
             assert self.individual in library.individual.isDependencyOf
@@ -162,25 +218,10 @@ class Project:
             assert library.individual in self.individual.isProjectOf
 
     def __hash__(self):
-        return self.abs_path.__hash__()
+        return self.abs_project_path.__hash__()
 
     def __eq__(self, other):
-        return self.abs_path == getattr(other, "abs_path", None)
-
-    @staticmethod
-    def retrieve_or_create(project_name, project_version):
-        if not project_version:
-            project_version = global_pypi.get_project_versions(project_name)[0]
-        project_abs_path = os.path.join(
-            global_pypi.abs_download_path, global_pypi.build_dir_name(project_version, project_name))
-
-        project = Project._cached_projects.get(project_abs_path, None)
-        if not project:
-            abs_path = global_pypi.download_project(project_name, project_version)
-            assert abs_path == project_abs_path
-            project = Project(abs_path)
-        assert project
-        return project
+        return self.abs_project_path == getattr(other, "abs_path", None)
 
     def get_packages(self) -> Iterator[Package]:
         for library in self.libraries:
@@ -221,7 +262,7 @@ class Project:
         # SEE context manager at https://stackoverflow.com/a/37996581/13640701
         # SEE stop setup prints at https://stackoverflow.com/a/10321751/13640701
         fail = False
-        with safe_setup_read(self.abs_path), mock.patch.object(setuptools, 'setup') as mock_setup:
+        with safe_setup_read(self.abs_project_path), mock.patch.object(setuptools, 'setup') as mock_setup:
             try:
                 # IDEA Another option could be to use subprocess to read it
                 import_module(os.path.splitext(self.__PROJECT_SETUP_FILE)[0])
@@ -236,26 +277,51 @@ class Project:
             raise Exception(f"Unable to securely read the '{self.abs_setup_file_path}' file content")
 
     @staticmethod
-    def _parse_requirement(requirement: str):
+    def _parse_requirement(requirement: str) -> Tuple[str, Tuple[str, str], Tuple[str, str]]:
+        def extract_project_versions(versions: str) -> Tuple[str, str]:
+            upper_limit: str = ""
+            lower_limit: str = ""
+            if versions:
+                if "," in versions:
+                    assert ">" in versions and "<" in versions, f"{versions}"
+                    lower_limit, upper_limit = tuple(versions.split(","))
+                else:
+                    if ">" in versions:
+                        lower_limit = versions
+                    else:
+                        assert "<" in versions
+                        upper_limit = versions
+            return lower_limit, upper_limit
+
+        def extract_python_versions(other_requirements: str) -> Tuple[str, str]:
+            match_python_version_lower = regex.search(r"(?<=python_version)>=?'[\d.]+'", other_requirements)
+            python_version_lower = ""
+            if match_python_version_lower:
+                python_version_lower = regex.sub(r"'", r"", match_python_version_lower.group())
+            match_python_version_upper = regex.search(r"(?<=python_version)<=?'[\d.]+'", other_requirements)
+            python_version_upper = ""
+            if match_python_version_upper:
+                python_version_upper = regex.sub(r"'", r"", match_python_version_upper.group())
+            return python_version_lower, python_version_upper
+
         assert regex.match(r"^[\w\d\-.,;'<>= ]+$", requirement), f"Unexpected format for {requirement}"
+        # Get rid of optional spaces
         requirement = regex.sub(r" ", r"", requirement)
-        requirement = requirement.split(";")[0]
-        list_requirement = [requirement]
-        if "==" in requirement:
-            list_requirement = requirement.split("==")
-        else:
-            if "<" in requirement:
-                list_requirement = requirement.split("<")
-            elif ">" in requirement:
-                list_requirement = requirement.split(">")
-            if len(list_requirement) > 1:
-                if "=" in list_requirement[1]:
-                    assert list_requirement[1].startswith("=")
-                    list_requirement[1] = list_requirement[1][1:]
-        assert 1 <= len(list_requirement) <= 2
-        project_name = list_requirement[0]
-        project_version = list_requirement[1] if len(list_requirement) == 2 else ""
-        return project_name, project_version
+
+        # Match project name
+        match_name = regex.search(r"^[^<>=]*", requirement)
+        project_name = requirement[0:match_name.span()[1]]
+        requirement = requirement[match_name.span()[1]:]
+
+        # Match project versions
+        match_versions = regex.search(r"^[^;]*", requirement)
+        project_versions = extract_project_versions(requirement[0:match_versions.span()[1]])
+        requirement = requirement[match_versions.span()[1]:]
+
+        # Match python versions
+        python_versions = extract_python_versions(requirement)
+
+        return project_name, project_versions, python_versions
 
     @staticmethod
     def is_project(abs_path) -> bool:
@@ -271,7 +337,6 @@ class Library:
     abs_path: str
     project: Project
     root_package: Package
-    dependencies: Set[Library]
 
     def __init__(self, abs_path, project: Project = None):
 
@@ -284,21 +349,16 @@ class Library:
             raise Exception(f"Specified path '{abs_path}' is not a valid library path")
         if project and not isinstance(project, Project):
             raise Exception(f"Wrong 'project' type, expected 'Project', obtained '{type(project)}''")
-        if project and not abs_path.startswith(project.abs_path):
-            raise Exception(f"Specified path '{abs_path}' is not part of '{project.abs_path}'")
+        if project and not abs_path.startswith(project.abs_project_path):
+            raise Exception(f"Specified path '{abs_path}' is not part of '{project.abs_project_path}'")
 
         # Init
         self.individual = ontology.Library()
         self.abs_path = abs_path
         self.project = project
         self.root_package = Package(abs_path, self)
-        self.dependencies = self.project.dependencies if self.project else []
 
         # Complete individual info
-
-        for library in self.dependencies:
-            self.individual.hasDependency.append(library.individual)
-            assert self.individual in library.individual.isDependencyOf
 
         self.individual.hasName = Library.build_name(self.abs_path)
 
@@ -330,12 +390,6 @@ class Library:
         return \
             (Package.is_package_path(abs_path) or Package.is_module_path(abs_path)) and \
             not Package.is_package_path(os.path.normpath(os.path.join(abs_path, "..")))
-
-    def _get_de_facto_dependencies(self):
-        # TODO this could be a starting point to allow to analyze libraries and not necessarily projects
-        dependencies = set()
-        for imported_name in self.root_package.get_imported_names():
-            pass
 
 
 class Package:  # or module, since ontologically speaking a module is a package
@@ -402,20 +456,6 @@ class Package:  # or module, since ontologically speaking a module is a package
 
     def __eq__(self, other):
         return self.abs_path == getattr(other, "abs_path", None)
-
-    def get_imported_names(self) -> Iterator[str]:
-        # TODO
-        import astroid
-
-        def search_imports(node: astroid.nodes.NodeNG):
-            if isinstance(node, astroid.nodes.Import):
-                pass
-        if self.is_module:
-            # search imported names somehow
-            pass
-        else:
-            for package in self.direct_packages:
-                yield from package.get_imported_names()
 
     def get_packages(self) -> Iterator[Package]:
         yield self
