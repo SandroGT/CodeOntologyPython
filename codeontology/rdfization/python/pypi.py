@@ -100,16 +100,16 @@ class PyPI:
              "--no-cache-dir"],       # no use of caches, no track of the download on your venv
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            shell=True
         )
-        process.communicate()
-        assert process.returncode == 0, f"process return code is {process.returncode}"
+        out, err = process.communicate()
+        assert process.returncode == 0, f"process return code is {process.returncode}\nerr:\n{str(err)}\nmaybe try another version from {available_versions}"
 
         # Find the downloaded source archive
         assert len(os.listdir(abs_temp_path)) == 1, f"there are {len(os.listdir(abs_temp_path))} files"
         abs_archive_path = os.path.join(abs_temp_path, os.listdir(abs_temp_path)[0])
 
         # Open the archive, extract its content in the temporary directory, then delete it
+        # TODO can happen it downloads a zip
         with tarfile.open(abs_archive_path) as f_archive:
             f_archive.extractall(abs_temp_path)
         os.remove(abs_archive_path)
@@ -140,13 +140,13 @@ class PyPI:
             stderr=subprocess.PIPE,
         )
         out, err = process.communicate()
-        assert process.returncode == 0, f"process return code is {process.returncode}"
+        assert process.returncode == 0, f"process return code is {process.returncode}\nerr:\n{str(err)}"
 
         installed_packages_str = \
             regex.search(r"(?<=Installing collected packages: ).*?(?=\\r\\nSuccessfully installed)", str(out)).group()
         print(f"Installed packages: {installed_packages_str}")
 
-        return project_path, install_path, installed_packages_str.split(", ")
+        return download_target, project_path, install_path, installed_packages_str.split(", ")
 
     @staticmethod
     def is_existing_project(project_name: str, project_version: str = "") -> bool:

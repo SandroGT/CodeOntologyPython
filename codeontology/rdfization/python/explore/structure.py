@@ -20,9 +20,15 @@ class Project:
 
     __PROJECT_SETUP_FILE = "setup.py"
 
-    def __init__(self, abs_project_path: str, abs_install_path: str, installed_packages: List[str]):
+    def __init__(self,
+                 download_target: str,
+                 abs_project_path: str,
+                 abs_install_path: str,
+                 installed_packages: List[str]):
 
         # Check input
+        if len(download_target.split("==")) != 2:
+            raise Exception(f"Invalid download target '{download_target}'")
         if not os.path.isdir(abs_project_path):
             raise Exception(f"Specified path '{abs_project_path}' is not a valid directory")
         if not abs_project_path == os.path.abspath(abs_project_path):
@@ -48,10 +54,10 @@ class Project:
         # Get project name and version from setup
         name = setup_dict.get("name", "")
         if not name:
-            raise Exception(f"How can '{self.abs_setup_file_path}' not declare a name!!!")
+            name = download_target.split("==")[0]
         version = setup_dict.get("version", "")
         if not version:
-            raise Exception(f"How can '{self.abs_setup_file_path}' not declare a version!!!")
+            version = download_target.split("==")[1]
 
         # Get Python version and Python libraries
         self.python = set()
@@ -75,7 +81,7 @@ class Project:
         # Get root packages (libraries) from setup
         packages = setup_dict.get("packages", None)
         if not packages:
-            raise Exception(f"No declared packages inside '{self.abs_setup_file_path}'")
+            packages = [name]
         root_packages_names = set([pkg.split(".")[0] for pkg in packages])
         package_dir = setup_dict.get("package_dir", None)
         root_libraries_paths = set()
@@ -132,21 +138,28 @@ class Project:
             if file.endswith("dist-info"):
                 abs_file = os.path.join(abs_install_path, file)
                 assert os.path.isdir(abs_file), f"{abs_file}"
+                lib_distribution_files = set()
                 if "top_level.txt" in os.listdir(abs_file):
                     with open(os.path.join(abs_file, "top_level.txt"), "r", encoding="utf8") as f:
-                        lines = f.readlines()
-                        assert len(lines) == 1, f"{len(lines)}"
-                        lib_distribution_file = lines[0].strip()
+                        for line in f.readlines():
+                            content = line.strip()
+                            if content:
+                                lib_distribution_files.add(content)
                 else:
-                    lib_distribution_file = file.split("-")[0]
-                assert lib_distribution_file, f"{lib_distribution_file}"
-                abs_lib_distribution_file = os.path.join(abs_install_path, lib_distribution_file)
-                if os.path.exists(abs_lib_distribution_file):
-                    assert os.path.isdir(abs_lib_distribution_file), f"{abs_lib_distribution_file}"
-                else:
-                    abs_lib_distribution_file += ".py"
-                    assert os.path.isfile(abs_lib_distribution_file), f"{abs_lib_distribution_file}"
-                installed_distributions.add(lib_distribution_file)
+                    lib_distribution_files.add(file.split("-")[0])
+                assert lib_distribution_files
+                checked_lib_distribution_files = set()
+                for distr_file in lib_distribution_files:
+                    abs_distr_file = os.path.join(abs_install_path, distr_file)
+                    if os.path.isdir(abs_distr_file):
+                        checked_lib_distribution_files.add(distr_file)
+                    else:
+                        abs_distr_file += ".py"
+                        if os.path.isfile(abs_distr_file):
+                            checked_lib_distribution_files.add(distr_file)
+                assert checked_lib_distribution_files
+                for distr_file in checked_lib_distribution_files:
+                    installed_distributions.add(distr_file)
 
         # Get dependencies from the setup
         install_requires = setup_dict.get("install_requires", setup_dict.get("requires", None))
@@ -154,21 +167,18 @@ class Project:
             # Nothing to check with that info for now, since not all the specified requirements always get installed,
             # and this is not necessarily a problem, especially if they dont respect requirements
             pass
-        else:
-            assert not installed_distributions
 
         # Get dependencies from installed packages
         self.dependencies = set()
         for distribution in installed_distributions:
             assert "-" not in distribution, f"{distribution}"
 
-            # get absolute path
-            abs_distribution_path = os.path.join(abs_install_path, distribution)
-            assert os.path.exists(abs_distribution_path), f"{abs_distribution_path}"
-
             # Skip installed project, use the source
-            if os.path.basename(abs_distribution_path) in libraries_names:
+            if distribution in libraries_names:
                 continue
+
+            # Get absolute path
+            abs_distribution_path = os.path.join(abs_install_path, distribution)
 
             # Search libraries in that distribution
             if not os.path.isdir(abs_distribution_path):
@@ -186,8 +196,11 @@ class Project:
                         assert os.path.isdir(abs_path)
                         for file in os.listdir(abs_path):
                             new_paths.add(os.path.join(abs_path, file))
-        assert len(self.dependencies) == len(installed_packages) - len(self.libraries), \
-               f"{len(self.dependencies)} == {len(installed_packages) - len(self.libraries)}"
+
+        # TODO add a way to add dependencies from reading the import statements in the packages. Some modules, like
+        #  testing modules, imports libraries that are not declared in the setup dependencies, since they contain code
+        #  supposed to be run only for testing and not for normal use. This way we are missing the chance to get their
+        #  triples.
 
         # Complete individual info
 
@@ -379,7 +392,7 @@ class Library:
     @staticmethod
     def build_name(abs_path: str) -> str:
         if Package.is_package_path(abs_path):
-            return abs_path.split(os.path.sep)[-2]
+            return abs_path.split(os.path.sep)[-1]
         else:
             assert Package.is_module_path(abs_path)
             return os.path.splitext(abs_path.split(os.path.sep)[-1])[0]
@@ -465,7 +478,7 @@ class Package:  # or module, since ontologically speaking a module is a package
     @staticmethod
     def build_full_name(abs_path: str, library_path: str) -> str:
         library_name = Library.build_name(library_path)
-        return library_name + abs_path.split(library_name)[1].replace(os.path.sep, ".")
+        return library_name + abs_path.split(library_name)[-1].replace(os.path.sep, ".")
 
     @staticmethod
     def is_package_path(abs_path) -> bool:

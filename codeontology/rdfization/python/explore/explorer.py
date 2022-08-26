@@ -24,12 +24,12 @@ class Explorer:
         self._to_explore_project_name = to_explore_project_name
         self._to_explore_project_version = to_explore_project_version
 
-        abs_project_path, abs_install_path, installed_packages = global_pypi.download_project(
+        download_target, abs_project_path, abs_install_path, installed_packages = global_pypi.download_project(
             self._to_explore_project_name,
             self._to_explore_project_version
         )
 
-        self._to_translate = Project(abs_project_path, abs_install_path, installed_packages)
+        self._to_translate = Project(download_target, abs_project_path, abs_install_path, installed_packages)
 
     def get_project(self) -> Project:
         return self._to_translate

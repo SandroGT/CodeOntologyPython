@@ -1,51 +1,67 @@
 from __future__ import annotations
+from contextlib import contextmanager
 import os
-from typing import List, Dict
+import sys
+import time
+from tqdm import tqdm
 
 import astroid
 
-from codeontology.rdfization.python.explore.structure import Project, Library, Package
+from codeontology.rdfization.python.explore.structure import Project, Library
 from codeontology.rdfization.python.translate.visitor import Visitor
 
 
-backup_astroid_cache = astroid.astroid_manager.MANAGER.astroid_cache.copy()
-
-
 class Translator:
+    project: Project
 
     def __init__(self, project: Project):
         assert isinstance(project, Project) and Project.is_project(project.abs_project_path)
-        self.translate_project(project)
+        self.project = project
+        with self.parsing_environment():
+            self._build_meta_model()
+            self._translate_project()
 
-    def translate_project(self, project: Project):
-        from contextlib import contextmanager
-        import sys
+    @contextmanager
+    def parsing_environment(self):
+        # Backup of sys.path and astroid cache
+        saved_sys_path = sys.path.copy()
+        saved_astroid_cache = astroid.astroid_manager.MANAGER.astroid_cache.copy()
 
-        @contextmanager
-        def root_parsing_environment(project: Project):
+        # Reset sys.path and add the new dependencies to it, clear astroid cache
+        sys.path = []
+        for library_set in [self.project.python, self.project.libraries, self.project.dependencies]:
+            for library in library_set:
+                search_path = os.path.normpath(os.path.join(library.abs_path, ".."))
+                if search_path not in sys.path:
+                    sys.path.insert(0, search_path)
+        # for key in list(astroid.astroid_manager.MANAGER.astroid_cache.keys()):
+        #     del astroid.astroid_manager.MANAGER.astroid_cache[key]
 
-            # Add dependencies to sys.path
-            c = 0
-            for library_set in [project.python, project.libraries, project.dependencies]:
-                for library in library_set:
-                    search_path = os.path.normpath(os.path.join(library.abs_path, ".."))
-                    print(f"{library.abs_path} ---> {search_path}")
-                    if search_path not in sys.path:
-                        sys.path.insert(0, search_path)
-                        c += 1
+        try:
+            yield
 
-            try:
-                yield
+        finally:
+            # Restore sys.path and astroid cache
+            sys.path = saved_sys_path.copy()
+            astroid.astroid_manager.MANAGER.astroid_cache = saved_astroid_cache.copy()
 
-            finally:
-                # Remove dependencies from sys.path
-                sys.path = sys.path[c:]
-                # Restore caches
-                astroid.astroid_manager.MANAGER.astroid_cache = backup_astroid_cache.copy()
+    def _build_meta_model(self):
+        print(f"Building meta-model of '{self.project.individual.hasName}'")
+        for library in self.project.libraries:
+            assert isinstance(library, Library)
+            packages_list = list(library.root_package.get_packages())
+            time.sleep(0.1)
+            for package in tqdm(packages_list):
+                Visitor.parse(package)
+            time.sleep(0.1)
 
-        with root_parsing_environment(project):
-            for package in project.get_packages():
-                self.extract_package_rdfs(package)
-
-    def extract_package_rdfs(self, package: Package):
-        vst = Visitor(package)
+    def _translate_project(self):
+        print(f"Extracting RDF triples from '{self.project.individual.hasName}'")
+        for library in self.project.libraries:
+            assert isinstance(library, Library)
+            packages_list = list(library.root_package.get_packages())
+            time.sleep(0.1)
+            for package in tqdm(packages_list):
+                assert getattr(package, "ast", None)
+                Visitor.visit_to_extract(package.ast)
+            time.sleep(0.1)
