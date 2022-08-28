@@ -1,6 +1,7 @@
 from __future__ import annotations
 import os
 import re as regex
+import shutil
 from typing import Dict, Iterator, Set, Tuple, List
 
 from codeontology import ontology
@@ -173,13 +174,13 @@ class Project:
         for distribution in installed_distributions:
             assert "-" not in distribution, f"{distribution}"
 
+            # Get absolute path
+            abs_distribution_path = os.path.join(abs_install_path, distribution)
+
             # Skip installed project, use the source
             if distribution in libraries_names:
                 shutil.rmtree(abs_distribution_path)
                 continue
-
-            # Get absolute path
-            abs_distribution_path = os.path.join(abs_install_path, distribution)
 
             # Search libraries in that distribution
             if not os.path.isdir(abs_distribution_path):
@@ -479,7 +480,7 @@ class Package:  # or module, since ontologically speaking a module is a package
     @staticmethod
     def build_full_name(abs_path: str, library_path: str) -> str:
         library_name = Library.build_name(library_path)
-        return library_name + abs_path.split(library_name)[-1].replace(os.path.sep, ".")
+        return library_name + os.path.splitext(abs_path)[0].split(library_name)[-1].replace(os.path.sep, ".")
 
     @staticmethod
     def is_package_path(abs_path) -> bool:

@@ -4,7 +4,8 @@ import astroid
 
 from codeontology import ontology
 from codeontology.rdfization.python.explore.structure import Package
-from codeontology.rdfization.python.translate.transforms import transform_add_method_overrides, transform_add_method_args_type, transforms_add_class_fields
+from codeontology.rdfization.python.translate.transforms import *
+from codeontology.rdfization.python.translate.individuals import *
 
 
 class Visitor:
@@ -13,7 +14,7 @@ class Visitor:
     def parse(package: Package) -> None:
         assert os.path.isfile(package.abs_path)
         assert package.abs_path == os.path.abspath(package.abs_path)
-        module_name = package.individual.hasFullyQualifiedName
+        module_name = package.individual.hasFullyQualifiedName + ".py"
         assert module_name
 
         cached_ast = astroid.astroid_manager.MANAGER.astroid_cache.get(module_name, None)
@@ -80,8 +81,6 @@ class Visitor:
 
     @staticmethod
     def _extract_ClassDef(node: astroid.ClassDef):
-        fields_dict = getattr(node, "fields_dict", "<unmatched>")
-        if fields_dict == "<unmatched>":
-            transforms_add_class_fields(node)
-            fields_dict = getattr(node, "fields_dict", "<unmatched>")
-        assert fields_dict != "<unmatched>"
+        class_individual = getattr(node, "class_individual", "<unmatched>")
+        if class_individual == "<unmatched>":
+            class_individual = build_class_individual(node)
