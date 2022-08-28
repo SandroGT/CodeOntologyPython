@@ -4,6 +4,7 @@ import os
 import sys
 import time
 from tqdm import tqdm
+from typing import List
 
 import astroid
 
@@ -17,6 +18,7 @@ class Translator:
     def __init__(self, project: Project):
         assert isinstance(project, Project) and Project.is_project(project.abs_project_path)
         self.project = project
+        # Start parsing and creating rdf triples
         with self.parsing_environment():
             self._build_meta_model()
             self._translate_project()

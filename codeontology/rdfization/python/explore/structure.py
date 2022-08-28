@@ -175,6 +175,7 @@ class Project:
 
             # Skip installed project, use the source
             if distribution in libraries_names:
+                shutil.rmtree(abs_distribution_path)
                 continue
 
             # Get absolute path
