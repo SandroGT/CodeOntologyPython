@@ -1,118 +1,121 @@
 import astroid
 
 
-def transform_add_method_overrides(node: astroid.FunctionDef):
-    """
-    Add to a node of type 'astroid.FunctionDef' a tuple linking to the method node it is overriding and its class node
-     owner in a 'overrides' attribute. Contains '(None, None)' if it overrides nothing.
-    """
-    # print("transform_add_method_overrides")
-    assert isinstance(node, astroid.FunctionDef)
-    overridden_method_node = class_owner_node = None
-    if isinstance(node.parent, astroid.ClassDef):
-        ancestors_mro = node.parent.mro()[1:]  # first ancestor is itself, skip it
-        for ancestor_node in ancestors_mro:
-            for ancestor_method_node in ancestor_node.methods():
-                if ancestor_method_node.name == node.name:
-                    overridden_method_node = ancestor_method_node
-                    class_owner_node = ancestor_node
+class Transformer:
+
+    @staticmethod
+    def transform_add_method_overrides(node: astroid.FunctionDef):
+        """
+        Add to a node of type 'astroid.FunctionDef' a tuple linking to the method node it is overriding and its class node
+         owner in a 'overrides' attribute. Contains '(None, None)' if it overrides nothing.
+        """
+        # print("transform_add_method_overrides")
+        assert isinstance(node, astroid.FunctionDef)
+        overridden_method_node = class_owner_node = None
+        if isinstance(node.parent, astroid.ClassDef):
+            ancestors_mro = node.parent.mro()[1:]  # first ancestor is itself, skip it
+            for ancestor_node in ancestors_mro:
+                for ancestor_method_node in ancestor_node.methods():
+                    if ancestor_method_node.name == node.name:
+                        overridden_method_node = ancestor_method_node
+                        class_owner_node = ancestor_node
+                        break
+                if overridden_method_node:
                     break
-            if overridden_method_node:
-                break
-    node.overrides = (overridden_method_node, class_owner_node)
+        node.overrides = (overridden_method_node, class_owner_node)
 
+    @staticmethod
+    def transform_add_method_args_type(node: astroid.FunctionDef):
+        """
+        Add to a node of type 'astroid.FunctionDef' a link to the nodes defining the types of
+        """
+        # print("transform_add_method_args_type")
+        assert isinstance(node, astroid.FunctionDef)
+        arguments: astroid.Arguments = node.args
+        assert isinstance(arguments, astroid.Arguments)
 
-def transform_add_method_args_type(node: astroid.FunctionDef):
-    """
-    Add to a node of type 'astroid.FunctionDef' a link to the nodes defining the types of
-    """
-    # print("transform_add_method_args_type")
-    assert isinstance(node, astroid.FunctionDef)
-    arguments: astroid.Arguments = node.args
-    assert isinstance(arguments, astroid.Arguments)
+        def convert(built_type):
+            if built_type is None:
+                return None
+            elif isinstance(built_type, str):
+                # print(f"from {node.name} ({node.root().file}) search for {built_type}")
+                return utils_lookup_type_name(node, built_type)
+            elif isinstance(built_type, list):
+                return [convert(b) for b in built_type]
+            else:
+                assert isinstance(built_type, tuple), f"{built_type} ({type(built_type)})"
+                return tuple([convert(b) for b in built_type])
 
-    def convert(built_type):
-        if built_type is None:
-            return None
-        elif isinstance(built_type, str):
-            # print(f"from {node.name} ({node.root().file}) search for {built_type}")
-            return utils_lookup_type_name(node, built_type)
-        elif isinstance(built_type, list):
-            return [convert(b) for b in built_type]
-        else:
-            assert isinstance(built_type, tuple), f"{built_type} ({type(built_type)})"
-            return tuple([convert(b) for b in built_type])
-
-    class_annotations = []
-    # print(f"Line {node.lineno} in {node.root().file}:\n{' '*4}{arguments.annotations}")
-    for ann in arguments.annotations:
-        class_ann = None
-        try:
-            built_type = utils_build_type_annotation(ann)
-            if built_type:
-                class_ann = convert(built_type)
-        except Exception:
-            pass
-        class_annotations.append(class_ann)
-    # print(f"{' '*4}{class_annotations}")
-    arguments.class_annotations = class_annotations
-    assert isinstance(getattr(arguments, "class_annotations"), list)
-
-
-def transform_add_expression_type(node: astroid.Expr):
-    assert isinstance(node, astroid.Expr)
-    class_type = None
-    try:
-        infers = node.value.inferred()
-    except Exception:
-        infers = []
-    assert isinstance(infers, list)
-    if len(infers) == 1:  # Solo risposte certe
-        inferred_value = infers[0]
-        if inferred_value is not astroid.Uninferable:
-            assert getattr(inferred_value, "pytype", None) is not None
-            complete_inferred_type = inferred_value.pytype()
-            assert "." in complete_inferred_type
-            assert complete_inferred_type.startswith(f"builtins.") or \
-                   complete_inferred_type.startswith(f"{node.root().name}.")  # node.root().name potrebbe essere vuoto
-            inferred_type = ".".join(complete_inferred_type.split(".")[1:])
-            print(f"[DEBUG] {inferred_type} ({type(inferred_type)})")
-            scope = node.scope()
-            assert scope
+        class_annotations = []
+        # print(f"Line {node.lineno} in {node.root().file}:\n{' '*4}{arguments.annotations}")
+        for ann in arguments.annotations:
+            class_ann = None
             try:
-                class_type = utils_lookup_type_name(scope, inferred_type)
+                built_type = utils_build_type_annotation(ann)
+                if built_type:
+                    class_ann = convert(built_type)
             except Exception:
                 pass
-    node.class_type = class_type
+            class_annotations.append(class_ann)
+        # print(f"{' '*4}{class_annotations}")
+        arguments.class_annotations = class_annotations
+        assert isinstance(getattr(arguments, "class_annotations"), list)
 
+    @staticmethod
+    def transform_add_expression_type(node: astroid.Expr):
+        assert isinstance(node, astroid.Expr)
+        class_type = None
+        try:
+            infers = node.value.inferred()
+        except Exception:
+            infers = []
+        assert isinstance(infers, list)
+        if len(infers) == 1:  # Solo risposte certe
+            inferred_value = infers[0]
+            if inferred_value is not astroid.Uninferable:
+                assert getattr(inferred_value, "pytype", None) is not None
+                complete_inferred_type = inferred_value.pytype()
+                assert "." in complete_inferred_type
+                assert complete_inferred_type.startswith(f"builtins.") or \
+                       complete_inferred_type.startswith(f"{node.root().name}.")  # node.root().name potrebbe essere vuoto
+                inferred_type = ".".join(complete_inferred_type.split(".")[1:])
+                print(f"[DEBUG] {inferred_type} ({type(inferred_type)})")
+                scope = node.scope()
+                assert scope
+                try:
+                    class_type = utils_lookup_type_name(scope, inferred_type)
+                except Exception:
+                    pass
+        node.class_type = class_type
 
-def transforms_add_class_fields(node: astroid.nodes.ClassDef):
-    assert isinstance(node, astroid.nodes.ClassDef)
-    fields_dict = dict()
+    @staticmethod
+    def transforms_add_class_fields(node: astroid.nodes.ClassDef):
+        assert isinstance(node, astroid.nodes.ClassDef)
+        fields_dict = dict()
 
-    # TODO add get type from value
-    for annotation, target, value, def_node in utils_get_anv_list(node):  #get annotation, names, value list
-        # praticamente scorro tutti gli assegnamenti associabili ad un campo in ordine, e ora devo costruire il
-        #  dizionario dei campi a partire dalla lista già correttamente ordinata di assegnamenti
-        # print(annotation, target, value, def_node)
-        if isinstance(target, list):  # se ho più target era un assegnamento multiplo
-            # Gli assegnamenti multipli (di tuple) sono possibili solo con Assign, non AnnAssign,
-            #  quindi l'annotazione è assente
-            assert annotation is None
-            # Il tipo lo si può ottenere solo da inferenza, che per ora ignoriamo!
-            inferred_annotation = None
-            for name in target:
-                prev_annotation, _, _ = fields_dict.get(name, (None, None, None,))
-                fields_dict[name] = (prev_annotation, value, def_node)
-        else:  # altrimenti assegnamento singolo
-            assert isinstance(target, str)
-            try:
-                built_type = utils_build_type_annotation(annotation)
-            except Exception:
-                built_type = None
-            fields_dict[target] = (built_type, value, def_node)
+        # TODO add get type from value
+        for annotation, target, value, def_node in utils_get_anv_list(node):  #get annotation, names, value list
+            # praticamente scorro tutti gli assegnamenti associabili ad un campo in ordine, e ora devo costruire il
+            #  dizionario dei campi a partire dalla lista già correttamente ordinata di assegnamenti
+            # print(annotation, target, value, def_node)
+            if isinstance(target, list):  # se ho più target era un assegnamento multiplo
+                # Gli assegnamenti multipli (di tuple) sono possibili solo con Assign, non AnnAssign,
+                #  quindi l'annotazione è assente
+                assert annotation is None
+                # Il tipo lo si può ottenere solo da inferenza, che per ora ignoriamo!
+                inferred_annotation = None
+                for name in target:
+                    prev_annotation, _, _ = fields_dict.get(name, (None, None, None,))
+                    fields_dict[name] = (prev_annotation, value, def_node)
+            else:  # altrimenti assegnamento singolo
+                assert isinstance(target, str)
+                try:
+                    built_type = utils_build_type_annotation(annotation)
+                except Exception:
+                    built_type = None
+                fields_dict[target] = (built_type, value, def_node)
 
-    node.fields_dict = fields_dict
+        node.fields_dict = fields_dict
 
 
 def utils_build_type_annotation(ann):

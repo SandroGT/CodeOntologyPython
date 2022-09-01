@@ -4,8 +4,8 @@ import astroid
 
 from codeontology import ontology
 from codeontology.rdfization.python.explore.structure import Package
-from codeontology.rdfization.python.translate.transforms import *
-from codeontology.rdfization.python.translate.individuals import *
+from codeontology.rdfization.python.translate.transforms import Transformer
+from codeontology.rdfization.python.translate.individuals import Individuals
 
 
 class Visitor:
@@ -36,6 +36,16 @@ class Visitor:
         package.ast = ast
 
     @staticmethod
+    def retrieve_or_create(node: astroid.NodeNG, attribute_name: str, creation_args_dict: dict = None):
+        individual = getattr(node, attribute_name, "<unmatched>")
+        if individual == "<unmatched>":
+            if not creation_args_dict:
+                creation_args_dict = dict()
+            builder_fun = getattr(Transformer, f"transform_add_{attribute_name}")
+            individual = builder_fun(node, **creation_args_dict)
+        return individual
+
+    @staticmethod
     def visit_to_extract(node: astroid.NodeNG) -> None:
         extract_function_name = f"_extract_{type(node).__name__}"
         extract_function = getattr(Visitor, extract_function_name, None)
@@ -50,7 +60,8 @@ class Visitor:
         for name, alias in node.names:
             try:
                 # Some modules just cannot be imported, it's ok! Some imports are inside a 'try-catch' statement,
-                #  acknowledging that their import could fail, even in a the right environment with all the dependencies.
+                #  acknowledging that their import could fail, even in a the right environment with all the
+                #  dependencies.
                 imported_ast = node.do_import_module(modname=name)
                 assert isinstance(imported_ast, astroid.Module), \
                        f"wrong assumption on {imported_ast} ({type(imported_ast)})"

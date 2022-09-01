@@ -67,3 +67,12 @@ class Translator:
                 assert getattr(package, "ast", None)
                 Visitor.visit_to_extract(package.ast)
             time.sleep(0.1)
+            # TODO
+            # Add here a for that iterate over all the packages (effective packages in the ontology) retrieve their
+            #  AST and visit the direct children setting the relations next/previous on statements. Then re-iterates
+            #  over the children to recursively do the same on their statements
+            #  for package in all_ontology_packages:
+            #      for child in package.ast:
+            #          set next/prev relation on statements
+            #      for child in package.ast:
+            #          recursively operate on child
