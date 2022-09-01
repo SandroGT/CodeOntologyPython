@@ -6,8 +6,13 @@ from codeontology import ontology
 from codeontology.rdfization.python.translate.transforms import *
 
 
+previous_statement = None
+
+
 def build_class_individual(node: astroid.ClassDef) -> ontology.Class:
     individual = ontology.Class()
+
+    # Add the declaration statement
 
     # Package
     structure_package = getattr(node.root(), "structure_package", "<unmatched>")
@@ -36,7 +41,6 @@ def build_class_individual(node: astroid.ClassDef) -> ontology.Class:
         assert individual in ancestor_individual.hasSubClass
 
     # Fields
-
     fields_dict = getattr(node, "fields_dict", "<unmatched>")
     if fields_dict == "<unmatched>":
         transforms_add_class_fields(node)
@@ -60,7 +64,23 @@ def build_class_individual(node: astroid.ClassDef) -> ontology.Class:
     return individual
 
 
-def build_field_individual(class_node, field_node) -> ontology.Field:
-    individual = ontology.Field()
-    field_node.field_individual = individual
-    # TODO continue
+def build_field_individual(node: astroid.NodeNG, class_individual: ontology.Class) -> ontology.Field:
+    global previous_statement
+
+    # Create Field statement
+    field_statement_individual = ontology.FiedlDeclarationStatement()
+    field_statement_individual.hasLine = node.lineno
+    field_statement_individual.hasPreviousStatement = previous_statement
+    previous_statement = field_statement_individual
+    field_statement_individual.hasSourceCode = node.as_string()
+
+    # Create Field individual
+    field_individual = ontology.Field()
+    node.field_individual = field_individual
+    field_individual.hasVariableDeclaration = field_statement_individual
+    field_individual.isDeclaredBy = class_individual
+    assert field_individual in class_individual.declares
+    field_individual.isFieldOf = class_individual
+    assert field_individual in class_individual.hasField
+
+    return field_individual
