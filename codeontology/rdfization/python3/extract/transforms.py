@@ -1,3 +1,8 @@
+"""Transform functions on AST nodes to increase their expressiveness.
+
+TODO total revision and refactoring needed.
+"""
+
 import astroid
 
 
