@@ -89,6 +89,9 @@ class CodeIndividuals:
             scope = scope.parent.scope()
         class_individual.hasFullyQualifiedName = f"{package.full_name}.{'.'.join(scope_hierarchy_names)}"
 
+        class_individual.hasPackage = package.individual
+        assert class_individual in package.individual.isPackageOf
+
         if node.doc_node:
             docstring = parse_comment(node.doc_node.value)
             short_description = docstring.short_description if docstring.short_description else ""

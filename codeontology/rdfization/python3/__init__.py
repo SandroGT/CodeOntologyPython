@@ -57,6 +57,6 @@ def rdfization(*, project_path: Path = None, project_pkgs: Path = None, project_
     Extractor(project)
 
     # Store everything
-    save_file = str(output_dir.joinpath(project_name+".owl"))
+    save_file = str(output_dir.joinpath(project_name+".nt"))
     logging.debug(f"Saving triples at '{save_file}'.")
     ontology.save(save_file, format="ntriples")
