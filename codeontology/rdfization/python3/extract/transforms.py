@@ -1,74 +1,94 @@
-"""Transform functions on AST nodes to increase their expressiveness.
-
-TODO total revision and refactoring needed.
-"""
+"""Transform functions on AST nodes to increase their expressiveness."""
 
 import astroid
 
 
 class Transformer:
+    """A collection of methods to integrate the information carried by the AST nodes of 'astroid'."""
 
     @staticmethod
     def transform_add_method_overrides(node: astroid.FunctionDef):
+        """Adds a new `overrides` attribute to a node of type `FunctionDef`, linking it to the node of the method it
+         is overriding (if any) or to `None` (if nothing is being overridden or it is not a method).
+
+        Args:
+            node (FunctionDef): a node representing a function/method/constructor.
+
         """
-        Add to a node of type 'astroid.FunctionDef' a tuple linking to the method node it is overriding and its class node
-         owner in a 'overrides' attribute. Contains '(None, None)' if it overrides nothing.
-        """
-        # print("transform_add_method_overrides")
-        assert isinstance(node, astroid.FunctionDef)
-        overridden_method_node = class_owner_node = None
-        if isinstance(node.parent, astroid.ClassDef):
-            ancestors_mro = node.parent.mro()[1:]  # first ancestor is itself, skip it
+        if not isinstance(node, astroid.FunctionDef):
+            raise Exception("Wrong transformation call.")
+        # Set 'overrides' default value
+        node.overrides = None
+        # Search for the possible overridden method
+        if node.is_method():
+            assert isinstance(node.parent, astroid.ClassDef)
+            ancestors_mro = node.parent.mro()[1:]  # First in method resolution order (mro) is the parent class itself
             for ancestor_node in ancestors_mro:
                 for ancestor_method_node in ancestor_node.methods():
+                    # In Python methods are identified just by their names, there is no "overloading"
                     if ancestor_method_node.name == node.name:
-                        overridden_method_node = ancestor_method_node
-                        class_owner_node = ancestor_node
-                        break
-                if overridden_method_node:
-                    break
-        node.overrides = (overridden_method_node, class_owner_node)
+                        # Set and terminate search
+                        node.overrides = ancestor_method_node
+                        return
 
     @staticmethod
-    def transform_add_method_args_type(node: astroid.FunctionDef):
-        """
-        Add to a node of type 'astroid.FunctionDef' a link to the nodes defining the types of
-        """
-        # print("transform_add_method_args_type")
-        assert isinstance(node, astroid.FunctionDef)
-        arguments: astroid.Arguments = node.args
-        assert isinstance(arguments, astroid.Arguments)
+    def transform_add_args_type(node: astroid.Arguments):
+        """Adds a new set of attributes to a node of type `Arguments`, linking its annotations to the AST nodes defining
+         the types to which the annotations might refer.
 
-        def convert(built_type):
-            if built_type is None:
-                return None
-            elif isinstance(built_type, str):
-                # print(f"from {node.name} ({node.root().file}) search for {built_type}")
-                return utils_lookup_type_name(node, built_type)
-            elif isinstance(built_type, list):
-                return [convert(b) for b in built_type]
-            else:
-                assert isinstance(built_type, tuple), f"{built_type} ({type(built_type)})"
-                return tuple([convert(b) for b in built_type])
+        These are the five added attributes:
+         - `type_annotations`, to match the annotations in `annotations` for normal arguments from `args`;
+         - `type_posonlyargs_annotations`, to match the annotations in `posonlyargs_annotations` for positional only
+            arguments from `posonlyargs`;
+         - `type_kwonlyargs_annotations`, to match the annotations in `kwonlyargs_annotations` for keyword only
+            arguments from `kwonlyargs`;
+         - `type_varargannotation` to match the single annotation in `varargannotation` for the various positional
+            arguments from `vararg`;
+         - `type_kwargannotation` to match the single annotation in `kwargannotation` for the various keyword
+            arguments from `kwarg`.
 
-        class_annotations = []
-        # print(f"Line {node.lineno} in {node.root().file}:\n{' '*4}{arguments.annotations}")
-        for ann in arguments.annotations:
-            class_ann = None
-            try:
-                built_type = utils_build_type_annotation(ann)
-                if built_type:
-                    class_ann = convert(built_type)
-            except Exception:
-                pass
-            class_annotations.append(class_ann)
-        # print(f"{' '*4}{class_annotations}")
-        arguments.class_annotations = class_annotations
-        assert isinstance(getattr(arguments, "class_annotations"), list)
+        So, `type_annotations`, `type_posonlyargs_annotations` and `type_kwonlyargs_annotations` are lists, while
+         `type_varargannotation` and `type_kwargannotation` are single valued, matching the cardinality of the
+         annotation attributes they are referencing.
+
+        If an annotation is matched with no type, `None` is used in place of the nodes representing the type. If a
+         match occurs, then the type is represented by one or more nodes (for 'parameterized' types) according to the
+         specifics introduced with the function `resolve_annotation`.
+
+        Args:
+            node (Arguments): a node representing the arguments of a function/method/constructor.
+
+        """
+        if not isinstance(node, astroid.Arguments):
+            raise Exception("Wrong transformation call.")
+
+        for i, ann_attr_name in enumerate(["annotations", "posonlyargs_annotations", "kwonlyargs_annotations",
+                                           "varargannotation", "kwargannotation"]):
+            ann_attr = getattr(node, ann_attr_name)
+            if i > 2:  # Only for "varargannotation" and "kwargannotation", that are not lists
+                ann_attr = [ann_attr]
+            type_ann_attr = []
+
+            # Try to link any annotation to a type, defined by a node from an AST. Just link to `None` at fail
+            for ann in ann_attr:
+                type_ann = None
+                try:
+                    structured_text_ann = utils_build_type_annotation(ann)
+                    if structured_text_ann:
+                        type_ann = convert(structured_text_ann)
+                except Exception:
+                    pass
+                type_ann_attr.append(type_ann)
+
+            # Add the resolved (or not) annotations to the `Arguments` node
+            if i > 2:  # Only for "varargannotation" and "kwargannotation", that are not lists
+                assert len(type_ann_attr) == 1
+                type_ann_attr = type_ann_attr[0]
+            setattr(node, f"type_{ann_attr_name}", type_ann_attr)
 
     @staticmethod
-    def transform_add_expression_type(node: astroid.Expr):
-        assert isinstance(node, astroid.Expr)
+    def transform_add_expression_type(node: Expr):
+        assert isinstance(node, Expr)
         class_type = None
         try:
             infers = node.value.inferred()
@@ -77,7 +97,7 @@ class Transformer:
         assert isinstance(infers, list)
         if len(infers) == 1:  # Solo risposte certe
             inferred_value = infers[0]
-            if inferred_value is not astroid.Uninferable:
+            if inferred_value is not Uninferable:
                 assert getattr(inferred_value, "pytype", None) is not None
                 complete_inferred_type = inferred_value.pytype()
                 assert "." in complete_inferred_type
@@ -88,14 +108,14 @@ class Transformer:
                 scope = node.scope()
                 assert scope
                 try:
-                    class_type = utils_lookup_type_name(scope, inferred_type)
+                    class_type = lookup_type_by_name(scope, inferred_type)
                 except Exception:
                     pass
         node.class_type = class_type
 
     @staticmethod
-    def transforms_add_class_fields(node: astroid.nodes.ClassDef):
-        assert isinstance(node, astroid.nodes.ClassDef)
+    def transforms_add_class_fields(node: nodes.ClassDef):
+        assert isinstance(node, nodes.ClassDef)
         fields_dict = dict()
 
         # TODO add get type from value
@@ -115,7 +135,7 @@ class Transformer:
             else:  # altrimenti assegnamento singolo
                 assert isinstance(target, str)
                 try:
-                    built_type = utils_build_type_annotation(annotation)
+                    built_type = resolve_annotation(annotation)
                 except Exception:
                     built_type = None
                 fields_dict[target] = (built_type, value, def_node)
@@ -123,82 +143,206 @@ class Transformer:
         node.fields_dict = fields_dict
 
 
-def utils_build_type_annotation(ann):
+def resolve_annotation(node: ...) -> ...:
+    """Gets a reference to the AST nodes representing the types to which an annotation may be referring to, whenever
+     possible.
+
+    Annotations may refer to a single simple type, or combination of types. The information about the types given by the
+     annotation is structured this way:
+      A) a reference to a single AST Class node is used to directly represent a type;
+      B) a list is used to represent equivalent types (unions in type annotations), and every element of the list can
+          recursively be a reference to an AST Class node, a list or a tuple;
+      C) a tuple is used to represent parameterized types, such that the first element of the tuple is an AST
+          Class node directly representing a type, while every following element define its parameterization, and can
+          recursively be a reference to an AST Class node, a list or a tuple;
+
+    Args:
+        node: the node defining the annotation.
+
+    Returns:
+        The structured representation of the type to which the annotation may be referring to, in the form of structured
+         references to AST Class nodes, or `None`, if its not possible to resolve the annotation.
+
     """
-    Restituisce una stringa, una tupla o una lista:
-     - a) una stringa indica un tipo non parametrico, o di cui non sono stati specificati tipi che lo parametrizzano;
-     - b) se si ottiene una lista vuol dire che più tipi equivalenti sono ammessi, ed è coinvolto l'operatore di unione
-          (union types) nell'annotazione;
-     - c) una tupla indica la presenza di tipi parametrici, dove il primo elemento della tupla è una stringa che indica
-          il tipo parametrico, e ogni elemento a seguire è uno dei tipi che lo parametrizzano, rappresentato
-          ricorsivamente come descritto (quindi può essere una stringa, una lista o una tupla).
+    def structure_annotation(ann_node: ...) -> ...:
+        """Structures the information about types as described in the parent function, but uses 'Class' names instead of
+         the references to the AST nodes in which the respective classes are declared.
 
-    Tuple[List[str], Tuple[int, int] | float | Exception] | List
+        Examples:
+            The following annotation:
+                Tuple[List[str], Tuple[int, int] | float | Exception] | List
+            Would be converted to:
+                [("Tuple", ("List", "str"), [("Tuple", "int", "int"), "float", "Exception"]), "List"]
+            This is obviously an overly complex and unusual annotation, but it should serve as a clear example.
+        """
+        # Default value, in case it is not possible to resolve the annotation with the defined cases
+        structured_ann = None
 
-    [(Tuple, (List, str), [(Tuple, int, int), float, exception]), List]
+        # Explore the cases that may constitute an annotation
+
+        # A) Single types (base case)
+        if isinstance(ann_node, astroid.Name):
+            # Reference to a non-nested class, such as 'str'
+            structured_ann = ann_node.name
+        elif isinstance(ann_node, astroid.Attribute):
+            # Reference to a class contained within another class or package, such as 'os.Path'.
+            nested_names = [ann_node.attrname]
+            nested_annotation_node = ann_node.expr
+            while isinstance(nested_annotation_node, astroid.Attribute):
+                nested_names.insert(0, ann_node.attrname)
+                nested_annotation_node = nested_annotation_node.expr
+            assert isinstance(nested_annotation_node, astroid.Name)
+            nested_names.insert(0, nested_annotation_node.name)
+            structured_ann = ".".join(nested_names)
+        elif isinstance(ann_node, astroid.Const):
+            if isinstance(ann_node.value, type(Ellipsis)):
+                # Use of '...' in the annotation, meaning 'any value' in a type hinting context
+                structured_ann = "Any"
+            elif isinstance(ann_node.value, str):
+                # Use of a stringified annotations, such as ' "List[str]" ' instead of ' List[str] ', but just skip
+                #  them for now and treat them like unresolvable cases
+                pass
+
+        # B) Equivalent types (recursive step)
+        elif isinstance(ann_node, astroid.BinOp):
+            # Use of a 'type union', such as 'int | List[float]'
+            equivalent_types = []
+            bin_op_node = ann_node
+            while isinstance(bin_op_node, astroid.BinOp):
+                assert bin_op_node.op == "|"  # The only supported operator in annotations
+                equivalent_types.insert(0, bin_op_node.right)
+                bin_op_node = bin_op_node.left
+            equivalent_types.insert(0, bin_op_node)
+            structured_ann = [structure_annotation(ann_node) for ann_node in equivalent_types]
+
+        # C) Parameterized types (recursive step)
+        elif isinstance(ann_node, astroid.Subscript):
+            # Definition of a parameterized type, such as 'Tuple[...]'
+            base_type = [structure_annotation(ann_node.value)]
+            base_type_parameterization = structure_annotation(ann_node.slice)
+            if isinstance(base_type_parameterization, str):
+                base_type_parameterization = [base_type_parameterization]
+            else:
+                assert isinstance(base_type_parameterization, list) or isinstance(base_type_parameterization, tuple)
+                base_type_parameterization = list(base_type_parameterization)
+            structured_ann = tuple(base_type + base_type_parameterization)
+        elif isinstance(ann_node, astroid.Tuple) or isinstance(ann_node, astroid.List):
+            # Definition of the parameterization of a type with multiple values, such as '...[int, float]'
+            assert isinstance(ann_node.elts, list)
+            structured_ann = [structure_annotation(e) for e in ann_node.elts]
+
+        return structured_ann
+
+    def resolve_class_names(ann_node: ..., structured_ann: ...) -> ...:
+        """Resolves the names of the classes in a structured annotation, replacing them with the reference to the
+         respective AST Class nodes.
+        """
+        # Default value, in case it is not possible to resolve the names
+        matched_type = None
+
+        # Explore the cases that may constitute the structured annotation
+        if structured_ann is None:
+            # Absence of the structured annotation info, no matches with any type
+            matched_type = None
+
+        # A) Single types (base case)
+        elif isinstance(structured_ann, str):
+            matched_type = lookup_type_by_name(structured_ann, ann_node)
+
+        # B) Equivalent types (recursive step)
+        elif isinstance(structured_ann, list):
+            matched_type = [resolve_class_names(ann_node, a) for a in structured_ann]
+
+        # C) Parameterized types (recursive step)
+        elif isinstance(structured_ann, tuple):
+            matched_type = tuple([resolve_class_names(ann_node, a) for a in structured_ann])
+
+        return matched_type
+
+    try:
+        matched_type = resolve_class_names(node, structure_annotation(node))
+    except Exception:
+        matched_type = None
+
+    return matched_type
+
+
+def lookup_type_by_name(name: str, node: ...) -> astroid.ClassDef:
+    """Looks for the reference to the AST node that defines the type specified by the name, using the scope given by the
+     passed node.
+
+    Args:
+        name (str): the name of the type/class to search for.
+        node: the node that defines the scope from which to start the search.
+
+    Returns:
+        astroid.ClassDef: the reference to the type/class corresponding to the name.
+
+    Raises:
+        Exception: if the lookup operation fails and finds no match.
+
     """
-    # print(f"[DEBUG] {ann}")
-    if ann is None:
-        return None
-    # --- a) stringa
-    if isinstance(ann, astroid.Name):
-        # Direttamente il tipo, come 'str'
-        return ann.name
-    elif isinstance(ann, astroid.Attribute):
-        # Il tipo è dentro un modulo o una classe, come 'typing.List'
-        name = [ann.attrname]
-        ann = ann.expr
-        while isinstance(ann, astroid.Attribute):
-            name.insert(0, ann.attrname)
-            ann = ann.expr
-        assert isinstance(ann, astroid.Name)
-        name.insert(0, ann.name)
-        return ".".join(name)
-    elif isinstance(ann, astroid.Const):
-        # Il tipo è rappresentato tramite una stringa, e la stringa stessa rappresenta il tipo
-        if isinstance(ann.value, str):
-            return ann.value
-        elif isinstance(ann.value, type(Ellipsis)):
-            return "Any"
-        elif ann.value is None:
-            return None
-        else:
-            assert False, f"{ann.value} ({type(ann.value)})"
-    # --- b) lista
-    elif isinstance(ann, astroid.BinOp):
-        # Il tipo è una unione di tipi, per esempio "int | float"
-        equivalent_types = []
-        while isinstance(ann, astroid.BinOp):
-            assert ann.op == "|"
-            equivalent_types.insert(0, ann.right)
-            ann = ann.left
-        equivalent_types.insert(0, ann)
-        return [utils_build_type_annotation(ann_type) for ann_type in equivalent_types]
-    # --- c) tupla
-    elif isinstance(ann, astroid.Subscript):
-        # Il tipo è una composizione che coinvolge le parentesi quadre, come "List[]"
-        type_ = [utils_build_type_annotation(ann.value)]
-        type_built = utils_build_type_annotation(ann.slice)
-        if isinstance(type_built, str):
-            type_params = [type_built]
-        else:
-            assert isinstance(type_built, list) or isinstance(type_built, tuple)
-            type_params = list(type_built)
-        return tuple(type_ + type_params)
-    elif isinstance(ann, astroid.Tuple) or isinstance(ann, astroid.List):
-        # Il tipo è una composizione che coinvolge un elenco separato da virgole, per esempio "[int, float]"
-        assert isinstance(ann.elts, list)
-        return [utils_build_type_annotation(e) for e in ann.elts]
-    # end
-    else:
-        assert False, f"{type(ann)}"
-
-
-def utils_lookup_type_name(node, name):
     assert isinstance(name, str) and len(name) > 0
-    base = name.split(".")[0]
-    tail = ".".join(name.split(".")[1:])
-    return utils_track_type_name(node, base, tail)
+    name_parts = name.split(".")
+    name_root = name_parts[0]
+    name_tail = ".".join(name_parts[1:])
+    return track_type_name(name_root, name_tail, node)
+
+
+def track_type_name(base: str, tail: str, node: ..., c: int = 0) -> astroid.ClassDef:
+    """Tracks down the type/class related to the specified name, recursively splitting it into `base` and `tail` until
+     there are no more trailing names to follow.
+
+    Args:
+        base (str): the first part of the name we want to track down; for example in '<package>.<wrapper_class>.<type>'
+         the base is '<package>'. May also concide with the whole name, if no tail exists.
+        tail (str): the trailing parts of the name after the `base`; for example in '<package>.<wrapper_class>.<type>'
+         the tail is '<wrapper_class>.<type>'. It's `None` at the final step.
+        node: the node defining the scope from which to search for the `base`.
+        c (int): TODO
+
+    Returns:
+        astroid.ClassDef: the reference to the type/class matched to the name.
+
+    Raises:
+        Exception: if the tracking down operation fails and finds no match.
+
+    """
+    # target = base + "." + tail if tail else base
+    # file = getattr(node.root(), "file", None)
+    # file_target = file if file else "<UNKNOWN FILE>"
+    # print(f"{' '*4} tracking {target} from {file_target} (count:{c:,})")
+    # Cerchiamo a partire dal nodo dove è stato definito il nome base per cercare il tipo che deriva
+    #  da esso (tail) o che rappresenta direttamente (se tail è assente)
+    assert base is not None
+
+    # print(
+    #     f"[DEBUG] Cercando il nome {base}{' da cui origina ' + tail + ' ' if tail else ' '}a partire "
+    #     f"dal nodo di tipo {type(node).__name__} e nome {node.name}")
+
+    # Cerca da dove arriva il nome del tipo partendo da questo nodo
+    _, type_matches = node.lookup(base)
+    # print(f"[DEBUG] {type_matches}")
+
+    if type_matches == () or len(type_matches) > 1:
+        # Nessun match o match multipli, quindi non si sa esattamente a che tipo si riferisca il nome.
+        # Interrompi subito!
+        return None
+
+    type_match_node = type_matches[0]
+    # print(f"[DEBUG] Match del tipo {type(type_match_node).__type__}")
+
+    # Controlla il tipo del match per continuare il tracking del tipo
+    if isinstance(type_match_node, Import) or \
+            isinstance(type_match_node, ImportFrom):
+        return utils_handle_type_match_Imports(type_match_node, base, tail, c)
+    elif isinstance(type_match_node, ClassDef):
+        return utils_handle_type_match_ClassDef(type_match_node, base, tail, c)
+    elif isinstance(type_match_node, AssignName):
+        return utils_handle_type_match_AssignName(type_match_node, base, tail, c)
+
+    # Il match ottenuto è su un tipo di nodo non previsto per il tracking
+    return None
 
 
 def utils_track_type_name(node, base, tail, c=0):
@@ -227,12 +371,12 @@ def utils_track_type_name(node, base, tail, c=0):
     # print(f"[DEBUG] Match del tipo {type(type_match_node).__type__}")
 
     # Controlla il tipo del match per continuare il tracking del tipo
-    if isinstance(type_match_node, astroid.Import) or \
-            isinstance(type_match_node, astroid.ImportFrom):
+    if isinstance(type_match_node, Import) or \
+            isinstance(type_match_node, ImportFrom):
         return utils_handle_type_match_Imports(type_match_node, base, tail, c)
-    elif isinstance(type_match_node, astroid.ClassDef):
+    elif isinstance(type_match_node, ClassDef):
         return utils_handle_type_match_ClassDef(type_match_node, base, tail, c)
-    elif isinstance(type_match_node, astroid.AssignName):
+    elif isinstance(type_match_node, AssignName):
         return utils_handle_type_match_AssignName(type_match_node, base, tail, c)
 
     # Il match ottenuto è su un tipo di nodo non previsto per il tracking
@@ -248,13 +392,13 @@ def utils_handle_type_match_Imports(match_node, base, tail, c):
     # Nel caso a) i name sono tutti moduli o packages e stiamo cercando un tipo, ci deve essere
     #  una tail che lo specifica. Nel caso b) stiamo importando da un mod_or_pkg ed i name potrebbero
     #  anche già essere delle classi
-    if isinstance(match_node, astroid.Import):
+    if isinstance(match_node, Import):
         assert tail is not None
 
     matched_mod_name = None
     new_base = new_tail = None
 
-    if isinstance(match_node, astroid.Import):
+    if isinstance(match_node, Import):
         # Nel caso a) possiamo importare più packages/moduli con possibile alias
         for mod_name, mod_alias in reversed(match_node.names):
             # Cerchiamo con quale alias o nome coincide la base
@@ -264,7 +408,7 @@ def utils_handle_type_match_Imports(match_node, base, tail, c):
                 new_base = tail.split(".")[0]
                 new_tail = ".".join(tail.split(".")[1:])
                 break
-    elif isinstance(match_node, astroid.ImportFrom):
+    elif isinstance(match_node, ImportFrom):
         # Nel caso b) abbiamo un package/modulo fisso da cui possiamo importare tutti (*) o più nomi
         #  (rappresentanti packages/moduli/classi/variabili)
         matched_mod_name = match_node.modname
@@ -336,7 +480,7 @@ def utils_handle_type_match_ClassDef(match_node, base, tail, c):
         type_name = base
         complete_type_name = [base]
         scope_node = match_node.parent.scope()
-        while type(scope_node) is astroid.ClassDef:
+        while type(scope_node) is ClassDef:
             complete_type_name.append(scope_node.name)
             scope_node = scope_node.parent.scope()
         complete_type_name = ".".join(complete_type_name)
@@ -346,19 +490,19 @@ def utils_handle_type_match_ClassDef(match_node, base, tail, c):
 
 def utils_handle_type_match_AssignName(match_node, base, tail, c):
     # Abbiamo un assegnamento crea un alias del nostro tipo
-    assert isinstance(match_node.parent, astroid.Assign)
+    assert isinstance(match_node.parent, Assign)
 
     # Proviamo a risalire alla vera definizione tramite l'inferenza di astroid, possibile in un
-    #  nodo di tipo astroid.AssignName
+    #  nodo di tipo AssignName
     infers = list(match_node.infer())
-    if len(infers) == 1 and isinstance(infers[0], astroid.ClassDef):
+    if len(infers) == 1 and isinstance(infers[0], ClassDef):
         # Solo se abbiamo un unico risultato certo che punta ad una classe
         inferred = infers[0]
         # Ricostruisci il nome completo del tipo, perso nei vari lookup, risalendo gli scopes
         type_name = inferred.name
         complete_type_name = [inferred.name]
         scope_node = inferred.parent.scope()
-        while type(scope_node) is astroid.ClassDef:
+        while type(scope_node) is ClassDef:
             complete_type_name.append(scope_node.name)
             scope_node = scope_node.parent.scope()
         complete_type_name = ".".join(complete_type_name)
@@ -368,7 +512,7 @@ def utils_handle_type_match_AssignName(match_node, base, tail, c):
 
 
 def utils_is_static_method(node):
-    assert isinstance(node, astroid.nodes.FunctionDef)
+    assert isinstance(node, nodes.FunctionDef)
     decorators_nodes = node.decorators.nodes if node.decorators else []
     decorators_names = [node.name for node in decorators_nodes]
     if "staticmethod" in decorators_names:
@@ -384,7 +528,7 @@ def utils_get_self_ref(node):
     #  - vararg
     #  - kwonlyargs
     #  - kwarg
-    assert isinstance(node, astroid.nodes.FunctionDef)
+    assert isinstance(node, nodes.FunctionDef)
     if utils_is_static_method(node):
         return None
     else:
@@ -394,32 +538,32 @@ def utils_get_self_ref(node):
             return node.args.args[0].name
 
 
-def utils_get_anv_list_class(node: astroid.nodes.ClassDef):
+def utils_get_anv_list_class(node: nodes.ClassDef):
     # --- 1 Tutti i campi definiti con assegnamento (non annotazione) nel corpo della classe
-    assert isinstance(node, astroid.nodes.ClassDef)
+    assert isinstance(node, nodes.ClassDef)
 
     # Trova i nomi che si riferiscono a variabili esterne alla classe
     #  (definite da Global, dato che Nonlocal non ha senso in una classe)
     global_names = set()
     for class_body_node in node.get_children():
-        if isinstance(class_body_node, astroid.nodes.Global):
+        if isinstance(class_body_node, nodes.Global):
             for name in class_body_node.names:
                 global_names.add(name)
 
     # Trova i nomi che si riferiscono a campi e potenziali campi della classe dal suo corpo
     for class_body_node in node.get_children():
         # print(f"[DEBUG] {class_body_node}")
-        if isinstance(class_body_node, astroid.nodes.Assign):
+        if isinstance(class_body_node, nodes.Assign):
             for target in class_body_node.targets:  # Assegnamenti a catena possibili
-                if isinstance(target, astroid.nodes.Tuple):
+                if isinstance(target, nodes.Tuple):
                     for e in target.elts:
-                        assert isinstance(e, astroid.nodes.AssignName) or isinstance(e, astroid.nodes.AssignAttr)
+                        assert isinstance(e, nodes.AssignName) or isinstance(e, nodes.AssignAttr)
                     names = []
                     for e in target.elts:
-                        if isinstance(e, astroid.nodes.AssignName) and e.name not in global_names:
+                        if isinstance(e, nodes.AssignName) and e.name not in global_names:
                             names.append(e.name)
                         else:
-                            assert isinstance(e, astroid.nodes.AssignAttr) or e.name in global_names
+                            assert isinstance(e, nodes.AssignAttr) or e.name in global_names
                             names.append(None)
                     for name in names:
                         if name is not None:
@@ -427,26 +571,26 @@ def utils_get_anv_list_class(node: astroid.nodes.ClassDef):
                             #  non restituirla neanche
                             yield (None, names, class_body_node.value, node,)
                             break
-                elif isinstance(target, astroid.nodes.AssignName):
+                elif isinstance(target, nodes.AssignName):
                     yield (None, target.name, class_body_node.value, node,)
                 else:
-                    # assert isinstance(target, astroid.nodes.AssignAttr), f"{type(target)}"  # TRIGGERED
+                    # assert isinstance(target, nodes.AssignAttr), f"{type(target)}"  # TRIGGERED
                     pass
-        elif isinstance(class_body_node, astroid.nodes.AnnAssign):
-            if isinstance(class_body_node.target, astroid.nodes.AssignName):
+        elif isinstance(class_body_node, nodes.AnnAssign):
+            if isinstance(class_body_node.target, nodes.AssignName):
                 yield (class_body_node.annotation,
                        class_body_node.target.name,
                        class_body_node.value,
                        node,)
             else:
-                assert isinstance(class_body_node.target, astroid.nodes.AssignAttr)
+                assert isinstance(class_body_node.target, nodes.AssignAttr)
                 pass
 
 
-def utils_get_anv_list_constructor(class_node: astroid.nodes.ClassDef, constructor_node: astroid.nodes.FunctionDef):
+def utils_get_anv_list_constructor(class_node: nodes.ClassDef, constructor_node: nodes.FunctionDef):
     # --- 2 Tutti i campi derivanti dal costruttore
-    assert isinstance(class_node, astroid.nodes.ClassDef)
-    assert isinstance(constructor_node, astroid.nodes.FunctionDef) and constructor_node.name == "__init__"
+    assert isinstance(class_node, nodes.ClassDef)
+    assert isinstance(constructor_node, nodes.FunctionDef) and constructor_node.name == "__init__"
 
     if not constructor_node.body or utils_is_static_method(constructor_node):
         # Se non c'è body la classe non dichiara __init__ né eredita da altre classi, avendo in mano quindi
@@ -468,19 +612,19 @@ def utils_get_anv_list_constructor(class_node: astroid.nodes.ClassDef, construct
         #   da tracciare e sono inverosimili.
         for constructor_body_node in constructor_node.body:
             # print(f"[DEBUG] {constructor_body_node}")
-            if isinstance(constructor_body_node, astroid.nodes.Assign):
+            if isinstance(constructor_body_node, nodes.Assign):
                 for target in constructor_body_node.targets:  # Assegnamenti a catena possibili
-                    if isinstance(target, astroid.nodes.Tuple):
+                    if isinstance(target, nodes.Tuple):
                         for e in target.elts:
-                            assert isinstance(e, astroid.nodes.AssignName) or isinstance(e, astroid.nodes.AssignAttr)
-                            if isinstance(e, astroid.nodes.AssignAttr):
-                                assert isinstance(e.expr, astroid.nodes.Name)
+                            assert isinstance(e, nodes.AssignName) or isinstance(e, nodes.AssignAttr)
+                            if isinstance(e, nodes.AssignAttr):
+                                assert isinstance(e.expr, nodes.Name)
                         names = []
                         for e in target.elts:
-                            if isinstance(e, astroid.nodes.AssignAttr) and e.expr.name == self_ref:
+                            if isinstance(e, nodes.AssignAttr) and e.expr.name == self_ref:
                                 names.append(e.attrname)
                             else:
-                                assert isinstance(e, astroid.nodes.AssignName) or e.expr.name != self_ref
+                                assert isinstance(e, nodes.AssignName) or e.expr.name != self_ref
                                 names.append(None)
                         for name in names:
                             if name is not None:
@@ -488,35 +632,35 @@ def utils_get_anv_list_constructor(class_node: astroid.nodes.ClassDef, construct
                                 #  non restituirla neanche
                                 yield (None, names, constructor_body_node.value, constructor_body_node,)
                                 break
-                    elif isinstance(target, astroid.nodes.AssignAttr):
-                        if isinstance(target.expr, astroid.nodes.Name):  # TODO missing other options here
+                    elif isinstance(target, nodes.AssignAttr):
+                        if isinstance(target.expr, nodes.Name):  # TODO missing other options here
                             if target.expr.name == self_ref:
                                 yield (None, target.attrname, constructor_body_node.value, constructor_body_node,)
                     else:
-                        # assert isinstance(target, astroid.nodes.AssignName), f"{type(target)}" TRIGGERED
+                        # assert isinstance(target, nodes.AssignName), f"{type(target)}" TRIGGERED
                         pass
-            elif isinstance(constructor_body_node, astroid.nodes.AnnAssign):
+            elif isinstance(constructor_body_node, nodes.AnnAssign):
                 # No tuple negli AnnAssign
-                if isinstance(constructor_body_node.target, astroid.nodes.AssignAttr):
-                    assert isinstance(constructor_body_node.target.expr, astroid.nodes.Name)
+                if isinstance(constructor_body_node.target, nodes.AssignAttr):
+                    assert isinstance(constructor_body_node.target.expr, nodes.Name)
                     if constructor_body_node.target.expr.name == self_ref:
                         yield (constructor_body_node.annotation,
                                constructor_body_node.target.attrname,
                                constructor_body_node.value,
                                constructor_body_node,)
                 else:
-                    # assert isinstance(constructor_body_node.target, astroid.nodes.AssignAttr)  TRIGGERED
+                    # assert isinstance(constructor_body_node.target, nodes.AssignAttr)  TRIGGERED
                     pass
-            elif isinstance(constructor_body_node, astroid.nodes.Expr):
+            elif isinstance(constructor_body_node, nodes.Expr):
                 is_super_constructor_call = False
                 parent_constructor_node = None
 
                 is_super_constructor_call = \
-                    isinstance(constructor_body_node.value, astroid.nodes.Call) and \
-                    isinstance(constructor_body_node.value.func, astroid.nodes.Attribute) and \
+                    isinstance(constructor_body_node.value, nodes.Call) and \
+                    isinstance(constructor_body_node.value.func, nodes.Attribute) and \
                     constructor_body_node.value.func.attrname == "__init__" and \
-                    isinstance(constructor_body_node.value.func.expr, astroid.nodes.Call) and \
-                    isinstance(constructor_body_node.value.func.expr.func, astroid.nodes.Name) and \
+                    isinstance(constructor_body_node.value.func.expr, nodes.Call) and \
+                    isinstance(constructor_body_node.value.func.expr.func, nodes.Name) and \
                     constructor_body_node.value.func.expr.func.name == "super"
 
                 if is_super_constructor_call:
@@ -525,7 +669,7 @@ def utils_get_anv_list_constructor(class_node: astroid.nodes.ClassDef, construct
                     first_parent_node = mro[1]
                     parent_constructor_node = None
                     for method in first_parent_node.methods():
-                        assert isinstance(method, astroid.nodes.FunctionDef)
+                        assert isinstance(method, nodes.FunctionDef)
                         if method.name == "__init__":
                             parent_constructor_node = method
                             break
@@ -540,8 +684,8 @@ def utils_get_anv_list_constructor(class_node: astroid.nodes.ClassDef, construct
         assert False
 
 
-def utils_get_anv_list(node: astroid.nodes.ClassDef):  # Abbr. di annotation_name_value_list, rinominarlo in atv
-    assert isinstance(node, astroid.nodes.ClassDef)
+def utils_get_anv_list(node: nodes.ClassDef):  # Abbr. di annotation_name_value_list, rinominarlo in atv
+    assert isinstance(node, nodes.ClassDef)
     # print(f"[DEBUG] Sono {node.name}")
 
     # A prescindere una classe prende, esattamente in questo ordine (per i tipi eventuali):
@@ -572,6 +716,6 @@ def utils_get_anv_list(node: astroid.nodes.ClassDef):  # Abbr. di annotation_nam
             constructor_node = method_node
             break
     if constructor_node:
-        assert constructor_node and isinstance(constructor_node, astroid.nodes.FunctionDef), f"{type(constructor_node)}"
+        assert constructor_node and isinstance(constructor_node, nodes.FunctionDef), f"{type(constructor_node)}"
         # print(f"[DEBUG] {constructor_node.args}")
         yield from utils_get_anv_list_constructor(node, constructor_node)

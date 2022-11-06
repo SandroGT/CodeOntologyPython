@@ -1,4 +1,4 @@
-"""Class and methods to start the RDF extraction from a class representation of a Python3 project."""
+"""Class and methods to start the RDF serialization from a class representation of a Python3 project."""
 
 from __future__ import annotations
 
@@ -16,11 +16,11 @@ from codeontology.rdfization.python3.extract.individuals import StructureIndivid
 from codeontology.rdfization.python3.extract.visitor import Visitor
 
 
-class Extractor:
-    """The main class used to extract the triples from a Python3 project.
+class Serializer:
+    """The main class used to get the RDF triples from a Python3 project.
 
-    The `Extractor` accesses all the information about the Python3 project through the `Project` object, then parses
-     the needed and available source code to extract the RDF triples related to the project.
+    The `Serializer` accesses all the information about the Python3 project through the `Project` object, then parses
+     the needed and available source code to get the RDF triples related to the project.
 
     Attributes:
         project (Project): an object representation of the Python3 project from which to extract the triples.
@@ -31,10 +31,10 @@ class Extractor:
     packages: Set[Package]
 
     def __init__(self, project: Project):
-        """Initialize and starts the extraction of the RDF triples.
+        """Initialize and starts the serialization into RDF triples.
 
         Args:
-            project (Project): an object representation of the Python3 project from which to extract the triples.
+            project (Project): an object representation of the Python3 project from which to get the triples.
 
         """
         self.project = project
@@ -42,7 +42,7 @@ class Extractor:
         namespace = ontology.load()
         with self.__parsing_environment():
             self.__build_meta_model()
-            self.__extract_from_project()
+            self.__serialize_from_project()
 
     @contextmanager
     def __parsing_environment(self):
@@ -101,7 +101,7 @@ class Extractor:
             So, we first parse all the files at hand, then, and just then, extract the triples!
 
         """
-        logging.debug(f"Building meta-model of '{self.project.name}'.")
+        logging.debug(f"Building unique model of '{self.project.name}'.")
         # TODO instead of pre-parsing EVERYTHING (that may also fail), parse only the project related packages, but
         #  look at the imports to find which other packages are actually imported. Build a list of packages this way,
         #  then clean the 'astroid' caches and parse again the project packages and the other selected dependency
@@ -115,7 +115,7 @@ class Extractor:
                 if package.ast is not None:
                     self.packages.add(package)
 
-    def __extract_from_project(self):
+    def __serialize_from_project(self):
         """Extract the RDF triples."""
         logging.debug(f"Extracting RDF triples from '{self.project.name}'.")
         StructureIndividuals.extract_structure_individuals(self.project)

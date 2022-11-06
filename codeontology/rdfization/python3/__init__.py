@@ -12,7 +12,7 @@ def rdfization(*, project_path: Path = None, project_pkgs: Path = None, project_
         project_path (Path): the path to the folder containing the project source.
         project_pkgs (Path): the path to the folder containing the top level packages paths of the project distribution.
         project_deps (Path): the path to the folder containing the top level packages paths of the project dependencies.
-        pypi_target (str): the name of the project in the index, eventually with the specific version, such as
+        pypi_target (str): the name of the project in the index, eventually with the specific version, such as in
          '<project_name>' or '<project_name>==<version>' (using the 'version matching' clause, '==').
         output_dir (Path): the path to the folder in which to store the output RDF triples.
         download_dir (Path): the path to the folder in which to download the needed files.
@@ -25,7 +25,7 @@ def rdfization(*, project_path: Path = None, project_pkgs: Path = None, project_
     from codeontology import logging
     from codeontology.ontology import ontology
     from codeontology.rdfization.python3.explore import Project
-    from codeontology.rdfization.python3.extract.extractor import Extractor
+    from codeontology.rdfization.python3.extract.serializer import Serializer
     from codeontology.rdfization.python3.utils import ProjectHandler, PySourceHandler
 
     # Retrieve project files
@@ -54,7 +54,7 @@ def rdfization(*, project_path: Path = None, project_pkgs: Path = None, project_
     project = Project(project_name, project_path, project_pkgs, project_deps, python3_src)
 
     # Extract the triples from the project structure
-    Extractor(project)
+    Serializer(project)
 
     # Store everything
     save_file = str(output_dir.joinpath(project_name+".nt"))
