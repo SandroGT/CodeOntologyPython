@@ -303,12 +303,13 @@ def lookup_type_by_name(name: str, scope_node: ...) -> astroid.ClassDef:
     return track_type_name(name_root, name_tail, scope_node)
 
 
-def get_tav_list(class_node: astroid.ClassDef) -> Generator[Tuple]:
+def get_tavn_list(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
     """Gets the ordered list of assignments that are expected and may define some fields. Each assignment of interest is
-     represented by a triple of:
-      (t) target, is the name of the field receiving the assignment;
-      (a) annotation, is the optional annotation that may be tagging the assignment;
-      (v) value, is the expression assigned to the target, and may be missing for 'annotation assignments'.
+     represented by a tuple of:
+      (t) `target` is the name, or list of names (for tuple assignments) that are being instantiated;
+      (a) `annotation` is the optional annotation that may be tagging the assignment;
+      (v) `value` is the expression assigned to the target, and may be missing for 'annotation assignments';
+      (n) `node` is the node related to the assignment.
     As mentioned, the list is ordered, in the same order as the interpreter executes the assignments, so that if two
      identical targets occur, the interpreter can simply overwrite what was set by the previous one without regret.
     An assigment correctly defines a field only when it also assigns a value ('annotation assignments' are not enough).
@@ -317,183 +318,209 @@ def get_tav_list(class_node: astroid.ClassDef) -> Generator[Tuple]:
         class_node (astroid.ClassDef): a node representing a class definition and body.
 
     Returns:
-        Generator[Tuple]: the generator of the ordered list of assigment tuples.
+        Generator[Tuple, None, None]: the generator of the ordered list of assigment tuples.
 
     """
+    def get_tavn_list_class(cls_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
+        """1) Gets the assignments tuples '(target, annotation, value, node,)' from a class body."""
+        assert isinstance(cls_node, astroid.ClassDef)
+
+        # Find the names which refer to global variables to properly skip their assignments: they are not attributes
+        global_names = set()
+        for cls_body_node in cls_node.get_children():
+            if isinstance(cls_body_node, astroid.Global):
+                for name in cls_body_node.names:
+                    global_names.add(name)
+
+        # Scroll through the 'assignment nodes' in the class body, to find the names names that refer to fields
+        #  (assignments) or potential fields (annotation assignments)
+        for cls_body_node in cls_node.get_children():
+            if isinstance(cls_body_node, astroid.Assign):
+                # Assignment with no annotation, such as: `<target_1> = <target_2> = ... = <expression>`
+                for target in cls_body_node.targets:
+                    assert isinstance(target, astroid.Tuple) or isinstance(target, astroid.AssignName) or \
+                           isinstance(target, astroid.AssignAttr)
+                    if isinstance(target, astroid.Tuple):
+                        # Tuple assignment, so `<target_x>` is something like `<element_1, element_2, ...>`
+                        target_name_list = []
+                        for element in target.elts:
+                            assert isinstance(element, astroid.AssignName) or \
+                                   isinstance(element, astroid.AssignAttr)
+                            if isinstance(element, astroid.AssignName) and element.name not in global_names:
+                                # `name` is referencing a class attribute
+                                target_name_list.append(element.name)
+                            else:  # isinstance(element, astroid.AssignAttr) or element.name in global_names
+                                # `name` is not referencing a class attribute
+                                target_name_list.append(None)
+                        # Yield the tuple only if there is at least one valid assignment to a class attribute
+                        for name in target_name_list:
+                            if name is not None:
+                                yield target_name_list, None, cls_body_node.value, cls_body_node,
+                                break
+                    elif isinstance(target, astroid.AssignName):
+                        # Single named target, so `<target_x>` is something like `<element_1>`
+                        if target.name not in global_names:
+                            # `name` is referencing a class attribute, yield the tuple
+                            yield target.name, None, cls_body_node.value, cls_body_node,
+                    else:  # isinstance(target, astroid.AssignAttr)
+                        # Single named attribute target, so `<target_x>` is something like `<object.attr>`, and cannot
+                        #  be a class attribute
+                        pass
+            elif isinstance(cls_body_node, astroid.AnnAssign):
+                # Assignment with annotation, such as: `<target>: <annotation> = <expression>`
+                # Chained assignment (`<t_1> = <t_2> = ... = <expr>`) and tuple assignment (`<n_1, n_2, ...> = <expr>`)
+                #  cannot occur in annotation assignments
+                target = cls_body_node.target
+                assert isinstance(target, astroid.AssignName) or isinstance(target, astroid.AssignAttr)
+                if isinstance(target, astroid.AssignName):
+                    if target.name not in global_names:
+                        # `name` is referencing a class attribute, yield the tuple
+                        yield target.name, cls_body_node.annotation, cls_body_node.value, cls_body_node,
+                else:  # isinstance(target, astroid.AssignAttr)
+                    # Single named attribute target, so <target> is something like <object.attr>, and cannot be a class
+                    #  attribute
+                    pass
+
+    def get_tavn_list_constructor(cls_node: astroid.ClassDef, ctor_node: astroid.FunctionDef) -> Generator[Tuple, None, None]:
+        """2) Gets the assignments tuples '(target, annotation, value, node,)' from a constructor body."""
+        assert isinstance(cls_node, astroid.ClassDef) and \
+               isinstance(ctor_node, astroid.FunctionDef) and ctor_node.name == "__init__"
+
+        if not ctor_node.body or is_static_method(ctor_node):
+            # If there is no body, there is no `__init__` declaration nor inheritance from other ancestors constructors,
+            #  so no attributes can be declared here.
+            # Furthermore, if for some bizarre reason the `__init__` constructor has been tagged as 'static', there is
+            #  no self-reference to the object, thus no attributes can be declared here either.
+            pass
+        else:
+            # Find the name of the parameter used for self-reference
+            self_ref = get_self_ref(ctor_node)
+            assert self_ref
+
+            # Check the body for self-assignments and calls to ancestor constructors
+            for ctor_body_node in ctor_node.body:
+
+                # - Self-assignments check
+                if isinstance(ctor_body_node, astroid.Assign):
+                    # Assignment with no annotation, such as: `<target_1> = <target_2> = ... = <expression>`
+                    for target in ctor_body_node.targets:
+                        assert isinstance(target, astroid.Tuple) or isinstance(target, astroid.AssignName) or \
+                               isinstance(target, astroid.AssignAttr)
+                        if isinstance(target, astroid.Tuple):
+                            # Tuple assignment, so `<target_x>` is something like `<element_1, element_2, ...>`
+                            target_name_list = []
+                            for element in target.elts:
+                                assert isinstance(element, astroid.AssignName) or \
+                                       isinstance(element, astroid.AssignAttr)
+                                if isinstance(element, astroid.AssignAttr):
+                                    assert isinstance(element.expr, astroid.Name)
+                                if isinstance(element, astroid.AssignAttr) and element.expr.name == self_ref:
+                                    # `name` is referencing a class attribute through self-reference
+                                    target_name_list.append(element.attrname)
+                                else:  # isinstance(element, astroid.AssignName) or element.expr.name != self_ref
+                                    # `name` is not referencing a class attribute
+                                    target_name_list.append(None)
+                            # Yield the tuple only if there is at least one valid assignment to a class attribute
+                            for name in target_name_list:
+                                if name is not None:
+                                    yield target_name_list, None, ctor_body_node.value, ctor_body_node,
+                                    break
+                        elif isinstance(target, astroid.AssignAttr):
+                            # Single named target, so `<target_x>` is something like `<object.attr>`, and if `object`
+                            #  is a self-reference then it is a class attribute assignment
+                            assert isinstance(target.expr, astroid.Name)
+                            if target.expr.name == self_ref:
+                                yield target.attrname, None, ctor_body_node.value, ctor_body_node,
+                        else:  # isinstance(target, astroid.AssignName)
+                            # Single named attribute target, so `<target_x>` is something like `<element_1>`, and cannot
+                            #  be a class attribute without self-reference
+                            pass
+                elif isinstance(ctor_body_node, astroid.AnnAssign):
+                    # Assignment with annotation, such as: `<target>: <annotation> = <expression>`
+                    # Chained assignment (`<t_1> = <t_2> = ... = <expr>`) and tuple assignment
+                    #  (`<n_1, n_2, ...> = <expr>`) cannot occur in annotation assignments
+                    target = ctor_body_node.target
+                    assert isinstance(target, astroid.AssignName) or isinstance(target, astroid.AssignAttr)
+                    if isinstance(target, astroid.AssignAttr):
+                        assert isinstance(target.expr, astroid.Name)
+                        if target.expr.name == self_ref:
+                            # `name` is referencing a class attribute, yield the tuple
+                            yield target.attrname, ctor_body_node.annotation, ctor_body_node.value, ctor_body_node,
+                    else:  # isinstance(target, astroid.AssignName)
+                        # Single named attribute target, so `<target_x>` is something like `<element_1>`, and cannot
+                        #  be a class attribute without self-reference
+                        pass
+
+                # - Constructor calls check
+                elif isinstance(ctor_body_node, astroid.Expr) and isinstance(ctor_body_node.value, astroid.Call):
+                    # Constructor calls (`__init__` calls) can be done in two ways:
+                    #  1) Using `super()` to get a object reference to the first matching constructor in the MRO, as in
+                    #      `super().__init__(<params>)`;
+                    #  2) Using the explicit name of the class to choose a constructor from a specific ancestor, and
+                    #      passing the self-reference object as in `AncestorClass.__init__(<self-ref>, <params>)`
+
+                    call_func, call_params = ctor_body_node.value.func, ctor_body_node.value.args
+                    if isinstance(call_func, astroid.Attribute) and call_func.attrname == "__init__":
+                        # Check case 1)
+                        if isinstance(call_func.expr, astroid.Call):
+                            init_caller = getattr(call_func.expr.func, "name", None)
+                            if init_caller and init_caller == "super":
+                                init_found = False
+                                for ancestor_node in cls_node.mro()[1:]:  # First in MRO is the parent class itself
+                                    for method_node in ancestor_node.methods():
+                                        if method_node.name == "__init__":
+                                            yield from get_tavn_list_constructor(ancestor_node, method_node)
+                                            init_found = True  # No overload in Python, so just one constructor
+                                            break
+                                    if init_found:
+                                        break
+                        # Check case 2)
+                        if isinstance(call_func.expr, astroid.Name):
+                            ancestor_name = call_func.expr.name
+                            ancestor_node = None
+                            for ancestor in cls_node.ancestors(recurs=True):
+                                if ancestor.name == ancestor_name:
+                                    ancestor_node = ancestor
+                                    break
+                            if ancestor_node:
+                                for method_node in ancestor_node.methods():
+                                    if method_node.name == "__init__":
+                                        yield from get_tavn_list_constructor(ancestor_node, method_node)
+                                        break  # No overload in Python, so just one constructor
+
     assert isinstance(class_node, astroid.ClassDef)
     # The order of execution of the assignments that may define fields is the following:
     #  1) the assignments in the class body, from ancestors too (not annotation assignments though);
     #  2) the assignments in the constructor/s, that are twofold
-    #   2.a) the assignments from the explicit constructor `__init__`, if defined;
-    #   2.b) the assignments from the inherited constructor according to the MRO, if no explicit `__init__` is defined
-    #         or `super()` is called (`super()` could be recursively called more than once)
+    #    2.a) the assignments from the explicit constructor `__init__`, if defined;
+    #    2.b) the assignments from the inherited constructors according to the MRO, if no explicit `__init__` is defined
+    #          or a call to ancestor constructors is explicitly performed
 
     # 1)
     for ancestor in reversed(list(class_node.ancestors())):
-        yield from get_tav_list_class(ancestor)
-    yield from get_tav_list_class(class_node)
+        yield from get_tavn_list_class(ancestor)
+    yield from get_tavn_list_class(class_node)
 
     # 2)
-    constructor_node = None
     for method_node in class_node.methods():
         if method_node.name == "__init__":
-            constructor_node = method_node
+            yield from get_tavn_list_constructor(class_node, method_node)
             break  # No overload in Python, so just one constructor
-    if constructor_node:
-        assert isinstance(constructor_node, astroid.FunctionDef)
-        yield from get_tav_list_constructor(class_node, constructor_node)
 
 
-def get_tav_list_class(class_node: astroid.ClassDef):
-    """1) Gets the assignments (target, annotation, value) from a class body."""
-    assert isinstance(class_node, astroid.ClassDef)
+def is_static_method(func_node: astroid.FunctionDef) -> bool:
+    """Tells if a method is a static method by looking at its decorators. A function is always considered static.
 
-    # Find the names which refer to global variables (since `nonlocal` doesn't make sense in a class)
-    global_names = set()
-    for class_body_node in class_node.get_children():
-        if isinstance(class_body_node, astroid.Global):
-            for name in class_body_node.names:
-                global_names.add(name)
+    Args:
+        func_node (astroid.FunctionDef): a node representing a function/method definition and body.
 
-    # TODO CONTINUE HERE!!!
-    # Find the names that refer to fields (assignments) or potential fields (annotation assignments) in the class body
-    for class_body_node in class_node.get_children():
-        if isinstance(class_body_node, astroid.Assign):
-            for target in class_body_node.targets:  # Assegnamenti a catena possibili
-                if isinstance(target, astroid.Tuple):
-                    for e in target.elts:
-                        assert isinstance(e, nodes.AssignName) or isinstance(e, nodes.AssignAttr)
-                    names = []
-                    for e in target.elts:
-                        if isinstance(e, nodes.AssignName) and e.name not in global_names:
-                            names.append(e.name)
-                        else:
-                            assert isinstance(e, nodes.AssignAttr) or e.name in global_names
-                            names.append(None)
-                    for name in names:
-                        if name is not None:
-                            # Restituisci solo se almeno un nome è None, se sono tutti None (attributi o globali)
-                            #  non restituirla neanche
-                            yield (None, names, class_body_node.value, class_node,)
-                            break
-                elif isinstance(target, nodes.AssignName):
-                    yield (None, target.name, class_body_node.value, class_node,)
-                else:
-                    # assert isinstance(target, nodes.AssignAttr), f"{type(target)}"  # TRIGGERED
-                    pass
-        elif isinstance(class_body_node, nodes.AnnAssign):
-            if isinstance(class_body_node.target, nodes.AssignName):
-                yield (class_body_node.annotation,
-                       class_body_node.target.name,
-                       class_body_node.value,
-                       class_node,)
-            else:
-                assert isinstance(class_body_node.target, nodes.AssignAttr)
-                pass
+    Returns:
+        bool: `True` if the node represents a static method or a function, `False` otherwise.
 
-
-def get_tav_list_constructor(class_node: nodes.ClassDef, constructor_node: nodes.FunctionDef):
-    # --- 2 Tutti i campi derivanti dal costruttore
-    assert isinstance(class_node, nodes.ClassDef)
-    assert isinstance(constructor_node, nodes.FunctionDef) and constructor_node.name == "__init__"
-
-    if not constructor_node.body or utils_is_static_method(constructor_node):
-        # Se non c'è body la classe non dichiara __init__ né eredita da altre classi, avendo in mano quindi
-        #  il costruttore vuoto di object
-        # Implicazione: no attributi derivabili da questo __init__!
-        # Note: se per qualche motivo folle il metodo __init__ è statico si cade sempre qui!
-        #       Non vi possono essere attributi derivanti dal costruttore se non esiste un "self" a cui riferirsi
-        pass
-    elif class_node.name == constructor_node.parent.name:
-        # Se c'è body ed il padre del costruttore è la stessa classe, il costruttore è
-        #  dichiarato esplicitamente nella stessa classe
-        # Implicazione: cercare gli attributi nel body!
-        # Trovare il parametro usato per riferirsi all'istanza dell'oggetto, solitamente "self" (ma non necessariamente)
-        self_ref = utils_get_self_ref(constructor_node)
-        assert self_ref
-
-        # ! super().__init__ potrebbe essere chiamato dentro un altro metodo o funzione e fare comunque il suo dovere.
-        #   Io controllo solo se chiamato direttamente, poiché le sue potenziali chiamate innestate diventano difficili
-        #   da tracciare e sono inverosimili.
-        for constructor_body_node in constructor_node.body:
-            # print(f"[DEBUG] {constructor_body_node}")
-            if isinstance(constructor_body_node, nodes.Assign):
-                for target in constructor_body_node.targets:  # Assegnamenti a catena possibili
-                    if isinstance(target, nodes.Tuple):
-                        for e in target.elts:
-                            assert isinstance(e, nodes.AssignName) or isinstance(e, nodes.AssignAttr)
-                            if isinstance(e, nodes.AssignAttr):
-                                assert isinstance(e.expr, nodes.Name)
-                        names = []
-                        for e in target.elts:
-                            if isinstance(e, nodes.AssignAttr) and e.expr.name == self_ref:
-                                names.append(e.attrname)
-                            else:
-                                assert isinstance(e, nodes.AssignName) or e.expr.name != self_ref
-                                names.append(None)
-                        for name in names:
-                            if name is not None:
-                                # Restituisci solo se almeno un nome è None, se sono tutti None (attributi o globali)
-                                #  non restituirla neanche
-                                yield (None, names, constructor_body_node.value, constructor_body_node,)
-                                break
-                    elif isinstance(target, nodes.AssignAttr):
-                        if isinstance(target.expr, nodes.Name):  # TODO missing other options here
-                            if target.expr.name == self_ref:
-                                yield (None, target.attrname, constructor_body_node.value, constructor_body_node,)
-                    else:
-                        # assert isinstance(target, nodes.AssignName), f"{type(target)}" TRIGGERED
-                        pass
-            elif isinstance(constructor_body_node, nodes.AnnAssign):
-                # No tuple negli AnnAssign
-                if isinstance(constructor_body_node.target, nodes.AssignAttr):
-                    assert isinstance(constructor_body_node.target.expr, nodes.Name)
-                    if constructor_body_node.target.expr.name == self_ref:
-                        yield (constructor_body_node.annotation,
-                               constructor_body_node.target.attrname,
-                               constructor_body_node.value,
-                               constructor_body_node,)
-                else:
-                    # assert isinstance(constructor_body_node.target, nodes.AssignAttr)  TRIGGERED
-                    pass
-            elif isinstance(constructor_body_node, nodes.Expr):
-                is_super_constructor_call = False
-                parent_constructor_node = None
-
-                is_super_constructor_call = \
-                    isinstance(constructor_body_node.value, nodes.Call) and \
-                    isinstance(constructor_body_node.value.func, nodes.Attribute) and \
-                    constructor_body_node.value.func.attrname == "__init__" and \
-                    isinstance(constructor_body_node.value.func.expr, nodes.Call) and \
-                    isinstance(constructor_body_node.value.func.expr.func, nodes.Name) and \
-                    constructor_body_node.value.func.expr.func.name == "super"
-
-                if is_super_constructor_call:
-                    mro = class_node.mro()
-                    assert len(mro) > 1  # Se si sta chiamando 'super' qualcuno da cui ereditare c'è!
-                    first_parent_node = mro[1]
-                    parent_constructor_node = None
-                    for method in first_parent_node.methods():
-                        assert isinstance(method, nodes.FunctionDef)
-                        if method.name == "__init__":
-                            parent_constructor_node = method
-                            break
-                    assert parent_constructor_node
-                    yield from utils_get_anv_list_constructor(first_parent_node, parent_constructor_node)
-    elif class_node.name != constructor_node.parent.name:
-        # Se c'è body ed il padre del costruttore è diverso dalla stessa classe, il costruttore è
-        #  uno di quelli delle classi da cui eredita.
-        # Implicazione: cercare gli attributi dai genitori!
-        pass
-    else:
-        assert False
-
-
-def is_static_method(node: astroid.FunctionDef) -> bool:
-    """Tells if a method is a static method by looking at its decorators. A function is always considered static."""
-    assert isinstance(node, astroid.FunctionDef)
-    if node.is_method():
-        decorators_nodes = node.decorators.nodes if node.decorators else []
+    """
+    assert isinstance(func_node, astroid.FunctionDef)
+    if func_node.is_method():
+        decorators_nodes = func_node.decorators.nodes if func_node.decorators else []
         decorators_names = {node.name for node in decorators_nodes}
         is_static = "staticmethod" in decorators_names
     else:
@@ -501,28 +528,28 @@ def is_static_method(node: astroid.FunctionDef) -> bool:
     return is_static
 
 
-def get_self_ref(node: astroid.FunctionDef) -> str:
+def get_self_ref(fun_node: astroid.FunctionDef) -> str:
     """Gets the name used to self-reference the object in a method.
 
     Notes:
      Conventionally 'self' is used, but it is not mandatory, so it may be different.
 
     Args:
-        node (astroid.FunctionDef): a node representing a function/method definition and body.
+        fun_node (astroid.FunctionDef): a node representing a function/method definition and body.
 
     Returns:
         str: the name of the variable representing the object itself within the method, or an empty string if the method
          is static or it is instead a function.
 
     """
-    assert isinstance(node, astroid.FunctionDef)
+    assert isinstance(fun_node, astroid.FunctionDef)
 
     self_ref = ""
-    if not is_static_method(node):
+    if not is_static_method(fun_node):
         # In order of definition we have `posonlyargs`, `args`, `vararg`, `kwonlyargs` and `kwarg`; the name used for
         #  self-reference in methods always occupies the first position in the arguments definition.
-        if node.args.posonlyargs:
-            self_ref = node.args.posonlyargs[0].name
+        if fun_node.args.posonlyargs:
+            self_ref = fun_node.args.posonlyargs[0].name
         else:
-            self_ref = node.args.args[0].name
+            self_ref = fun_node.args.args[0].name
     return self_ref

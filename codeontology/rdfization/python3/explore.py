@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
-from typing import Any, Iterator, Set, Tuple
+from typing import Any, Iterator, Set, Tuple, Union
 
-from astroid.nodes import Module
+import astroid
 
 from codeontology import logging
 from codeontology.ontology import ontology
@@ -258,13 +258,13 @@ class Package:
     simple_name: str
     full_name: str
     path: Path
-    source: Path | None
+    source: Union[Path, None]
     type: Package.Type
 
     library: Library
     direct_subpackages: Set[Package]
 
-    ast: Module | None
+    ast: Union[astroid.Module, None]
 
     individual: ontology.Package
 
