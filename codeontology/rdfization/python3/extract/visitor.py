@@ -1,11 +1,11 @@
-"""Classes and methods to visit the AST nodes and extract the related RDF triples."""
+"""Class and methods to visit the AST nodes and extract the related RDF triples."""
 
 import astroid
 
 from codeontology.rdfization.python3.extract.individuals import CodeIndividuals
 
 
-class Visitor:
+class Visitor:  # TODO RENAME TO "Extractor"
     """A collection of methods for the operations to perform on different types of AST nodes."""
 
     @staticmethod

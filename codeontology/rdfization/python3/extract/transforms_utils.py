@@ -1,3 +1,5 @@
+"""Support functions for the transforms to apply on AST nodes."""
+
 from typing import Generator, Tuple, Union
 
 import astroid
@@ -126,6 +128,11 @@ def resolve_annotation(node: ...) -> ...:
         matched_type = None
 
     return matched_type
+
+
+def resolve_value(node: ...) -> ...:
+    # TODO CONTINUE HERE
+    pass
 
 
 def lookup_type_by_name(name: str, scope_node: ...) -> astroid.ClassDef:
@@ -458,7 +465,6 @@ def get_tavn_list(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                     #      `super().__init__(<params>)`;
                     #  2) Using the explicit name of the class to choose a constructor from a specific ancestor, and
                     #      passing the self-reference object as in `AncestorClass.__init__(<self-ref>, <params>)`
-
                     call_func, call_params = ctor_body_node.value.func, ctor_body_node.value.args
                     if isinstance(call_func, astroid.Attribute) and call_func.attrname == "__init__":
                         # Check case 1)
@@ -467,9 +473,9 @@ def get_tavn_list(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                             if init_caller and init_caller == "super":
                                 init_found = False
                                 for ancestor_node in cls_node.mro()[1:]:  # First in MRO is the parent class itself
-                                    for method_node in ancestor_node.methods():
-                                        if method_node.name == "__init__":
-                                            yield from get_tavn_list_constructor(ancestor_node, method_node)
+                                    for ancestor_method_node in ancestor_node.methods():
+                                        if ancestor_method_node.name == "__init__":
+                                            yield from get_tavn_list_constructor(ancestor_node, ancestor_method_node)
                                             init_found = True  # No overload in Python, so just one constructor
                                             break
                                     if init_found:
@@ -483,9 +489,9 @@ def get_tavn_list(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                                     ancestor_node = ancestor
                                     break
                             if ancestor_node:
-                                for method_node in ancestor_node.methods():
-                                    if method_node.name == "__init__":
-                                        yield from get_tavn_list_constructor(ancestor_node, method_node)
+                                for ancestor_method_node in ancestor_node.methods():
+                                    if ancestor_method_node.name == "__init__":
+                                        yield from get_tavn_list_constructor(ancestor_node, ancestor_method_node)
                                         break  # No overload in Python, so just one constructor
 
     assert isinstance(class_node, astroid.ClassDef)

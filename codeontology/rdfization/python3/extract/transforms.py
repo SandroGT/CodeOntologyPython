@@ -1,4 +1,4 @@
-"""Transform functions on AST nodes to increase their expressiveness."""
+"""Class and methods to visit the AST nodes and apply transform functions to increase their expressiveness."""
 
 import astroid
 
@@ -17,103 +17,121 @@ class Transformer:
                 Transformer.visit_to_transform(child)
 
     @staticmethod
-    def _transform_FunctionDef(node: astroid.FunctionDef):
+    def _transform_FunctionDef(function_node: astroid.FunctionDef):
         """Transforms to perform on a 'FunctionDef' node.
 
         Args:
-            node (astroid.FunctionDef): input node.
+            function_node (astroid.FunctionDef): input node.
 
         """
-        def add_method_overrides(node: astroid.FunctionDef):
+        def add_method_overrides(fun_node: astroid.FunctionDef):
             """Adds a new `overrides` attribute to a node of type `FunctionDef`, linking it to the node of the method it
              is overriding (if any) or to `None` (if nothing is being overridden or it is not a method).
 
             Args:
-                node (astroid.FunctionDef): a node representing a function/method/constructor definition and body.
+                fun_node (astroid.FunctionDef): a node representing a function/method/constructor definition and body.
 
             """
-            assert isinstance(node, astroid.FunctionDef)
+            assert isinstance(fun_node, astroid.FunctionDef)
 
-            if not isinstance(node, astroid.FunctionDef):
+            if not isinstance(fun_node, astroid.FunctionDef):
                 raise Exception("Wrong transformation call.")
             # Set 'overrides' default value
-            node.overrides = None
+            fun_node.overrides = None
             # Search for the possible overridden method
-            if node.is_method():
-                assert isinstance(node.parent, astroid.ClassDef)
-                ancestors_mro = node.parent.mro()[1:]  # First in MRO is the parent class itself
+            if fun_node.is_method():
+                assert isinstance(fun_node.parent, astroid.ClassDef)
+                ancestors_mro = fun_node.parent.mro()[1:]  # First in MRO is the parent class itself
                 for ancestor_node in ancestors_mro:
                     for ancestor_method_node in ancestor_node.methods():
                         # In Python methods are identified just by their names, there is no "overloading"
-                        if ancestor_method_node.name == node.name:
+                        if ancestor_method_node.name == fun_node.name:
                             # Set and terminate search
-                            node.overrides = ancestor_method_node
+                            fun_node.overrides = ancestor_method_node
                             return
 
-        add_method_overrides(node)
+        add_method_overrides(function_node)
 
     @staticmethod
-    def _transform_ClassDef(node: astroid.ClassDef):
+    def _transform_ClassDef(class_node: astroid.ClassDef):
         """Transforms to perform on a 'ClassDef' node.
 
         Args:
-            node (astroid.ClassDef): input node.
+            class_node (astroid.ClassDef): input node.
 
         """
-        def add_class_fields(node: astroid.ClassDef):
-            """Adds a new field `TODO` to represent all the recognized fields/attributes/class variables of the class.
+        def add_class_fields(cls_node: astroid.ClassDef):
+            """Adds a new attribute `fields` to represent all the recognized fields/attributes/class variables of the
+             class. The new attribute will contain a dictionary `{<field>: (<field type>, <declaring node>,)}`.
 
             The fields of a class in Python can only be determined with certainty at runtime, but we can try to predict
              at least the most obvious field by looking at the assignments (but not deletions) to the class object
-             itself in constructor methods.
+             itself in class body and constructor methods.
 
             Args:
-                node (astroid.ClassDef): a node representing a class definition and body.
+                cls_node (astroid.ClassDef): a node representing a class definition and body.
 
             """
-            assert isinstance(node, astroid.ClassDef)
-            from transforms_utils import get_tavn_list
+            assert isinstance(cls_node, astroid.ClassDef)
+            from transforms_utils import get_tavn_list, resolve_annotation, resolve_value
 
             # TODO CONTINUE FROM HERE AND USE get_tavn_list PROPERLY
 
-            fields_dict = dict()
-
-            # TODO add get type from value
-            for annotation, target, value, def_node in get_tavn_list(node):  # get annotation, names, value list
-                # praticamente scorro tutti gli assegnamenti associabili ad un campo in ordine, e ora devo costruire il
-                #  dizionario dei campi a partire dalla lista già correttamente ordinata di assegnamenti
-                # print(annotation, target, value, def_node)
-                if isinstance(target, list):  # se ho più target era un assegnamento multiplo
-                    # Gli assegnamenti multipli (di tuple) sono possibili solo con Assign, non AnnAssign,
-                    #  quindi l'annotazione è assente
-                    assert annotation is None
-                    # Il tipo lo si può ottenere solo da inferenza sul valore, che per ora ignoriamo!
-                    # Ma se c'è l'annotazione sfruttiamo quella, quindi inferisci solo se non c'è una annotazione successiva
-                    inferred_annotation = None
-                    for name in target:
-                        prev_annotation, _, _ = fields_dict.get(name, (None, None, None,))
-                        fields_dict[name] = (prev_annotation, value, def_node)
-                else:  # altrimenti assegnamento singolo
+            # Get the list of assignments to potential fields in the class with `get_tavn_list`. It organizes these
+            #  assignments on a dictionary by `field` (whose name is found in the assignment `target` value). Since the
+            #  list is ordered from oldest to newest assignment, when a field is encountered more than once, it
+            #  overwrites the previously assigned annotation, value, and node (if provided).
+            favn_dict = dict()  # {field: (annotation, value, node,)}
+            for target, annotation, value, node in get_tavn_list(cls_node):
+                if isinstance(target, list):  # Multiple targets from tuple assignments
+                    assert annotation is None  # Tuple assignments cannot be annotated, so no astroid.AnnAssign
+                    for field in target:
+                        if field:
+                            prev_annotation, _, _ = favn_dict.get(field, (None, None, None))
+                            # !!! We drop and don't use the current `value` since it's a tuple for the entire target:
+                            #  we would have to extract the corresponding bit that is assigned exactly to this field,
+                            #  and we don't know what that is statically
+                            new_annotation = prev_annotation
+                            new_value = None
+                            new_node = node
+                            favn_dict[field] = (new_annotation, new_value, new_node,)
+                else:
                     assert isinstance(target, str)
+                    field = target
+                    prev_annotation, prev_value, _ = favn_dict.get(field, (None, None, None))
+                    new_annotation = annotation if annotation else prev_annotation
+                    new_value = value if value else prev_value
+                    new_node = node
+                    favn_dict[field] = (new_annotation, new_value, new_node,)
+
+            # Use the annotation and value information from the dictionary to infer the field type
+            ftn_dict = {}  # {field: (type, node,)}
+            for field, (annotation, value, node) in favn_dict.items():
+                type_ = None
+                if annotation:
                     try:
-                        built_type = resolve_annotation(annotation)
+                        type_ = resolve_annotation(annotation)
                     except Exception:
-                        built_type = None
-                    fields_dict[target] = (built_type, value, def_node)
+                        pass
+                if value and not type_:
+                    try:
+                        type_ = resolve_value(value)
+                    except Exception:
+                        pass
+                ftn_dict[field] = (type_, node,)
+            cls_node.fields = ftn_dict
 
-            node.fields_dict = fields_dict
-
-        add_class_fields(node)
+        add_class_fields(class_node)
 
     @staticmethod
-    def _transform_Arguments(node: astroid.Arguments):
+    def _transform_Arguments(arguments_node: astroid.Arguments):
         """Transforms to perform on a 'Arguments' node.
 
         Args:
-            node (astroid.Arguments): input node.
+            arguments_node (astroid.Arguments): input node.
 
         """
-        def add_args_type(node: astroid.Arguments):
+        def add_args_type(args_node: astroid.Arguments):
             """Adds a new set of attributes to a node of type `Arguments`, linking its annotations to the AST nodes
              defining the types to which the annotations might refer.
 
@@ -137,18 +155,18 @@ class Transformer:
              the specifics introduced with the function `resolve_annotation`.
 
             Args:
-                node (astroid.Arguments): a node representing the arguments of a function/method/constructor.
+                args_node (astroid.Arguments): a node representing the arguments of a function/method/constructor.
 
             """
-            assert isinstance(node, astroid.Arguments)
+            assert isinstance(args_node, astroid.Arguments)
             from transforms_utils import resolve_annotation
 
-            if not isinstance(node, astroid.Arguments):
+            if not isinstance(args_node, astroid.Arguments):
                 raise Exception("Wrong transformation call.")
 
             for i, ann_attr_name in enumerate(["annotations", "posonlyargs_annotations", "kwonlyargs_annotations",
                                                "varargannotation", "kwargannotation"]):
-                ann_attr = getattr(node, ann_attr_name)
+                ann_attr = getattr(args_node, ann_attr_name)
                 if i > 2:  # Only for "varargannotation" and "kwargannotation", that are not lists
                     ann_attr = [ann_attr]
                 type_ann_attr = []
@@ -165,24 +183,24 @@ class Transformer:
                 if i > 2:  # Only for "varargannotation" and "kwargannotation", that are not lists
                     assert len(type_ann_attr) == 1
                     type_ann_attr = type_ann_attr[0]
-                setattr(node, f"type_{ann_attr_name}", type_ann_attr)
+                setattr(args_node, f"type_{ann_attr_name}", type_ann_attr)
 
-        add_args_type(node)
+        add_args_type(arguments_node)
 
     @staticmethod
-    def _transform_Expr(node: astroid.Expr):
+    def _transform_Expr(expression_node: astroid.Expr):
         """Transforms to perform on a 'Expr' node.
 
         Args:
-            node (astroid.Expr): input node.
+            expression_node (astroid.Expr): input node.
 
         """
-        # TODO FINISH THIS
-        def add_expression_type(node: astroid.Expr):
-            assert isinstance(node, astroid.Expr)
+        # TODO FINISH THIS USING `resolve_value`
+        def add_expression_type(expr_node: astroid.Expr):
+            assert isinstance(expr_node, astroid.Expr)
             class_type = None
             try:
-                infers = node.value.inferred()
+                infers = expr_node.value.inferred()
             except Exception:
                 infers = []
             assert isinstance(infers, list)
@@ -193,15 +211,15 @@ class Transformer:
                     complete_inferred_type = inferred_value.pytype()
                     assert "." in complete_inferred_type
                     assert complete_inferred_type.startswith(f"builtins.") or \
-                           complete_inferred_type.startswith(f"{node.root().name}.")  # node.root().name potrebbe essere vuoto
+                           complete_inferred_type.startswith(f"{expr_node.root().name}.")  # node.root().name potrebbe essere vuoto
                     inferred_type = ".".join(complete_inferred_type.split(".")[1:])
                     print(f"[DEBUG] {inferred_type} ({type(inferred_type)})")
-                    scope = node.scope()
+                    scope = expr_node.scope()
                     assert scope
                     try:
                         class_type = lookup_type_by_name(scope, inferred_type)
                     except Exception:
                         pass
-            node.class_type = class_type
+            expr_node.class_type = class_type
 
-        add_expression_type(node)
+        add_expression_type(expression_node)
