@@ -5,7 +5,7 @@ from typing import Generator, Tuple, Union
 import astroid
 
 
-def resolve_annotation(node: ...) -> ...:
+def resolve_annotation(annotation_node: astroid.NodeNG) -> ...:
     """Gets a reference to the AST nodes representing the types to which an annotation may be referring to, whenever
      possible.
 
@@ -19,14 +19,14 @@ def resolve_annotation(node: ...) -> ...:
           recursively be a reference to an AST Class node, a list or a tuple;
 
     Args:
-        node: the node defining the annotation.
+        annotation_node (astroid.NodeNG): the node defining the annotation.
 
     Returns:
         The structured representation of the type to which the annotation may be referring to, in the form of structured
-         references to AST Class nodes, or `None`, if its not possible to resolve the annotation.
+         references to AST Class nodes, or `None`, if it is not possible to resolve the annotation.
 
     """
-    def structure_annotation(ann_node: ...) -> ...:
+    def structure_annotation(ann_node: astroid.NodeNG) -> ...:
         """Structures the information about types as described in the parent function, but uses 'Class' names instead of
          the references to the AST nodes in which the respective classes are declared.
 
@@ -96,7 +96,7 @@ def resolve_annotation(node: ...) -> ...:
 
         return structured_ann
 
-    def resolve_class_names(ann_node: ..., structured_ann: ...) -> ...:
+    def resolve_class_names(ann_node: astroid.NodeNG, structured_ann: ...) -> ...:
         """Resolves the names of the classes in a structured annotation, replacing them with the reference to the
          respective AST Class nodes.
         """
@@ -110,7 +110,7 @@ def resolve_annotation(node: ...) -> ...:
 
         # A) Single types (base case)
         elif isinstance(structured_ann, str):
-            match_type = lookup_type_by_name(structured_ann, ann_node)
+            match_type = lookup_type_by_name(structured_ann, get_lookup_node(ann_node))
 
         # B) Equivalent types (recursive step)
         elif isinstance(structured_ann, list):
@@ -123,25 +123,54 @@ def resolve_annotation(node: ...) -> ...:
         return match_type
 
     try:
-        matched_type = resolve_class_names(node, structure_annotation(node))
+        matched_type = resolve_class_names(annotation_node, structure_annotation(annotation_node))
     except Exception:
         matched_type = None
 
     return matched_type
 
 
-def resolve_value(node: ...) -> ...:
-    # TODO CONTINUE HERE
-    pass
+def resolve_value(value_node: astroid.NodeNG) -> astroid.ClassDef:
+    """Gets a reference to the AST node representing the type of the value.
+
+    Args:
+        value_node (astroid.NodeNG): a node representing an expression or a constant.
+
+    Returns:
+        astroid.ClassDef: the reference to the class defining the inferred type of the value, or `None`, if it is not
+         possible to resolve the value type.
+
+    """
+    type_ = None
+    try:
+        inferred_values = value_node.inferred()
+        if inferred_values is not astroid.Uninferable and len(inferred_values) == 1:  # A confident prediction
+            str_type_list = inferred_values[0].pytype().split(".")
+            str_type_module = str_type_list[0]
+            if str_type_module in ['', 'builtins', value_node.root().name]:
+                str_type = ".".join(str_type_list[1:])  # Skip the module info
+            else:
+                str_type = inferred_values[0].pytype()  # Keep everything, since the module is out
+            type_ = lookup_type_by_name(str_type, get_lookup_node(value_node))
+    except Exception:
+        pass
+
+    if type_:
+        assert isinstance(type_, astroid.ClassDef)
+    return type_
 
 
-def lookup_type_by_name(name: str, scope_node: ...) -> astroid.ClassDef:
+def lookup_type_by_name(
+        name: str,
+        scope_node: Union[astroid.FunctionDef, astroid.ClassDef, astroid.Module]
+) -> astroid.ClassDef:
     """Looks for the reference to the AST node that defines the type specified by the name, using the scope given by
      the passed node.
 
     Args:
         name (str): the name of the type/class to search for.
-        scope_node: the node that defines the scope from which to start the search.
+        scope_node (Union[astroid.FunctionDef, astroid.ClassDef, astroid.Module]): the node that defines the scope
+         from which to start the search.
 
     Returns:
         astroid.ClassDef: the reference to the type/class corresponding to the name.
@@ -151,7 +180,11 @@ def lookup_type_by_name(name: str, scope_node: ...) -> astroid.ClassDef:
 
     """
 
-    def track_type_name(base: str, tail: str, scope_node: ...) -> astroid.ClassDef:
+    def track_type_name(
+            base: str,
+            tail: str,
+            scope_node: Union[astroid.FunctionDef, astroid.ClassDef, astroid.Module]
+    ) -> astroid.ClassDef:
         """Tracks down the type/class related to the specified name, recursively splitting it into `base` and `tail`
          until there are no more trailing names to follow.
 
@@ -160,7 +193,8 @@ def lookup_type_by_name(name: str, scope_node: ...) -> astroid.ClassDef:
              the base is '<package>'. May also concide with the whole name, if no tail exists.
             tail (str): the trailing parts of the name after `base`; for example in '<package>.<wrapper_class>.<type>'
              the tail is '<wrapper_class>.<type>'. It's `None` at the final step.
-            scope_node: the node defining the scope from which to search for the `base`.
+            scope_node (Union[astroid.FunctionDef, astroid.ClassDef, astroid.Module]): the node defining the scope from
+             which to search for the `base`.
 
         Returns:
             astroid.ClassDef: the reference to the type/class matched to the name.
@@ -291,15 +325,10 @@ def lookup_type_by_name(name: str, scope_node: ...) -> astroid.ClassDef:
         return match_type
 
     def utils_handle_type_match_AssignName(base: str, tail: str, match_node: astroid.AssignName):
-        """The `base` comes from an 'assignment statement' node that creates an alias of our type of interes."""
+        """The `base` comes from an 'assignment statement' node that creates an alias of our type of interest."""
         assert isinstance(match_node.parent, astroid.Assign)
-        # Try to track down the original type/class through the inference tool of `astroid`
-        infers = list(match_node.infer())
-        # If we have a unique clear result
-        if len(infers) == 1 and isinstance(infers[0], astroid.ClassDef):
-            match_type = infers[0]
-        else:
-            raise Exception("Not able to track down the type through the assignment.")
+        # Try to track the type of the right value of the assignment
+        match_type = resolve_value(match_node.parent.value)
 
         return match_type
 
@@ -512,6 +541,27 @@ def get_tavn_list(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
         if method_node.name == "__init__":
             yield from get_tavn_list_constructor(class_node, method_node)
             break  # No overload in Python, so just one constructor
+
+
+def get_lookup_node(node: astroid.NodeNG) -> Union[astroid.FunctionDef, astroid.ClassDef, astroid.Module]:
+    """Gets the first scope node of the input node from which to start a `lookup` search.
+
+    Args:
+        node (astroid.NodeNG): the node from which we want to start a search.
+
+    Returns:
+        Union[astroid.FunctionDef, astroid.ClassDef, astroid.Module]: the first scope node of the input node from which
+         to start a `lookup` search.
+    """
+    while not (
+            isinstance(node, astroid.FunctionDef) or
+            isinstance(node, astroid.ClassDef) or
+            isinstance(node, astroid.Module)
+    ):
+        node = node.parent
+
+    assert node
+    return node
 
 
 def is_static_method(func_node: astroid.FunctionDef) -> bool:

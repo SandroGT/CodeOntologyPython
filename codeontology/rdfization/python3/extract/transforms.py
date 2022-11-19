@@ -109,15 +109,9 @@ class Transformer:
             for field, (annotation, value, node) in favn_dict.items():
                 type_ = None
                 if annotation:
-                    try:
-                        type_ = resolve_annotation(annotation)
-                    except Exception:
-                        pass
+                    type_ = resolve_annotation(annotation)
                 if value and not type_:
-                    try:
-                        type_ = resolve_value(value)
-                    except Exception:
-                        pass
+                    type_ = resolve_value(value)
                 ftn_dict[field] = (type_, node,)
             cls_node.fields = ftn_dict
 
@@ -173,10 +167,7 @@ class Transformer:
 
                 # Try to link any annotation to a type, defined by a node from an AST. Just link to `None` at fail
                 for ann in ann_attr:
-                    try:
-                        structured_ann = resolve_annotation(ann)
-                    except Exception:
-                        structured_ann = None
+                    structured_ann = resolve_annotation(ann)
                     type_ann_attr.append(structured_ann)
 
                 # Add the resolved (or not) annotations to the `Arguments` node
@@ -186,40 +177,3 @@ class Transformer:
                 setattr(args_node, f"type_{ann_attr_name}", type_ann_attr)
 
         add_args_type(arguments_node)
-
-    @staticmethod
-    def _transform_Expr(expression_node: astroid.Expr):
-        """Transforms to perform on a 'Expr' node.
-
-        Args:
-            expression_node (astroid.Expr): input node.
-
-        """
-        # TODO FINISH THIS USING `resolve_value`
-        def add_expression_type(expr_node: astroid.Expr):
-            assert isinstance(expr_node, astroid.Expr)
-            class_type = None
-            try:
-                infers = expr_node.value.inferred()
-            except Exception:
-                infers = []
-            assert isinstance(infers, list)
-            if len(infers) == 1:  # Solo risposte certe
-                inferred_value = infers[0]
-                if inferred_value is not Uninferable:
-                    assert getattr(inferred_value, "pytype", None) is not None
-                    complete_inferred_type = inferred_value.pytype()
-                    assert "." in complete_inferred_type
-                    assert complete_inferred_type.startswith(f"builtins.") or \
-                           complete_inferred_type.startswith(f"{expr_node.root().name}.")  # node.root().name potrebbe essere vuoto
-                    inferred_type = ".".join(complete_inferred_type.split(".")[1:])
-                    print(f"[DEBUG] {inferred_type} ({type(inferred_type)})")
-                    scope = expr_node.scope()
-                    assert scope
-                    try:
-                        class_type = lookup_type_by_name(scope, inferred_type)
-                    except Exception:
-                        pass
-            expr_node.class_type = class_type
-
-        add_expression_type(expression_node)
