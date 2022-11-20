@@ -48,10 +48,10 @@ def resolve_annotation(annotation_node: astroid.NodeNG) -> ...:
             structured_ann = ann_node.name
         elif isinstance(ann_node, astroid.Attribute):
             # Reference to a class contained within another class or package, such as 'os.Path'.
-            nested_names = [ann_node.attrname]
-            nested_annotation_node = ann_node.expr
+            nested_names = []
+            nested_annotation_node = ann_node
             while isinstance(nested_annotation_node, astroid.Attribute):
-                nested_names.insert(0, ann_node.attrname)
+                nested_names.insert(0, nested_annotation_node.attrname)
                 nested_annotation_node = nested_annotation_node.expr
             assert isinstance(nested_annotation_node, astroid.Name)
             nested_names.insert(0, nested_annotation_node.name)
@@ -145,13 +145,18 @@ def resolve_value(value_node: astroid.NodeNG) -> astroid.ClassDef:
     try:
         inferred_values = value_node.inferred()
         if inferred_values is not astroid.Uninferable and len(inferred_values) == 1:  # A confident prediction
-            str_type_list = inferred_values[0].pytype().split(".")
-            str_type_module = str_type_list[0]
-            if str_type_module in ['', 'builtins', value_node.root().name]:
-                str_type = ".".join(str_type_list[1:])  # Skip the module info
+            inferred_value = inferred_values[0]
+            if isinstance(inferred_value, astroid.ClassDef):
+                type_ = inferred_value
             else:
-                str_type = inferred_values[0].pytype()  # Keep everything, since the module is out
-            type_ = lookup_type_by_name(str_type, get_lookup_node(value_node))
+                # ??? May need more cases
+                str_type_list = inferred_value.pytype().split(".")
+                str_type_module = str_type_list[0]
+                if str_type_module in ['', 'builtins', value_node.root().name]:
+                    str_type = ".".join(str_type_list[1:])  # Skip the module info
+                else:
+                    str_type = inferred_value.pytype()  # Keep everything, since the module is out
+                type_ = lookup_type_by_name(str_type, get_lookup_node(value_node))
     except Exception:
         pass
 

@@ -73,9 +73,7 @@ class Transformer:
 
             """
             assert isinstance(cls_node, astroid.ClassDef)
-            from transforms_utils import get_tavn_list, resolve_annotation, resolve_value
-
-            # TODO CONTINUE FROM HERE AND USE get_tavn_list PROPERLY
+            from rdfization.python3.extract.transforms_utils import get_tavn_list, resolve_annotation, resolve_value
 
             # Get the list of assignments to potential fields in the class with `get_tavn_list`. It organizes these
             #  assignments on a dictionary by `field` (whose name is found in the assignment `target` value). Since the
@@ -153,7 +151,7 @@ class Transformer:
 
             """
             assert isinstance(args_node, astroid.Arguments)
-            from transforms_utils import resolve_annotation
+            from rdfization.python3.extract.transforms_utils import resolve_annotation
 
             if not isinstance(args_node, astroid.Arguments):
                 raise Exception("Wrong transformation call.")
