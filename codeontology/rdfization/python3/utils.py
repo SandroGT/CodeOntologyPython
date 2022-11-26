@@ -476,13 +476,14 @@ class ProjectHandler:
                                     if len(rel_path.parents) == 1:
                                         if rel_path.suffix == ".py":
                                             lib_distr_paths.add(install_dir.joinpath(rel_path))
-                                    # A folder is a top level package only if it is not a cache folder or the folder
-                                    #  with metadata
+                                    # A folder is a top level package only if it is not a cache folder, a folder with
+                                    #  metadata and has a valid package name
                                     else:
                                         rel_path_root = list(rel_path.parents)[-2]
                                         if not rel_path_root.name.startswith("_") and \
                                                 not rel_path_root.name.startswith(".") and \
-                                                not rel_path_root.name.endswith("-info"):
+                                                not rel_path_root.name.endswith("-info") and \
+                                                is_valid_package_name(rel_path_root.name):
                                             lib_distr_paths.add(install_dir.joinpath(rel_path_root))
                     # Another metadata file could be 'top_level.txt', that should indicate only the top level
                     #  package names installed for the distribution. We can then infer the top level packages paths.
@@ -663,3 +664,16 @@ class PySourceHandler:
             raise Exception(f"Unable to read Python3 version from '{py3_exec}' executable.")
 
         return regex.search(r"(?<=Python )3(\.\d+){,2}", str(out)).group()
+
+
+def is_valid_package_name(package_name: str) -> bool:
+    """Tells whether or not a string could represent a valid package name.
+
+    Args:
+        package_name (str): the string representing the potential name of the package.
+
+    Returns:
+        bool: `True` for a valid package name, `False` otherwise.
+
+    """
+    return bool(regex.match(r"^[A-Za-z_]+$", package_name))
