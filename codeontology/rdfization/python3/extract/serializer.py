@@ -11,7 +11,7 @@ import astroid
 from codeontology import logging
 from codeontology.ontology import ontology
 from codeontology.rdfization.python3.explore import Project, Package
-from codeontology.rdfization.python3.extract.parser import parse_source
+from codeontology.rdfization.python3.extract.parser import Parser
 from codeontology.rdfization.python3.extract.individuals import StructureIndividuals
 from codeontology.rdfization.python3.extract.visitor import Visitor
 
@@ -109,11 +109,7 @@ class Serializer:
         # HACK right now ignoring dependencies, since we are gonna extract only `Class` and `Method` triples directly
         #  from the project, but in the future the outer 'for' will have to iterate over
         #  '(self.project.stdlibs | self.project.dependencies | self.project.libraries)'
-        for library in self.project.libraries:
-            for package in library.root_package.get_packages():
-                parse_source(package)
-                if package.ast is not None:
-                    self.packages.add(package)
+        Parser(self.project)
 
     def __serialize_from_project(self):
         """Extract the RDF triples."""

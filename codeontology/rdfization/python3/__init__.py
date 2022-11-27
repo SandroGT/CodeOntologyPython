@@ -29,7 +29,7 @@ def rdfization(*, project_path: Path = None, project_pkgs: Path = None, project_
     from codeontology.rdfization.python3.utils import ProjectHandler, PySourceHandler
 
     # Retrieve project files
-    assert output_dir and download_dir and python3_exec, f"{output_dir} {download_dir} {python3_exec}"
+    assert output_dir and download_dir and python3_exec
     project_handler = ProjectHandler(python3_exec)
     py_source_handler = PySourceHandler()
 
@@ -54,6 +54,8 @@ def rdfization(*, project_path: Path = None, project_pkgs: Path = None, project_
     project = Project(project_name, project_path, project_pkgs, project_deps, python3_src)
 
     # Extract the triples from the project structure
+    # !!! The ontology is global, triples will be stored there automatically! That's why there is no need for a object
+    #  return or ontology parameter. This should be solved, since I don't like having a global ontology!
     Serializer(project)
 
     # Store everything

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
-from typing import Any, Iterator, Set, Tuple, Union
+from typing import Any, Dict, Iterator, Set, Tuple, Union
 
 import astroid
 
@@ -24,10 +24,11 @@ class Project:
         dependencies_path (Path): the path to the folder containing the top level packages paths of the project
          dependencies.
         python3_path (Path): the path to the folder containing the Python3 standard library source code.
+        packages (Dict[Path, Package]): a dictionary mapping file `Path`s to their related `Package` in the project.
         libraries (Set[Library]): the set of libraries (top level packages) of the project distribution.
         dependencies (Set[Library]): the set of libraries (top level packages) of the project dependencies.
         stdlibs (Set[Library]): the set of standard libraries in the Python3 specified source.
-        individual (ontology.Project): the project's individual in the ontology.
+        # TODO DELETE individual (ontology.Project): the project's individual in the ontology.
 
     """
     name: str
@@ -37,11 +38,12 @@ class Project:
     dependencies_paths: Path
     python3_path: Path
 
+    packages: Dict[Path, Package]
     libraries: Set[Library]
     dependencies: Set[Library]
     stdlibs: Set[Library]
 
-    individual: ontology.Project
+    # TODO DELETE individual: ontology.Project
 
     def __init__(self, project_name: str, project_path: Path, packages_path: Path, dependencies_path: Path,
                  python3_path: Path):
@@ -86,26 +88,30 @@ class Project:
         self.dependencies_paths = dependencies_path
         self.python3_path = python3_path
 
+        self.packages = dict()
+
         self.libraries = set()
         for package_path in packages_path.iterdir():
             self.libraries.add(Library(package_path, self))
 
         self.dependencies = set()
         for dependency_path in dependencies_path.iterdir():
-            self.dependencies.add(Library(dependency_path))
+            self.dependencies.add(Library(dependency_path, self))
 
         self.stdlibs = set()
         for stdlib_path in python3_path.iterdir():
             if Library.is_library(stdlib_path):
-                self.stdlibs.add(Library(stdlib_path))
+                self.stdlibs.add(Library(stdlib_path, self))
 
+        # !!! Thinking about removing this! Many created packages are not actually referenced by the project source
+        #  code, and they won't have related triples: so these are not interesting numbers.
         n_libs = len(self.libraries) + len(self.dependencies) + len(self.stdlibs)
         n_pkgs = len([pkg for lib in (self.libraries | self.dependencies | self.stdlibs)
                       for pkg in lib.root_package.get_packages()])
         logging.debug(f"Created '{n_libs:,}' `Library` objects and '{n_pkgs:,}' `Package` objects.")
 
         # Individual creation is delayed and left for the extraction process.
-        self.individual = None
+        # TODO DELETE self.individual = None
 
     def __hash__(self):
         return self.path.__hash__()
@@ -126,6 +132,18 @@ class Project:
         """
         for library in self.libraries:
             yield from library.root_package.get_packages()
+
+    def find_package(self, path: Path) -> Package:
+        """Finds the `Package` related to a file path.
+
+        Args:
+            path (Path): path of a file.
+
+        Returns:
+            Package: the project `Package` related to that file, or `None` for no matches.
+
+        """
+        return self.packages.get(path, None)
 
     @staticmethod
     def is_project(folder_path: Path) -> bool:
@@ -151,9 +169,9 @@ class Library:
     Attributes:
         name (str): the name of the library.
         path (Path): the path to the file/folder containing the library source.
-        project (Project): the project of which the library is part of. May be absent.
+        project (Project): the project to which the library is related.
         root_package (Package): the top level package defining the library.
-        individual (ontology.Library): the library's individual in the ontology.
+        # TODO DELETE individual (ontology.Library): the library's individual in the ontology.
 
     """
     name: str
@@ -162,7 +180,7 @@ class Library:
     project: Project
     root_package: Package
 
-    individual: ontology.Library
+    # TODO DELETE individual: ontology.Library
 
     def __init__(self, library_path: Path, project: Project = None):
         """Creates a representation of a Python3 library.
@@ -190,7 +208,7 @@ class Library:
         self.root_package = Package(library_path, self)
 
         # Individual creation is delayed and left for the extraction process.
-        self.individual = None
+        # TODO DELETE self.individual = None
 
     def __hash__(self):
         return self.path.__hash__()
@@ -247,7 +265,7 @@ class Package:
         direct_subpackages (Set[Package]): the other packages contained in the package namespace.
         ast (Module | None): the 'abstract syntax tree' related to the source code. Exists only for `REGULAR` and
          `MODULE` packages.
-        individual (ontology.Package): the package's individual in the ontology.
+        # TODO DELETE individual (ontology.Package): the package's individual in the ontology.
 
     Notes:
         For 'module' SEE <https://docs.python.org/3/glossary.html#term-module>.
@@ -266,9 +284,9 @@ class Package:
 
     ast: Union[astroid.Module, None]
 
-    individual: ontology.Package
+    # TODO DELETE individual: ontology.Package
 
-    __REGULAR_PKG_FILE_ID = "__init__.py"
+    REGULAR_PKG_FILE_ID = "__init__.py"
 
     def __init__(self, package_path: Path, library: Library):
         """Creates a representation of a Python3 package.
@@ -302,11 +320,14 @@ class Package:
                 if Package.is_package(file_path):
                     self.direct_subpackages.add(Package(file_path, library))
 
+        # Add this package to its owner project
+        self.library.project.packages[package_path] = self
+
         # AST creation is delayed and left for the extraction process.
         self.ast = None
 
         # Individual creation is delayed and left for the extraction process.
-        self.individual = None
+        # TODO DELETE self.individual = None
 
     def __hash__(self):
         return self.path.__hash__()
@@ -369,7 +390,7 @@ class Package:
             raise Exception(f"Nonexistent file/folder for path '{file_path}'.")
 
         if file_path.is_file():
-            if file_path.name == Package.__REGULAR_PKG_FILE_ID:
+            if file_path.name == Package.REGULAR_PKG_FILE_ID:
                 # This is because "__init_.py" files are strictly bounded to the folder, and treated in a special way
                 #  by the Python interpreter. Since we are linking the "__init__.py" file to the folder, we have to
                 #  skip the file itself to do not count it twice.
@@ -379,7 +400,7 @@ class Package:
         else:
             assert file_path.is_dir()
             for sub_file_path in file_path.iterdir():
-                if sub_file_path.name == Package.__REGULAR_PKG_FILE_ID:
+                if sub_file_path.name == Package.REGULAR_PKG_FILE_ID:
                     return Package.Type.REGULAR
             for sub_file_path in file_path.iterdir():
                 if Package.get_package_type(sub_file_path) is not Package.Type.NONE:
@@ -422,4 +443,4 @@ class Package:
         if package_type is Package.Type.MODULE:
             return package_path
         if package_type is Package.Type.REGULAR:
-            return package_path.joinpath(Package.__REGULAR_PKG_FILE_ID)
+            return package_path.joinpath(Package.REGULAR_PKG_FILE_ID)

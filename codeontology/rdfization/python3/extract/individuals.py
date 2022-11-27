@@ -6,7 +6,7 @@ import astroid
 
 from codeontology.ontology import ontology
 from codeontology.rdfization.python3.explore import Project, Library, Package
-from codeontology.rdfization.python3.extract.parser import parse_comment
+from codeontology.rdfization.python3.extract.parser import Parser
 
 
 class StructureIndividuals:
@@ -93,7 +93,7 @@ class CodeIndividuals:
         assert class_individual in package.individual.isPackageOf
 
         if node.doc_node:
-            docstring = parse_comment(node.doc_node.value)
+            docstring = Parser.parse_comment(node.doc_node.value)
             short_description = docstring.short_description if docstring.short_description else ""
             class_individual.hasDocumentation.append(short_description)
 
@@ -120,7 +120,7 @@ class CodeIndividuals:
         constructor_individual.hasName = node.name
 
         if node.doc_node:
-            docstring = parse_comment(node.doc_node.value)
+            docstring = Parser.parse_comment(node.doc_node.value)
             short_description = docstring.short_description if docstring.short_description else ""
             constructor_individual.hasDocumentation.append(short_description)
 
@@ -141,7 +141,7 @@ class CodeIndividuals:
         method_individual.hasName = node.name
 
         if node.doc_node:
-            docstring = parse_comment(node.doc_node.value)
+            docstring = Parser.parse_comment(node.doc_node.value)
             short_description = docstring.short_description if docstring.short_description else ""
             method_individual.hasDocumentation.append(short_description)
 
