@@ -60,10 +60,10 @@ class Project:
             Exception: invalid project, distribution or dependency packages.
 
         """
-        project_path = project_path.absolute()
-        packages_path = packages_path.absolute()
-        dependencies_path = dependencies_path.absolute()
-        python3_path = python3_path.absolute()
+        project_path = project_path.resolve().absolute()
+        packages_path = packages_path.resolve().absolute()
+        dependencies_path = dependencies_path.resolve().absolute()
+        python3_path = python3_path.resolve().absolute()
 
         # Check input
         if not Project.is_project(project_path):
@@ -113,7 +113,7 @@ class Project:
     def __eq__(self, other: Any):
         if type(other) is Project:
             # Leveraging the uniqueness of the file system paths
-            return self.path.absolute() == other.path.absolute()
+            return self.path.resolve().absolute() == other.path.resolve().absolute()
         else:
             raise Exception(f"Cannot compare '{type(self)}' with type '{type(other)}'.")
 
@@ -175,7 +175,7 @@ class Library:
             Exception: invalid library.
 
         """
-        library_path = library_path.absolute()
+        library_path = library_path.resolve().absolute()
 
         # Check input
         if not Library.is_library(library_path):
@@ -198,7 +198,7 @@ class Library:
     def __eq__(self, other):
         if type(other) is Library:
             # Leveraging the uniqueness of the file system paths
-            return self.path.absolute() == other.path.absolute()
+            return self.path.resolve().absolute() == other.path.resolve().absolute()
         else:
             raise Exception(f"Cannot compare '{type(self)}' with type '{type(other)}'.")
 
@@ -280,7 +280,7 @@ class Package:
         Raises:
             Exception: invalid package.
         """
-        package_path = package_path.absolute()
+        package_path = package_path.resolve().absolute()
 
         # Check input
         package_type = Package.get_package_type(package_path)
@@ -314,7 +314,7 @@ class Package:
     def __eq__(self, other):
         if type(other) is Project:
             # Leveraging the uniqueness of the file system paths
-            return self.path.absolute() == other.path.absolute()
+            return self.path.resolve().absolute() == other.path.resolve().absolute()
         else:
             raise Exception(f"Cannot compare '{type(self)}' with type '{type(other)}'.")
 

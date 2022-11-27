@@ -36,7 +36,7 @@ class ProjectHandler:
              functionalities. By default it is the same Python3 executable with which this code is running.
 
         """
-        self.py3_exec = python3_exec.absolute()
+        self.py3_exec = python3_exec.resolve().absolute()
 
     def install_local_project(self, project_dir: Path, install_dir: Path) -> Tuple[str, Path, Path]:
         """Identify the source code of a properly packaged project (according to PyPA specs) and download all of its
@@ -60,8 +60,8 @@ class ProjectHandler:
              to what stated in <https://pip.pypa.io/en/stable/user_guide/#using-pip-from-your-program>.
 
         """
-        project_dir = project_dir.absolute()
-        install_dir = install_dir.absolute()
+        project_dir = project_dir.resolve().absolute()
+        install_dir = install_dir.resolve().absolute()
 
         if not ProjectHandler.is_project_dir(project_dir):
             raise Exception("Invalid project folder.")
@@ -147,7 +147,7 @@ class ProjectHandler:
              to what stated in <https://pip.pypa.io/en/stable/user_guide/#using-pip-from-your-program>.
 
         """
-        project_dir = project_dir.absolute()
+        project_dir = project_dir.resolve().absolute()
 
         if not ProjectHandler.is_project_dir(project_dir):
             raise Exception("Invalid project folder.")
@@ -199,7 +199,7 @@ class ProjectHandler:
              <https://pip.pypa.io/en/stable/user_guide/#using-pip-from-your-program>.
 
         """
-        download_dir = download_dir.absolute()
+        download_dir = download_dir.resolve().absolute()
 
         # Split the target in name and version of the project
         project_target += "=="
@@ -305,7 +305,7 @@ class ProjectHandler:
                     #  setups for other projects
                     del sys.modules["setup"]
 
-        project_dir = project_dir.absolute()
+        project_dir = project_dir.resolve().absolute()
 
         # Use mocking and a context manager to read the setup file content securely
         # SEE mocking at https://stackoverflow.com/a/24236320/13640701
@@ -325,7 +325,7 @@ class ProjectHandler:
                     _, config_dict = mock_setup.call_args
                     # conf_dict = read_configuration(self.__PROJECT_CONF_FILE)  # may be useful, but not yet
                 except Exception:
-                    raise Exception(f"Unable to securely read the '{setup_path.absolute()}' file content.")
+                    raise Exception(f"Unable to securely read the '{setup_path.resolve().absolute()}' file content.")
 
         return config_dict
 
@@ -347,7 +347,7 @@ class ProjectHandler:
             Exception: nonexistent folder.
 
         """
-        folder_path = folder_path.absolute()
+        folder_path = folder_path.resolve().absolute()
         if not folder_path.exists():
             raise Exception(f"Nonexistent folder '{folder_path}'.")
         for file in folder_path.iterdir():
@@ -451,7 +451,7 @@ class ProjectHandler:
             Exception: impossible to find packages related to distribution.
         
         """
-        install_dir = install_dir.absolute()
+        install_dir = install_dir.resolve().absolute()
         installed_distr_paths: Set[Path] = set()
 
         # Scroll all the files in the installation directory
@@ -581,7 +581,7 @@ class PySourceHandler:
 
         """
         python_version = self.normalize_python_version(python_version)
-        download_dir = download_dir.absolute()
+        download_dir = download_dir.resolve().absolute()
 
         if not self.is_valid_py_version(python_version):
             raise Exception(f"Specified version '{python_version}' has an invalid format.")
