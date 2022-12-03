@@ -106,7 +106,9 @@ class Serializer:
         logging.debug(f" - Parsing packages.")
         parser = Parser(self.project)
         logging.debug(f" - Applying transformations to package ASTs.")
-        for package in parser.parsed_packages.values():
+        packages_list = list(parser.parsed_packages.values())
+        for i, package in enumerate(packages_list, 1):
+            logging.debug(f"{i}/{len(packages_list)}")
             Transformer.visit_to_transform(package.ast)
             self.packages.add(package)
 

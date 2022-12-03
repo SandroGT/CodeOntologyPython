@@ -4,6 +4,8 @@ from typing import Generator, Tuple, Union
 
 import astroid
 
+from codeontology import logging
+
 
 def resolve_annotation(annotation_node: astroid.NodeNG) -> ...:
     """Gets a reference to the AST nodes representing the types to which an annotation may be referring to, whenever
@@ -209,6 +211,7 @@ def lookup_type_by_name(
 
         """
         assert base is not None
+        logging.debug(f"Looking for '{base}' in '{scope_node.name}'")
 
         # Search for the `base` from the scope of the specified `node`
         _, matches = scope_node.lookup(base)
@@ -305,6 +308,10 @@ def lookup_type_by_name(
             except Exception:
                 i += 1
         if to_follow_ast:
+            if to_follow_ast.root() == match_node.root():
+                # TODO SOLVE because without the assert this would bring to infinite recursion and stack overflow
+                logging.warning("WHAT???")
+                assert False
             j = len(complete_type_name_list) - i
             new_base = ".".join(complete_type_name_list[j:j + 1])
             new_tail = ".".join(complete_type_name_list[j + 1:])
@@ -379,8 +386,6 @@ def get_tavn_list(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
             if isinstance(cls_body_node, astroid.Assign):
                 # Assignment with no annotation, such as: `<target_1> = <target_2> = ... = <expression>`
                 for target in cls_body_node.targets:
-                    assert isinstance(target, astroid.Tuple) or isinstance(target, astroid.AssignName) or \
-                           isinstance(target, astroid.AssignAttr)
                     if isinstance(target, astroid.Tuple):
                         # Tuple assignment, so `<target_x>` is something like `<element_1, element_2, ...>`
                         target_name_list = []
@@ -403,10 +408,16 @@ def get_tavn_list(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                         if target.name not in global_names:
                             # `name` is referencing a class attribute, yield the tuple
                             yield target.name, None, cls_body_node.value, cls_body_node,
-                    else:  # isinstance(target, astroid.AssignAttr)
+                    elif isinstance(target, astroid.AssignAttr):
                         # Single named attribute target, so `<target_x>` is something like `<object.attr>`, and cannot
                         #  be a class attribute
                         pass
+                    elif isinstance(target, astroid.Subscript):
+                        # We are assigning to target using square brackets, so to an inside element of the target,
+                        #  that tells us not much about attributes
+                        pass
+                    else:
+                        assert False
             elif isinstance(cls_body_node, astroid.AnnAssign):
                 # Assignment with annotation, such as: `<target>: <annotation> = <expression>`
                 # Chained assignment (`<t_1> = <t_2> = ... = <expr>`) and tuple assignment (`<n_1, n_2, ...> = <expr>`)
@@ -422,7 +433,8 @@ def get_tavn_list(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                     #  attribute
                     pass
 
-    def get_tavn_list_constructor(cls_node: astroid.ClassDef, ctor_node: astroid.FunctionDef) -> Generator[Tuple, None, None]:
+    def get_tavn_list_constructor(cls_node: astroid.ClassDef, ctor_node: astroid.FunctionDef) \
+            -> Generator[Tuple, None, None]:
         """2) Gets the assignments tuples '(target, annotation, value, node,)' from a constructor body."""
         assert isinstance(cls_node, astroid.ClassDef) and \
                isinstance(ctor_node, astroid.FunctionDef) and ctor_node.name == "__init__"
@@ -436,7 +448,15 @@ def get_tavn_list(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
         else:
             # Find the name of the parameter used for self-reference
             self_ref = get_self_ref(ctor_node)
-            assert self_ref
+            # You can define an __init__ method with no arguments (so no self-reference) since it is syntactically
+            #  possible, even though you can actually never call it at runtime, because the object from which the method
+            #  is called would be automatically passed as first argument of the call, and raise the error:
+            #  `__init__() takes 0 positional arguments but 1 was given`
+            # Anyway, since it is syntactically possible we do not raise any Exception, just yield nothing. We do not
+            #  except to reach this case anyway.
+            if not self_ref:
+                logging.warning(f"Found an '__init__()' with no self-reference in '{ctor_node.root().file}'")
+                return
 
             # Check the body for self-assignments and calls to ancestor constructors
             for ctor_body_node in ctor_node.body:
@@ -445,8 +465,6 @@ def get_tavn_list(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                 if isinstance(ctor_body_node, astroid.Assign):
                     # Assignment with no annotation, such as: `<target_1> = <target_2> = ... = <expression>`
                     for target in ctor_body_node.targets:
-                        assert isinstance(target, astroid.Tuple) or isinstance(target, astroid.AssignName) or \
-                               isinstance(target, astroid.AssignAttr) or isinstance(target, astroid.Subscript)
                         if isinstance(target, astroid.Tuple):
                             # Tuple assignment, so `<target_x>` is something like `<element_1, element_2, ...>`
                             target_name_list = []
@@ -469,31 +487,36 @@ def get_tavn_list(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                         elif isinstance(target, astroid.AssignAttr):
                             # Single named target, so `<target_x>` is something like `<object.attr>`, and if `object`
                             #  is a self-reference then it is a class attribute assignment
-                            assert isinstance(target.expr, astroid.Name)
-                            if target.expr.name == self_ref:
+                            assert isinstance(target.expr, astroid.Name) or isinstance(target.expr, astroid.Attribute) \
+                                   or isinstance(target.expr, astroid.Subscript)
+                            if isinstance(target.expr, astroid.Name) and target.expr.name == self_ref:
                                 yield target.attrname, None, ctor_body_node.value, ctor_body_node,
                         elif isinstance(target, astroid.AssignName):
                             # Single named attribute target, so `<target_x>` is something like `<element_1>`, and cannot
                             #  be a class attribute without self-reference
                             pass
                         elif isinstance(target, astroid.Subscript):
-                            # No idea what to do here
+                            # We are assigning to target using square brackets, so to an inside element of the target,
+                            #  that tells us not much about attributes
                             pass
+                        else:
+                            assert False
                 elif isinstance(ctor_body_node, astroid.AnnAssign):
                     # Assignment with annotation, such as: `<target>: <annotation> = <expression>`
                     # Chained assignment (`<t_1> = <t_2> = ... = <expr>`) and tuple assignment
                     #  (`<n_1, n_2, ...> = <expr>`) cannot occur in annotation assignments
                     target = ctor_body_node.target
-                    assert isinstance(target, astroid.AssignName) or isinstance(target, astroid.AssignAttr)
                     if isinstance(target, astroid.AssignAttr):
                         assert isinstance(target.expr, astroid.Name)
                         if target.expr.name == self_ref:
                             # `name` is referencing a class attribute, yield the tuple
                             yield target.attrname, ctor_body_node.annotation, ctor_body_node.value, ctor_body_node,
-                    else:  # isinstance(target, astroid.AssignName)
+                    elif isinstance(target, astroid.AssignName):
                         # Single named attribute target, so `<target_x>` is something like `<element_1>`, and cannot
                         #  be a class attribute without self-reference
                         pass
+                    else:
+                        assert False
 
                 # - Constructor calls check
                 elif isinstance(ctor_body_node, astroid.Expr) and isinstance(ctor_body_node.value, astroid.Call):
@@ -585,7 +608,15 @@ def is_static_method(func_node: astroid.FunctionDef) -> bool:
     assert isinstance(func_node, astroid.FunctionDef)
     if func_node.is_method():
         decorators_nodes = func_node.decorators.nodes if func_node.decorators else []
-        decorators_names = {node.name for node in decorators_nodes}
+        decorators_names = set()
+        for node in decorators_nodes:
+            if isinstance(node, astroid.Name):
+                name = node.name
+            elif isinstance(node, astroid.Call):
+                name = node.func.name
+            else:
+                assert False
+            decorators_names.add(name)
         is_static = "staticmethod" in decorators_names
     else:
         is_static = True
@@ -603,7 +634,7 @@ def get_self_ref(fun_node: astroid.FunctionDef) -> str:
 
     Returns:
         str: the name of the variable representing the object itself within the method, or an empty string if the method
-         is static or it is instead a function.
+         is static, has no arguments, or it is instead a function.
 
     """
     assert isinstance(fun_node, astroid.FunctionDef)
@@ -612,8 +643,8 @@ def get_self_ref(fun_node: astroid.FunctionDef) -> str:
     if not is_static_method(fun_node):
         # In order of definition we have `posonlyargs`, `args`, `vararg`, `kwonlyargs` and `kwarg`; the name used for
         #  self-reference in methods always occupies the first position in the arguments definition.
-        if fun_node.args.posonlyargs:
+        if fun_node.args.posonlyargs and len(fun_node.args.posonlyargs) > 0:
             self_ref = fun_node.args.posonlyargs[0].name
-        else:
+        elif fun_node.args.args and len(fun_node.args.args) > 0:
             self_ref = fun_node.args.args[0].name
     return self_ref

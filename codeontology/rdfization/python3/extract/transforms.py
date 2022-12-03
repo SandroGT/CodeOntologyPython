@@ -40,8 +40,16 @@ class Transformer:
             fun_node.overrides = None
             # Search for the possible overridden method
             if fun_node.is_method():
-                assert isinstance(fun_node.parent, astroid.ClassDef)
-                ancestors_mro = fun_node.parent.mro()[1:]  # First in MRO is the parent class itself
+                # Methods definition may be enclosed in 'if statements' (maybe even try-except?) and not directly be in
+                #  the class body, so we have to search for the class node further than the direct parent node
+                node = fun_node
+                while not isinstance(node, astroid.Module):
+                    if isinstance(node, astroid.ClassDef):
+                        break
+                    node = node.parent
+                assert isinstance(node, astroid.ClassDef)
+                class_node = node
+                ancestors_mro = class_node.mro()[1:]  # First in MRO is the parent class itself
                 for ancestor_node in ancestors_mro:
                     for ancestor_method_node in ancestor_node.methods():
                         # In Python methods are identified just by their names, there is no "overloading"
