@@ -446,7 +446,7 @@ def get_tavn_list(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                     # Assignment with no annotation, such as: `<target_1> = <target_2> = ... = <expression>`
                     for target in ctor_body_node.targets:
                         assert isinstance(target, astroid.Tuple) or isinstance(target, astroid.AssignName) or \
-                               isinstance(target, astroid.AssignAttr)
+                               isinstance(target, astroid.AssignAttr) or isinstance(target, astroid.Subscript)
                         if isinstance(target, astroid.Tuple):
                             # Tuple assignment, so `<target_x>` is something like `<element_1, element_2, ...>`
                             target_name_list = []
@@ -472,9 +472,12 @@ def get_tavn_list(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                             assert isinstance(target.expr, astroid.Name)
                             if target.expr.name == self_ref:
                                 yield target.attrname, None, ctor_body_node.value, ctor_body_node,
-                        else:  # isinstance(target, astroid.AssignName)
+                        elif isinstance(target, astroid.AssignName):
                             # Single named attribute target, so `<target_x>` is something like `<element_1>`, and cannot
                             #  be a class attribute without self-reference
+                            pass
+                        elif isinstance(target, astroid.Subscript):
+                            # No idea what to do here
                             pass
                 elif isinstance(ctor_body_node, astroid.AnnAssign):
                     # Assignment with annotation, such as: `<target>: <annotation> = <expression>`

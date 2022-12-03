@@ -13,6 +13,7 @@ from codeontology.ontology import ontology
 from codeontology.rdfization.python3.explore import Project, Package
 from codeontology.rdfization.python3.extract.parser import Parser
 from codeontology.rdfization.python3.extract.individuals import StructureIndividuals
+from codeontology.rdfization.python3.extract.transforms import Transformer
 from codeontology.rdfization.python3.extract.visitor import Visitor
 
 
@@ -41,7 +42,7 @@ class Serializer:
         self.packages = set()
         namespace = ontology.load()
         with self.__parsing_environment():
-            self.__build_meta_model()
+            self.__build_unique_model()
             self.__serialize_from_project()
 
     @contextmanager
@@ -84,10 +85,10 @@ class Serializer:
             sys.path = saved_sys_path.copy()
             astroid.astroid_manager.MANAGER.astroid_cache = saved_astroid_cache.copy()
 
-    def __build_meta_model(self):
-        """Parse all the Python modules available in the `Project`, creating their ASTs and adding them to the parser
-         caches, so that they can be linked to each other forming some kind of graph.
-        Defines then on which packages we will run the extraction (parsing of some packages could fail).
+    def __build_unique_model(self):
+        """Parse the Python modules of interest available in the `Project`, creating their ASTs and adding them to the
+         parser caches, so that they can be linked to each other forming some kind of a graph. Apply the proper
+         transformation to the parsed packages to integrate useful information.
 
         Notes:
             This step is used to force the parsing library 'astroid' to store the ASTs in its internal caches. When
@@ -101,15 +102,13 @@ class Serializer:
             So, we first parse all the files at hand, then, and just then, extract the triples!
 
         """
-        logging.debug(f"Building unique model of '{self.project.name}'.")
-        # TODO instead of pre-parsing EVERYTHING (that may also fail), parse only the project related packages, but
-        #  look at the imports to find which other packages are actually imported. Build a list of packages this way,
-        #  then clean the 'astroid' caches and parse again the project packages and the other selected dependency
-        #  packages.
-        # HACK right now ignoring dependencies, since we are gonna extract only `Class` and `Method` triples directly
-        #  from the project, but in the future the outer 'for' will have to iterate over
-        #  '(self.project.stdlibs | self.project.dependencies | self.project.libraries)'
-        Parser(self.project)
+        logging.debug(f"Building unique model of '{self.project.name}':")
+        logging.debug(f" - Parsing packages.")
+        parser = Parser(self.project)
+        logging.debug(f" - Applying transformations to package ASTs.")
+        for package in parser.parsed_packages.values():
+            Transformer.visit_to_transform(package.ast)
+            self.packages.add(package)
 
     def __serialize_from_project(self):
         """Extract the RDF triples."""

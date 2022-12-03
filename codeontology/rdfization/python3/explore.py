@@ -123,6 +123,9 @@ class Project:
         else:
             raise Exception(f"Cannot compare '{type(self)}' with type '{type(other)}'.")
 
+    def __str__(self):
+        return str(self.path.resolve().absolute())
+
     def get_packages(self) -> Iterator[Package]:
         """Get all the packages that are part of the project library.
 
@@ -144,6 +147,25 @@ class Project:
 
         """
         return self.packages.get(path, None)
+
+    def add_or_replace_stdlib_library(self, path: Path):
+        """Adds a new standard library `Library` to the project.
+
+        Args:
+            path (Path): the path to the root of the library.
+
+        """
+        library_package = self.find_package(path)
+        # Remove previous library trace, if it existed
+        if library_package:
+            for package in library_package.get_packages():
+                del self.packages[package.path]
+            for stdlib in set(self.stdlibs):
+                if stdlib.path == path:
+                    self.stdlibs.remove(stdlib)
+                    break
+        # Add new library
+        self.stdlibs.add(Library(path, self))
 
     @staticmethod
     def is_project(folder_path: Path) -> bool:
@@ -219,6 +241,9 @@ class Library:
             return self.path.resolve().absolute() == other.path.resolve().absolute()
         else:
             raise Exception(f"Cannot compare '{type(self)}' with type '{type(other)}'.")
+
+    def __str__(self):
+        return str(self.path.resolve().absolute())
 
     @staticmethod
     def is_library(file_path: Path) -> bool:
@@ -321,23 +346,36 @@ class Package:
                     self.direct_subpackages.add(Package(file_path, library))
 
         # Add this package to its owner project
-        self.library.project.packages[package_path] = self
+        self.library.project.packages[self.get_ref_path()] = self
 
         # AST creation is delayed and left for the extraction process.
         self.ast = None
 
         # Individual creation is delayed and left for the extraction process.
-        # TODO DELETE self.individual = None
+        self.individual = None
 
     def __hash__(self):
-        return self.path.__hash__()
+        return self.get_ref_path().__hash__()
 
     def __eq__(self, other):
-        if type(other) is Project:
+        if type(other) is Package:
             # Leveraging the uniqueness of the file system paths
-            return self.path.resolve().absolute() == other.path.resolve().absolute()
+            return self.get_ref_path().resolve().absolute() == other.get_ref_path().resolve().absolute()
         else:
             raise Exception(f"Cannot compare '{type(self)}' with type '{type(other)}'.")
+
+    def __str__(self):
+        return str(self.get_ref_path())
+
+    def get_ref_path(self):
+        """Returns the unique identifier path.
+
+        Returns:
+            Path: the path to the source file, for REGULAR and MODULE packages, and the path to the folder for
+             NAMESPACE packages.
+
+        """
+        return self.source if self.source else self.path
 
     class Type(Enum):
         """Possible results of package identification."""
