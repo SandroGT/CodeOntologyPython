@@ -145,9 +145,18 @@ def resolve_value(value_node: astroid.NodeNG) -> astroid.ClassDef:
     """
     type_ = None
     try:
-        inferred_values = value_node.inferred()
-        if inferred_values is not astroid.Uninferable and len(inferred_values) == 1:  # A confident prediction
-            inferred_value = inferred_values[0]
+        max_inferences = 3
+        inferred_values = value_node.infer()
+        i = 0; inferred_value = astroid.Uninferable
+        while i < max_inferences and inferred_value in [astroid.Uninferable, astroid.Instance]:
+            try:
+                inferred_value = next(inferred_values)
+                i += 1
+            except Exception:
+                break
+            if inferred_values not in [astroid.Uninferable, astroid.Instance]:
+                break
+        if inferred_value not in [astroid.Uninferable, astroid.Instance]:
             if isinstance(inferred_value, astroid.ClassDef):
                 type_ = inferred_value
             else:
@@ -474,13 +483,13 @@ def get_tavn_list(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                             target_name_list = []
                             for element in target.elts:
                                 assert isinstance(element, astroid.AssignName) or \
-                                       isinstance(element, astroid.AssignAttr)
+                                       isinstance(element, astroid.AssignAttr) or isinstance(element, astroid.Starred)
                                 if isinstance(element, astroid.AssignAttr):
                                     assert isinstance(element.expr, astroid.Name)
                                 if isinstance(element, astroid.AssignAttr) and element.expr.name == self_ref:
                                     # `name` is referencing a class attribute through self-reference
                                     target_name_list.append(element.attrname)
-                                else:  # isinstance(element, astroid.AssignName) or element.expr.name != self_ref
+                                else:
                                     # `name` is not referencing a class attribute
                                     target_name_list.append(None)
                             # Yield the tuple only if there is at least one valid assignment to a class attribute
@@ -491,8 +500,6 @@ def get_tavn_list(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                         elif isinstance(target, astroid.AssignAttr):
                             # Single named target, so `<target_x>` is something like `<object.attr>`, and if `object`
                             #  is a self-reference then it is a class attribute assignment
-                            assert isinstance(target.expr, astroid.Name) or isinstance(target.expr, astroid.Attribute) \
-                                   or isinstance(target.expr, astroid.Subscript)
                             if isinstance(target.expr, astroid.Name) and target.expr.name == self_ref:
                                 yield target.attrname, None, ctor_body_node.value, ctor_body_node,
                         elif isinstance(target, astroid.AssignName):
@@ -616,8 +623,13 @@ def is_static_method(func_node: astroid.FunctionDef) -> bool:
         for node in decorators_nodes:
             if isinstance(node, astroid.Name):
                 name = node.name
+            elif isinstance(node, astroid.Attribute):
+                name = node.attrname
             elif isinstance(node, astroid.Call):
-                name = node.func.name
+                if isinstance(node.func, astroid.Name):
+                    name = node.func.name
+                elif isinstance(node.func, astroid.Attribute):
+                    name = node.func.attrname
             else:
                 assert False
             decorators_names.add(name)

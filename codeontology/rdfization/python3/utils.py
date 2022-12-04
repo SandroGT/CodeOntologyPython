@@ -241,7 +241,9 @@ class ProjectHandler:
         )
         _, _ = process.communicate()
         if process.returncode != 0:
-            raise Exception(f"Unable to download '{download_target}' from PyPI.")
+            raise Exception(f"Unable to download '{download_target}' from PyPI as source. Probably only wheels packages"
+                            f" are available. Try to manually download the source code and try again with the `local`"
+                            f" option.")
 
         # Find the downloaded source archive
         archive_path = set(download_dir.iterdir()) - pre_download_dir_content

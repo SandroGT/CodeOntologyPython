@@ -2,6 +2,8 @@
 
 import astroid
 
+from codeontology import logger
+
 
 class Transformer:
     """A collection of methods to integrate the information carried by the AST nodes of 'astroid'."""
@@ -58,6 +60,7 @@ class Transformer:
                             fun_node.overrides = ancestor_method_node
                             return
 
+        logger.debug(f"Applying FunctionDef transform to '{function_node.name}' (from {function_node.root().file})")
         add_method_overrides(function_node)
 
     @staticmethod
@@ -117,11 +120,14 @@ class Transformer:
                 type_ = None
                 if annotation:
                     type_ = resolve_annotation(annotation)
-                if value and not type_:
-                    type_ = resolve_value(value)
+                # TODO find a way to restore this!
+                #  Had to cut this out, because the `astroid`'s `infer()` function used there brings to stack overflow
+                # if value and not type_:
+                #     type_ = resolve_value(value)
                 ftn_dict[field] = (type_, node,)
             cls_node.fields = ftn_dict
 
+        logger.debug(f"Applying ClassDef transform to '{class_node.name}' (from {class_node.root().file})")
         add_class_fields(class_node)
 
     @staticmethod
@@ -183,4 +189,5 @@ class Transformer:
                     type_ann_attr = type_ann_attr[0]
                 setattr(args_node, f"type_{ann_attr_name}", type_ann_attr)
 
+        logger.debug(f"Applying Arguments transform to '{arguments_node.parent.name}' (from {arguments_node.root().file})")
         add_args_type(arguments_node)

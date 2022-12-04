@@ -43,7 +43,7 @@ class Serializer:
         namespace = ontology.load()
         with self.__parsing_environment():
             self.__build_unique_model()
-            self.__serialize_from_project()
+            # self.__serialize_from_project()
 
     @contextmanager
     def __parsing_environment(self):
