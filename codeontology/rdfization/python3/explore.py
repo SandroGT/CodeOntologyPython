@@ -8,7 +8,7 @@ from typing import Any, Dict, Iterator, Set, Tuple, Union
 
 import astroid
 
-from codeontology import logging
+from codeontology import logger
 from codeontology.ontology import ontology
 
 
@@ -82,7 +82,7 @@ class Project:
         # Init
         self.name = project_name
         self.path = project_path
-        logging.debug(f"Creating object for `Project` '{self.name}' (from '{self.path}').")
+        logger.info(f"Creating object for `Project` '{self.name}' (from '{self.path}').")
 
         self.packages_paths = packages_path
         self.dependencies_paths = dependencies_path
@@ -108,7 +108,7 @@ class Project:
         n_libs = len(self.libraries) + len(self.dependencies) + len(self.stdlibs)
         n_pkgs = len([pkg for lib in (self.libraries | self.dependencies | self.stdlibs)
                       for pkg in lib.root_package.get_packages()])
-        logging.debug(f"Created '{n_libs:,}' `Library` objects and '{n_pkgs:,}' `Package` objects.")
+        logger.debug(f"Created '{n_libs:,}' `Library` objects and '{n_pkgs:,}' `Package` objects.")
 
         # Individual creation is delayed and left for the extraction process.
         # TODO DELETE self.individual = None
@@ -224,7 +224,6 @@ class Library:
         # Init
         self.name = Library.__get_name(library_path)
         self.path = library_path
-        # logging.debug(f"Creating object for `Library` '{self.name}' (from '{self.path}').")
 
         self.project = project
         self.root_package = Package(library_path, self)
@@ -335,7 +334,6 @@ class Package:
         self.path = package_path
         self.source = self.__get_source_path(package_path, package_type)
         self.type = package_type
-        # logging.debug(f"Creating object for `Package` '{self.full_name}' '({self.type})' (from '{self.path}').")
 
         self.library = library
         self.direct_subpackages = set()

@@ -10,7 +10,7 @@ import subprocess
 import sys
 from typing import Dict, List, Set, Tuple
 
-from codeontology import logging
+from codeontology import logger
 
 
 class ProjectHandler:
@@ -86,7 +86,8 @@ class ProjectHandler:
             "--no-cache-dir",  # no use of caches
             "--no-deps",       # no dependencies
         ]
-        logging.debug(f"Installing project in '{install_dir}' (sub-processing command <{' '.join(command_list)}>).")
+        logger.info(f"Installing project in '{install_dir}'.")
+        logger.debug(f"Sub-processing command <{' '.join(command_list)}>.")
         process = subprocess.Popen(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = process.communicate()
         if process.returncode != 0:
@@ -98,12 +99,12 @@ class ProjectHandler:
             raise Exception(f"Unexpected result! More than one distribution installed: '{project_name}'.")
         # NOTE Focusing only on distribution packages, ignoring 'test' or other kind of development packages
         project_pkg_dirs = ProjectHandler.get_packages_from_installation_dir(install_dir_tmp)
-        logging.debug(f"Installed project '{project_name}'.")
+        logger.info(f"Installed project '{project_name}'.")
 
         # Install the project with its dependencies, to determine which folders and files are dependency packages
         command_list.pop(-1)  # remove the 'no dependencies' option
-        logging.debug(f"Installing project with its dependencies in '{install_dir}'"
-                      f" (sub-processing command <{' '.join(command_list)}>).")
+        logger.info(f"Installing project with its dependencies in '{install_dir}'.")
+        logger.debug(f"Sub-processing command <{' '.join(command_list)}>.")
         process = subprocess.Popen(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         _, _ = process.communicate()
         if process.returncode != 0:
@@ -161,7 +162,8 @@ class ProjectHandler:
             "--no-deps",  # no dependencies
             "--dry-run",  # fake install process
         ]
-        logging.debug(f"Retrieving project name (sub-processing command <{' '.join(command_list)}>).")
+        logger.info(f"Retrieving project name.")
+        logger.debug(f"Sub-processing command <{' '.join(command_list)}>.")
         process = subprocess.Popen(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = process.communicate()
         if process.returncode != 0:
@@ -230,8 +232,8 @@ class ProjectHandler:
             "--no-binary", ":all:",  # no distributions, source code
             "--no-cache-dir",        # no use of caches, no track of the download on your venv
         ]
-        logging.debug(f"Downloading '{download_target}' sources in '{download_dir}'"
-                      f" (sub-processing command <{' '.join(command_list)}>).")
+        logger.info(f"Downloading '{download_target}' sources in '{download_dir}'.")
+        logger.debug(f"Sub-processing command <{' '.join(command_list)}>.")
         process = subprocess.Popen(
             command_list,
             stdout=subprocess.PIPE,
@@ -313,7 +315,7 @@ class ProjectHandler:
         # SEE stop setup prints at https://stackoverflow.com/a/10321751/13640701
         setup_path = project_dir.joinpath(f"setup.py")
         config_dict = dict()
-        logging.debug(f"Reading setup file '{setup_path}'.")
+        logger.info(f"Reading setup file '{setup_path}'.")
         if setup_path.exists():
             with safe_setup_read(project_dir),\
                     mock.patch.object(setuptools, "setup") as mock_setup:
@@ -417,8 +419,8 @@ class ProjectHandler:
             "-m", "pip",
             "index", "versions", project_name
         ]
-        logging.debug(f"Accessing availables '{project_name}' versions"
-                      f" (sub-processing command <{' '.join(command_list)}>).")
+        logger.info(f"Accessing availables '{project_name}' versions.")
+        logger.debug(f"Sub-processing command <{' '.join(command_list)}>.")
         process = subprocess.Popen(
             command_list,
             stdout=subprocess.PIPE,

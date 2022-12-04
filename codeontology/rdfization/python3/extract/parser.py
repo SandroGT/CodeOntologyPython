@@ -7,7 +7,7 @@ import astroid
 import docstring_parser
 from docstring_parser.common import Docstring
 
-from codeontology import logging
+from codeontology import logger
 from codeontology.rdfization.python3.explore import Package, Project
 
 
@@ -67,13 +67,13 @@ class Parser:
                     with package.source.open("rb") as stream:
                         source_text = stream.read().decode()
                 except Exception as e:
-                    logging.warning(f"Failed decoding '{package.source}' with error '{e}'.")
+                    logger.warning(f"Failed decoding '{package.source}' with error '{e}'.")
                     source_text = None
                 if source_text is not None:
                     try:
                         ast = astroid.parse(source_text, path=str(package.source), module_name=package.full_name)
                     except Exception as e:
-                        logging.warning(f"Failed parsing '{package.source}' with error '{e}'.")
+                        logger.warning(f"Failed parsing '{package.source}' with error '{e}'.")
             else:
                 ast = cached_ast
             if ast:
@@ -82,7 +82,7 @@ class Parser:
                 parsed_packages[package.source] = package
                 self.__parse_imports_recursively(ast, parsed_packages)
             else:
-                logging.warning(f"No AST found for parsed package '{package.source}'.")
+                logger.warning(f"No AST found for parsed package '{package.source}'.")
 
     def __parse_imports_recursively(self, node: astroid.NodeNG, parsed_packages: Dict[Path, Package]):
         """Goes through the remaining nodes of an AST to search for the actually imported `Package`s, looking at the
@@ -113,7 +113,7 @@ class Parser:
                 except Exception:
                     # Many modules may have failing imports, and the error is usually properly handled at runtime. It
                     #  is ok, especially if we are sure we are parsing an actually working project.
-                    # logging.debug(f"Impossible to load AST for module '{name}' from file '{child.root().file}'")
+                    logger.debug(f"Impossible to load AST for module '{name}' from file '{child.root().file}'")
                     pass
             self.__parse_imports_recursively(child, parsed_packages)
 
@@ -137,7 +137,7 @@ class Parser:
             ast (astroid.Module): an entire AST of a module.
 
         """
-        logging.debug(f"Reconstructing standard library module for '{ast.name}'.")
+        logger.debug(f"Reconstructing standard library module for '{ast.name}'.")
 
         package_name_parts = ast.name.split(".")
         stdlib_path = self.project.python3_path

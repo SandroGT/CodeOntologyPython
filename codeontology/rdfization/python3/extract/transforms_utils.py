@@ -4,7 +4,7 @@ from typing import Generator, Tuple, Union
 
 import astroid
 
-from codeontology import logging
+from codeontology import logger
 
 
 def resolve_annotation(annotation_node: astroid.NodeNG) -> ...:
@@ -218,7 +218,7 @@ def lookup_type_by_name(
 
         if matches == () or len(matches) > 1:
             # No match or multiple matches: it is not clear what the string `base` refers to. We have a fail.
-            raise Exception(f"No unique match for {base}.")
+            raise Exception(f"No unique match for '{base}'.")
 
         # We have one only unique match
         match_node = matches[0]
@@ -231,7 +231,7 @@ def lookup_type_by_name(
         elif isinstance(match_node, astroid.AssignName):
             match_type = utils_handle_type_match_AssignName(base, tail, match_node)
         else:
-            raise Exception(f"Unknown type of matched node tracking {base}.")
+            raise Exception(f"Unknown type of matched node tracking '{base}'.")
 
         return match_type
 
@@ -308,16 +308,20 @@ def lookup_type_by_name(
             except Exception:
                 i += 1
         if to_follow_ast:
-            if to_follow_ast.root() == match_node.root():
-                # TODO SOLVE because without the assert this would bring to infinite recursion and stack overflow
-                logging.warning("WHAT???")
-                assert False
+            if to_follow_ast.root() == match_node.root() and new_base == base:
+                # Going again over the same AST to look for the same things could bring to infinite recursion and stack
+                #  overflow, so stop
+                # TODO should find a smarter way to solve this
+                msg = f"Trying to import '{to_follow_ast.root().file}' from '{match_node.root().file}'" \
+                      f" while searching for '{new_base}', '{new_tail}'."
+                logger.warning(msg)
+                raise Exception(msg)
             j = len(complete_type_name_list) - i
             new_base = ".".join(complete_type_name_list[j:j + 1])
             new_tail = ".".join(complete_type_name_list[j + 1:])
             match_type = track_type_name(new_base, new_tail, to_follow_ast)
         else:
-            raise Exception(f"No AST found in which to continue the search for {new_base}, {new_tail}.")
+            raise Exception(f"No AST found in which to continue the search for '{new_base}', '{new_tail}'.")
 
         return match_type
 
@@ -455,7 +459,7 @@ def get_tavn_list(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
             # Anyway, since it is syntactically possible we do not raise any Exception, just yield nothing. We do not
             #  except to reach this case anyway.
             if not self_ref:
-                logging.warning(f"Found an '__init__()' with no self-reference in '{ctor_node.root().file}'")
+                logger.debug(f"Found an '__init__()' with no self-reference in '{ctor_node.root().file}'")
                 return
 
             # Check the body for self-assignments and calls to ancestor constructors

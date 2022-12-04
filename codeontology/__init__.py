@@ -1,7 +1,16 @@
 """A tool and ontology to model object-oriented programming languages."""
 
-import logging
+logger = None
 
 
-# Logger configuration
-logging.basicConfig(level=logging.DEBUG)
+def initialize():
+    import logging
+    from logging.config import fileConfig
+    from pathlib import Path
+    global logger
+
+    fileConfig(Path(__file__).parent.joinpath("logging.ini"))
+    logger = logging.getLogger()
+
+
+initialize()
