@@ -47,13 +47,19 @@
 
     <!-- http://rdf-vocabulary.ddialliance.org/xkos#next -->
 
-    <owl:ObjectProperty rdf:about="http://rdf-vocabulary.ddialliance.org/xkos#next"/>
+    <owl:ObjectProperty rdf:about="http://rdf-vocabulary.ddialliance.org/xkos#next">
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
+    </owl:ObjectProperty>
     
 
 
     <!-- http://rdf-vocabulary.ddialliance.org/xkos#previous -->
 
-    <owl:ObjectProperty rdf:about="http://rdf-vocabulary.ddialliance.org/xkos#previous"/>
+    <owl:ObjectProperty rdf:about="http://rdf-vocabulary.ddialliance.org/xkos#previous">
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
+    </owl:ObjectProperty>
     
 
 

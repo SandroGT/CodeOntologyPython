@@ -26,7 +26,7 @@ def rdfization(*, project_path: Path = None, project_pkgs: Path = None, project_
     from codeontology.ontology import ontology
     from codeontology.rdfization.python3.explore import Project
     from codeontology.rdfization.python3.extract.serializer import Serializer
-    from codeontology.rdfization.python3.utils import ProjectHandler, PySourceHandler
+    from codeontology.rdfization.python3.explore_utils import ProjectHandler, PySourceHandler
 
     # Retrieve project files
     assert output_dir and download_dir and python3_exec

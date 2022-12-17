@@ -14,7 +14,7 @@ from codeontology.rdfization.python3.explore import Project, Package
 from codeontology.rdfization.python3.extract.parser import Parser
 from codeontology.rdfization.python3.extract.individuals import StructureIndividuals
 from codeontology.rdfization.python3.extract.transforms import Transformer
-from codeontology.rdfization.python3.extract.visitor import Visitor
+from codeontology.rdfization.python3.extract.extractor import Extractor
 
 
 class Serializer:
@@ -40,10 +40,9 @@ class Serializer:
         """
         self.project = project
         self.packages = set()
-        namespace = ontology.load()
         with self.__parsing_environment():
             self.__build_unique_model()
-            # self.__serialize_from_project()
+            self.__serialize_from_project()
 
     @contextmanager
     def __parsing_environment(self):
@@ -115,7 +114,4 @@ class Serializer:
     def __serialize_from_project(self):
         """Extract the RDF triples."""
         logger.info(f"Extracting RDF triples from '{self.project.name}'.")
-        StructureIndividuals.extract_structure_individuals(self.project)
-        for package in self.project.get_packages():
-            if package.ast:
-                Visitor.visit_to_extract(package.ast)
+        Extractor(self.project)

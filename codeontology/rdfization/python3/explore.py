@@ -181,7 +181,7 @@ class Project:
             Exception: nonexistent folder.
 
         """
-        from codeontology.rdfization.python3.utils import ProjectHandler
+        from codeontology.rdfization.python3.explore_utils import ProjectHandler
         return ProjectHandler.is_project_dir(folder_path)
 
 
