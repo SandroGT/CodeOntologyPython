@@ -9,10 +9,8 @@ from typing import Set
 import astroid
 
 from codeontology import logger
-from codeontology.ontology import ontology
 from codeontology.rdfization.python3.explore import Project, Package
 from codeontology.rdfization.python3.extract.parser import Parser
-from codeontology.rdfization.python3.extract.individuals import StructureIndividuals
 from codeontology.rdfization.python3.extract.transforms import Transformer
 from codeontology.rdfization.python3.extract.extractor import Extractor
 

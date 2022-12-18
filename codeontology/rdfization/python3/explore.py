@@ -28,7 +28,6 @@ class Project:
         libraries (Set[Library]): the set of libraries (top level packages) of the project distribution.
         dependencies (Set[Library]): the set of libraries (top level packages) of the project dependencies.
         stdlibs (Set[Library]): the set of standard libraries in the Python3 specified source.
-        # TODO DELETE individual (ontology.Project): the project's individual in the ontology.
 
     """
     name: str
@@ -42,8 +41,6 @@ class Project:
     libraries: Set[Library]
     dependencies: Set[Library]
     stdlibs: Set[Library]
-
-    # TODO DELETE individual: ontology.Project
 
     def __init__(self, project_name: str, project_path: Path, packages_path: Path, dependencies_path: Path,
                  python3_path: Path):
@@ -92,16 +89,16 @@ class Project:
 
         self.libraries = set()
         for package_path in packages_path.iterdir():
-            self.libraries.add(Library(package_path, self))
+            self.libraries.add(Library(package_path, self, True))
 
         self.dependencies = set()
         for dependency_path in dependencies_path.iterdir():
-            self.dependencies.add(Library(dependency_path, self))
+            self.dependencies.add(Library(dependency_path, self, False))
 
         self.stdlibs = set()
         for stdlib_path in python3_path.iterdir():
             if Library.is_library(stdlib_path):
-                self.stdlibs.add(Library(stdlib_path, self))
+                self.stdlibs.add(Library(stdlib_path, self, False))
 
         # !!! Thinking about removing this! Many created packages are not actually referenced by the project source
         #  code, and they won't have related triples: so these are not interesting numbers.
@@ -109,9 +106,6 @@ class Project:
         n_pkgs = len([pkg for lib in (self.libraries | self.dependencies | self.stdlibs)
                       for pkg in lib.root_package.get_packages()])
         logger.debug(f"Created '{n_libs:,}' `Library` objects and '{n_pkgs:,}' `Package` objects.")
-
-        # Individual creation is delayed and left for the extraction process.
-        # TODO DELETE self.individual = None
 
     def __hash__(self):
         return self.path.__hash__()
@@ -165,7 +159,7 @@ class Project:
                     self.stdlibs.remove(stdlib)
                     break
         # Add new library
-        self.stdlibs.add(Library(path, self))
+        self.stdlibs.add(Library(path, self, False))
 
     @staticmethod
     def is_project(folder_path: Path) -> bool:
@@ -193,23 +187,24 @@ class Library:
         path (Path): the path to the file/folder containing the library source.
         project (Project): the project to which the library is related.
         root_package (Package): the top level package defining the library.
-        # TODO DELETE individual (ontology.Library): the library's individual in the ontology.
-
+        is_by_project (bool): `True` if the library is declared inside the project, `False` if comes from a dependency.
+    
     """
     name: str
     path: Path
 
     project: Project
     root_package: Package
+    is_by_project: bool
 
-    # TODO DELETE individual: ontology.Library
-
-    def __init__(self, library_path: Path, project: Project = None):
+    def __init__(self, library_path: Path, project: Project, is_by_project: bool):
         """Creates a representation of a Python3 library.
 
         Args:
             library_path (Path): the path to the file/folder containing the library source.
             project (Project): the project of which the library is part of. May be absent.
+            is_by_project (bool): `True` if the library is declared inside the project, `False` if comes from a
+             dependency.
 
         Raises:
             Exception: invalid library.
@@ -227,9 +222,7 @@ class Library:
 
         self.project = project
         self.root_package = Package(library_path, self)
-
-        # Individual creation is delayed and left for the extraction process.
-        # TODO DELETE self.individual = None
+        self.is_by_project = is_by_project
 
     def __hash__(self):
         return self.path.__hash__()
@@ -289,7 +282,6 @@ class Package:
         direct_subpackages (Set[Package]): the other packages contained in the package namespace.
         ast (Module | None): the 'abstract syntax tree' related to the source code. Exists only for `REGULAR` and
          `MODULE` packages.
-        # TODO DELETE individual (ontology.Package): the package's individual in the ontology.
 
     Notes:
         For 'module' SEE <https://docs.python.org/3/glossary.html#term-module>.
@@ -307,8 +299,6 @@ class Package:
     direct_subpackages: Set[Package]
 
     ast: Union[astroid.Module, None]
-
-    # TODO DELETE individual: ontology.Package
 
     REGULAR_PKG_FILE_ID = "__init__.py"
 
@@ -348,9 +338,6 @@ class Package:
 
         # AST creation is delayed and left for the extraction process.
         self.ast = None
-
-        # Individual creation is delayed and left for the extraction process.
-        self.individual = None
 
     def __hash__(self):
         return self.get_ref_path().__hash__()

@@ -1,7 +1,7 @@
 """Python parsing functionalities."""
 
 from pathlib import Path
-from typing import Dict, Iterator, Set
+from typing import Dict
 
 import astroid
 import docstring_parser

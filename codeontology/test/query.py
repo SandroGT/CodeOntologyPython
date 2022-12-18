@@ -3,17 +3,16 @@ import owlready2 as owl
 from codeontology.test.utils import do_query_and_show_res
 
 
-ontology_file_path = r"C:\Users\sandr\codeontology\output\Sphinx-5.2.3.owl"
+ontology_file_path = r"C:\Users\sandr\codeontology\output\okgraph-0.0.1.nt"
 ontology = owl.get_ontology(str(ontology_file_path))
 namespace = ontology.load()
 
 query = """
 prefix woc: <http://rdf.webofcode.org/woc/>
 
-SELECT DISTINCT ?s ?c
+SELECT DISTINCT ?s
 WHERE {
-    ?s a woc:Class .
-    ?s woc:hasConstructor ?c
+    ?s a woc:ImportStatement .
 }
 """
 

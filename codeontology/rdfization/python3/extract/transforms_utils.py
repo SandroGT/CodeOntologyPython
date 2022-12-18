@@ -199,7 +199,7 @@ def lookup_type_by_name(
     def track_type_name(
             base: str,
             tail: str,
-            scope_node: Union[astroid.FunctionDef, astroid.ClassDef, astroid.Module]
+            _scope_node: Union[astroid.FunctionDef, astroid.ClassDef, astroid.Module]
     ) -> astroid.ClassDef:
         """Tracks down the type/class related to the specified name, recursively splitting it into `base` and `tail`
          until there are no more trailing names to follow.
@@ -209,7 +209,7 @@ def lookup_type_by_name(
              the base is '<package>'. May also concide with the whole name, if no tail exists.
             tail (str): the trailing parts of the name after `base`; for example in '<package>.<wrapper_class>.<type>'
              the tail is '<wrapper_class>.<type>'. It's `None` at the final step.
-            scope_node (Union[astroid.FunctionDef, astroid.ClassDef, astroid.Module]): the node defining the scope from
+            _scope_node (Union[astroid.FunctionDef, astroid.ClassDef, astroid.Module]): the node defining the scope from
              which to search for the `base`.
 
         Returns:
@@ -220,10 +220,10 @@ def lookup_type_by_name(
 
         """
         assert base is not None
-        logging.debug(f"Looking for '{base}' in '{scope_node.name}'")
+        logger.debug(f"Looking for '{base}' in '{_scope_node.name}'")
 
         # Search for the `base` from the scope of the specified `node`
-        _, matches = scope_node.lookup(base)
+        _, matches = _scope_node.lookup(base)
 
         if matches == () or len(matches) > 1:
             # No match or multiple matches: it is not clear what the string `base` refers to. We have a fail.
@@ -234,17 +234,17 @@ def lookup_type_by_name(
 
         # Check the kind of match we have to track down the type
         if isinstance(match_node, astroid.Import) or isinstance(match_node, astroid.ImportFrom):
-            match_type = handle_match_Imports(base, tail, match_node)
+            match_type = handle_match_imports(base, tail, match_node)
         elif isinstance(match_node, astroid.ClassDef):
-            match_type = handle_match_ClassDef(base, tail, match_node)
+            match_type = handle_match_class_def(base, tail, match_node)
         elif isinstance(match_node, astroid.AssignName):
-            match_type = utils_handle_type_match_AssignName(base, tail, match_node)
+            match_type = utils_handle_type_match_assign_name(base, tail, match_node)
         else:
             raise Exception(f"Unknown type of matched node tracking '{base}'.")
 
         return match_type
 
-    def handle_match_Imports(base: str, tail: str, match_node: Union[astroid.Import, astroid.ImportFrom]):
+    def handle_match_imports(base: str, tail: str, match_node: Union[astroid.Import, astroid.ImportFrom]):
         """The `base` comes from an 'import statement' node.
 
         We may have statements such as:
@@ -323,7 +323,7 @@ def lookup_type_by_name(
                 # TODO should find a smarter way to solve this
                 msg = f"Trying to import '{to_follow_ast.root().file}' from '{match_node.root().file}'" \
                       f" while searching for '{new_base}', '{new_tail}'."
-                logger.warning(msg)
+                logger.debug(msg)
                 raise Exception(msg)
             j = len(complete_type_name_list) - i
             new_base = ".".join(complete_type_name_list[j:j + 1])
@@ -334,7 +334,7 @@ def lookup_type_by_name(
 
         return match_type
 
-    def handle_match_ClassDef(base: str, tail: str, match_node: astroid.ClassDef):
+    def handle_match_class_def(base: str, tail: str, match_node: astroid.ClassDef):
         """The `base` comes from a 'class definition' node."""
         # If there is a `tail` we have nested classes: just check them recursively
         if tail:
@@ -349,7 +349,7 @@ def lookup_type_by_name(
 
         return match_type
 
-    def utils_handle_type_match_AssignName(base: str, tail: str, match_node: astroid.AssignName):
+    def utils_handle_type_match_assign_name(base: str, tail: str, match_node: astroid.AssignName):
         """The `base` comes from an 'assignment statement' node that creates an alias of our type of interest."""
         assert isinstance(match_node.parent, astroid.Assign)
         # Try to track the type of the right value of the assignment
@@ -555,9 +555,9 @@ def get_tavn_list(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                         if isinstance(call_func.expr, astroid.Name):
                             ancestor_name = call_func.expr.name
                             ancestor_node = None
-                            for ancestor in cls_node.ancestors(recurs=True):
-                                if ancestor.name == ancestor_name:
-                                    ancestor_node = ancestor
+                            for _ancestor in cls_node.ancestors(recurs=True):
+                                if _ancestor.name == ancestor_name:
+                                    ancestor_node = _ancestor
                                     break
                             if ancestor_node:
                                 for ancestor_method_node in ancestor_node.methods():
@@ -621,6 +621,7 @@ def is_static_method(func_node: astroid.FunctionDef) -> bool:
         decorators_nodes = func_node.decorators.nodes if func_node.decorators else []
         decorators_names = set()
         for node in decorators_nodes:
+            name = ""
             if isinstance(node, astroid.Name):
                 name = node.name
             elif isinstance(node, astroid.Attribute):
