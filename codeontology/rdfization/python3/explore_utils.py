@@ -106,9 +106,9 @@ class ProjectHandler:
         logger.info(f"Installing project with its dependencies in '{install_dir}'.")
         logger.debug(f"Sub-processing command <{' '.join(command_list)}>.")
         process = subprocess.Popen(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        _, _ = process.communicate()
+        _, err = process.communicate()
         if process.returncode != 0:
-            raise Exception(f"Unable to install dependencies of project '{project_name}'.")
+            raise Exception(f"Unable to install dependencies of project '{project_name}': {str(err)}.")
 
         # TODO add a way to add dependencies from reading the import statements in the packages. Some modules, like
         #  testing modules, do import libraries that are not declared in the configuration dependencies, since they

@@ -227,6 +227,26 @@ def lookup_type_by_name(
 
         if matches == () or len(matches) > 1:
             # No match or multiple matches: it is not clear what the string `base` refers to. We have a fail.
+            # !!! May happen that the same name may be tracked down to different origins:
+            #  - sometimes because we have conditional definitions, for example, depending on the OS we are using, and
+            #     so different definitions for the same name, and they will be resolved only dynamically;
+            #  - sometimes because we simply have different matching names and we don't really know which is the right
+            #     one, for example, searching for `Mapping` on the `typing` module we may get a match with an assignment
+            #     for `Mapping` and a class `collections.abc.Mapping`. Looking at the context is clear that we should
+            #     get the first result, but this is not easily generalizable.
+            #  On the `typing` module we find MANY double matches, so may be very important to find a way to address
+            #   this and give an answer instead of stopping raising an Exception.
+
+            # logger.debug(
+            #     f"searching for:\n"
+            #     f"{base}\n"
+            #     f"----------------------------------------\n"
+            #     f"in:\n"
+            #     f"{_scope_node}\n"
+            #     f"----------------------------------------\n"
+            #     f"result:\n"
+            #     f"{matches}\n"
+            # )
             raise Exception(f"No unique match for '{base}'.")
 
         # We have one only unique match
