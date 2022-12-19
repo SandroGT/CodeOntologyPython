@@ -39,20 +39,21 @@ class Individuals:
 
     @staticmethod
     def init_package(package: Package):
-        package.individual = ontology.Package()
+        if getattr(package, "individual", NonExistent) is NonExistent:
+            package.individual = ontology.Package()
 
-        package.individual.hasSimpleName = package.simple_name
-        package.individual.hasFullyQualifiedName = package.full_name
+            package.individual.hasSimpleName = package.simple_name
+            package.individual.hasFullyQualifiedName = package.full_name
 
-        if getattr(package.library, "individual", NonExistent) is NonExistent:
-            Individuals.init_library(package.library)
-        package.individual.hasLibrary = package.library.individual
+            if getattr(package.library, "individual", NonExistent) is NonExistent:
+                Individuals.init_library(package.library)
+            package.individual.hasLibrary = package.library.individual
 
-        package.individual.hasSourceCode = package.ast.as_string()
-        if package.ast.doc_node:
-            docstring = Parser.parse_comment(package.ast.doc_node.value)
-            short_description = docstring.short_description if docstring.short_description else ""
-            package.individual.hasDocumentation.append(short_description)
+            package.individual.hasSourceCode = package.ast.as_string()
+            if package.ast.doc_node:
+                docstring = Parser.parse_comment(package.ast.doc_node.value)
+                short_description = docstring.short_description if docstring.short_description else ""
+                package.individual.hasDocumentation.append(short_description)
 
     @staticmethod
     def init_access_modifier():

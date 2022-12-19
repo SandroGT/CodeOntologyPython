@@ -203,19 +203,73 @@ class Extractor:
 
     @staticmethod
     def _extract_import(node: astroid.Import):
-        # TODO CONTINUE FROM HERE
+        # `import` works with modules/packages, not their content
         assert node.is_statement
         Individuals.init_import_statement(node)  # TODO should connect statements with next and previous. How?
-        # With `import` you import entire modules or packages: create the individual for them, but do not launch
-        #  extraction over all the tree
+        # !!! now node.individual exists
+        for name, alias in node.names:
+            try:
+                module: astroid.Module = node.do_import_module(name)
+                Extractor._extract_module(module)
+                if getattr(module, "package", NonExistent) is not NonExistent:
+                    node.individual.imports.append(module.package.individual)
+            except Exception:
+                pass
 
     @staticmethod
     def _extract_import_from(node: astroid.ImportFrom):
-        # TODO CONTINUE FROM HERE
         assert node.is_statement
         Individuals.init_import_statement(node)  # TODO should connect statements with next and previous. How?
-        # With `from import` you import only part of the modules... launch the extraction over the part that is really
-        #  imported, so over all the module if `*` is used.
+        # `from import` works with the content of modules/packages, so other modules/packages, but also classes,
+        #  functions or global variables
+        for name, alias in node.names:
+            if name != "*":
+                # We have not a wildcard import, we have to discover the nature of what we are importing: is it a
+                #  module/package or not?
+                try:
+                    module = node.do_import_module(f"{node.modname}.{name}")
+                    # If we arrive here, it was a module/package
+                    Extractor._extract_module(module)
+                    if getattr(module, "package", NonExistent) is not NonExistent:
+                        node.individual.imports.append(module.package.individual)
+                except Exception:
+                    # If we arrive raising the Exception, it was not a module/package, but a class, function or global
+                    #  variable
+                    try:
+                        imported = node.do_import_module(f"{node.modname}")
+                        _, matches = imported.lookup(name)
+                        # !!! If we statically find a correspondence with more than one object/declaration, which
+                        #  dynamically is likely to be uniquely resolved, we link to all correspondences, all of which
+                        #  may be valid. Think about conditional definitions for OS-dependent implementations.
+                        for object in matches:
+                            if isinstance(object, astroid.ClassDef):
+                                pass
+                            if isinstance(object, astroid.FunctionDef):
+                                pass
+                            if type(object) in [astroid.Assign, astroid.AssignName, astroid.AssignAttr, astroid.AnnAssign]:
+                                pass
+                            if type(object) in [astroid.Import, astroid.ImportFrom]:
+                                pass
+                            # TODO init the imported object (class, function, variable) to link it as imported by the
+                            #  statement. But it could be something recursively coming from an import!
+                    except Exception:
+                        pass
+            else:
+                # We have a wildcard import, so we are importing all the content from a module/package
+                try:
+                    module = node.do_import_module(f"{node.modname}")
+                    # !!! I should not extract all the module content, only imported things... expressions do not count!
+                    Extractor._visit_to_extract(module, module)
+                    for child in module.get_children():
+                        # TODO connect child individual to import if it is a global variable, function or class. I
+                        #  think also recursively imported names are to account for
+                        # !!! I could leverage the individual that at this step will be on the nodes! Like, the imports
+                        #  have all the imported individuals as elements of the property `imports`. We just have to
+                        #  check the nature of the node... this could need too much work maybe
+                        # Optional imports (inside an if)? Just ignore them, I should predict the if clause otherwise.
+                        pass
+                except Exception:
+                    pass
 
     @staticmethod
     def _extract_index(node: astroid.Index):
@@ -283,8 +337,7 @@ class Extractor:
 
     @staticmethod
     def _extract_module(node: astroid.Module):
-        if getattr(node, "package", NonExistent) is not NonExistent and \
-                getattr(node.package, "individual", NonExistent) is NonExistent:
+        if getattr(node, "package", NonExistent) is not NonExistent:
             Individuals.init_package(node.package)
 
     @staticmethod
