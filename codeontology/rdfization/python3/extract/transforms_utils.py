@@ -1,10 +1,11 @@
 """Support functions for the transforms to apply on AST nodes."""
 
-from typing import Generator, Tuple, Union
+from typing import Dict, Generator, List, Tuple, Union
 
 import astroid
 
 from codeontology import logger
+from codeontology.utils import pass_on_exception
 
 
 def resolve_annotation(annotation_node: astroid.NodeNG) -> ...:
@@ -144,7 +145,7 @@ def resolve_value(value_node: astroid.NodeNG) -> astroid.ClassDef:
 
     """
     type_ = None
-    try:
+    with pass_on_exception():
         max_inferences = 3
         inferred_values = value_node.infer()
         i = 0; inferred_value = astroid.Uninferable
@@ -168,8 +169,6 @@ def resolve_value(value_node: astroid.NodeNG) -> astroid.ClassDef:
                 else:
                     str_type = inferred_value.pytype()  # Keep everything, since the module is out
                 type_ = lookup_type_by_name(str_type, get_lookup_node(value_node))
-    except Exception:
-        pass
 
     if type_:
         assert isinstance(type_, astroid.ClassDef)
@@ -502,8 +501,8 @@ def get_tavn_list(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                             # Tuple assignment, so `<target_x>` is something like `<element_1, element_2, ...>`
                             target_name_list = []
                             for element in target.elts:
-                                assert isinstance(element, astroid.AssignName) or \
-                                       isinstance(element, astroid.AssignAttr) or isinstance(element, astroid.Starred)
+                                assert type(element) in [astroid.AssignName, astroid.AssignAttr, astroid.Starred,
+                                                         astroid.Subscript]
                                 if isinstance(element, astroid.AssignAttr):
                                     assert isinstance(element.expr, astroid.Name)
                                 if isinstance(element, astroid.AssignAttr) and element.expr.name == self_ref:
@@ -685,3 +684,103 @@ def get_self_ref(fun_node: astroid.FunctionDef) -> str:
         elif fun_node.args.args and len(fun_node.args.args) > 0:
             self_ref = fun_node.args.args[0].name
     return self_ref
+
+
+def track_name(name: str, scope_module: astroid.Module, trace: Dict[str, List[str]] = None) -> \
+        List[Union[
+            astroid.Module,
+            astroid.ClassDef,
+            astroid.FunctionDef,
+            astroid.Assign, astroid.AssignName, astroid.AssignAttr, astroid.AnnAssign
+        ]]:
+    """Tracks the objects to which a name may refer by finding the nodes related to their definitions.
+
+    Args:
+        name (str): the name to search for.
+        scope_module (astroid.Module): the module in which to search for.
+        trace (Dict[str, List[str]]): the history of the visited modules and the searched names in the form of a
+         dictionary `{<module>: [<searched names>]}`, so that we can identify and stop cycling during the search.
+
+    Returns:
+        Union[ List[Union[astroid.Module, astroid.ClassDef, astroid.FunctionDef, astroid.Assign, astroid.AssignName,
+         astroid.AssignAttr, astroid.AnnAssign]]]: `[]` for no results on tracking, otherwise a list of:
+         `astroid.Module` for matches on modules/packages; `astroid.ClassDef` for classes; `astroid.FunctionDef` for
+         functions; astroid.Assign`, `astroid.AssignName`, `astroid.AssignAttr` and `astroid.AnnAssign` for global
+         variables/names.
+
+    """
+    def is_cycling(_module_name: str, _name: str, _trace: Dict[str, List[str]]) -> bool:
+        cycling = False
+        if _trace.get(_module_name, None) is not None:
+            previously_searched_names = _trace.get(_module_name, None)
+            cycling = _name in previously_searched_names
+        return cycling
+
+    def update_trace(_module_name: str, _name: str, _trace: Dict[str, List[str]]):
+        if _trace.get(_module_name, None) is not None:
+            _trace[_module_name] = [_name]
+        else:
+            _trace[_module_name].append(_name)
+
+    if trace is None:
+        trace = dict()
+
+    references = []
+    _, matches = scope_module.lookup(name)
+
+    if matches:
+        for matched_node in matches:
+            assert type(matched_node) in [
+                astroid.Module,
+                astroid.ClassDef,
+                astroid.FunctionDef,
+                astroid.Assign, astroid.AssignName, astroid.AssignAttr, astroid.AnnAssign,
+                astroid.Import, astroid.ImportFrom
+            ]
+            if isinstance(matched_node, astroid.Import):
+                # It is a module/package
+                module = None
+                _count_matches = 0
+                for _name, _alias in matched_node.names:
+                    to_compare = _alias if _alias else _name
+                    if to_compare == name:
+                        _count_matches += 1
+                        with pass_on_exception():
+                            module = matched_node.do_import_module(name)
+                assert _count_matches == 1
+                references.append(module)
+            elif isinstance(matched_node, astroid.ImportFrom):
+                if matched_node.names[0] == "*":
+                    # We have a wildcard import, so we are importing all the content from a module/package: continue
+                    #  tracking in that module
+                    assert len(matched_node.names) == 1
+                    with pass_on_exception():
+                        module = matched_node.do_import_module(f"{matched_node.modname}")
+                        if not is_cycling(module.name, name, trace):
+                            update_trace(module.name, name, trace)
+                            for tracked_node in track_name(name, module, trace):
+                                references.append(tracked_node)
+                else:
+                    # We have not a wildcard import: we have to discover the nature of what we are tracking: is it a
+                    #  module/package or another object?
+                    _count_matches = 0
+                    for _name, _alias in matched_node.names:
+                        to_compare = _alias if _alias else _name
+                        if to_compare == name:
+                            _count_matches += 1
+                            try:
+                                module = matched_node.do_import_module(f"{matched_node.modname}.{name}")
+                                # It is a module/package
+                                references.append(module)
+                            except Exception:
+                                # It is not a module/package: continue tracking in that module
+                                with pass_on_exception():
+                                    module = matched_node.do_import_module(f"{matched_node.modname}")
+                                    if not is_cycling(module.name, name, trace):
+                                        update_trace(module.name, name, trace)
+                                        for tracked_node in track_name(name, module, trace):
+                                            references.append(tracked_node)
+            else:
+                references.append(matched_node)
+
+    return references

@@ -3,6 +3,7 @@
 import astroid
 
 from codeontology import logger
+from codeontology.utils import pass_on_exception
 
 
 class Transformer:
@@ -10,7 +11,12 @@ class Transformer:
 
     @staticmethod
     def visit_to_transform(node: astroid.NodeNG) -> None:
-        transform_function_name = f"_transform_{type(node).__name__}"
+        def get_transform_fun_name(_node: astroid.NodeNG) -> str:
+            _type_name = type(_node).__name__
+            return "_transform_" + \
+                   _type_name[0].lower() + "".join([ch if ch.islower() else "_" + ch.lower() for ch in _type_name[1:]])
+
+        transform_function_name = get_transform_fun_name(node)
         transform_function = getattr(Transformer, transform_function_name, None)
         if transform_function:
             transform_function(node)
@@ -19,13 +25,7 @@ class Transformer:
                 Transformer.visit_to_transform(child)
 
     @staticmethod
-    def _transform_FunctionDef(function_node: astroid.FunctionDef):
-        """Transforms to perform on a 'FunctionDef' node.
-
-        Args:
-            function_node (astroid.FunctionDef): input node.
-
-        """
+    def _transform_function_def(function_node: astroid.FunctionDef):
         def add_method_overrides(fun_node: astroid.FunctionDef):
             """Adds a new `overrides` attribute to a node of type `FunctionDef`, linking it to the node of the method it
              is overriding (if any) or to `None` (if nothing is being overridden or it is not a method).
@@ -60,23 +60,17 @@ class Transformer:
                             fun_node.overrides = ancestor_method_node
                             return
 
-        logger.debug(f"Applying FunctionDef transform to '{function_node.name}' (from {function_node.root().file})")
+        logger.debug(f"Applying `FunctionDef` transform to '{function_node.name}' (from '{function_node.root().file}')")
         add_method_overrides(function_node)
 
     @staticmethod
-    def _transform_ClassDef(class_node: astroid.ClassDef):
-        """Transforms to perform on a 'ClassDef' node.
-
-        Args:
-            class_node (astroid.ClassDef): input node.
-
-        """
+    def _transform_class_def(class_node: astroid.ClassDef):
         def add_class_fields(cls_node: astroid.ClassDef):
             """Adds a new attribute `fields` to represent all the recognized fields/attributes/class variables of the
              class. The new attribute will contain a dictionary `{<field>: (<field type>, <declaring node>,)}`.
 
             The fields of a class in Python can only be determined with certainty at runtime, but we can try to predict
-             at least the most obvious field by looking at the assignments (but not deletions) to the class object
+             at least the most obvious fields by looking at the assignments (but not deletions) to the class object
              itself in class body and constructor methods.
 
             Args:
@@ -127,17 +121,11 @@ class Transformer:
                 ftn_dict[field] = (type_, node,)
             cls_node.fields = ftn_dict
 
-        logger.debug(f"Applying ClassDef transform to '{class_node.name}' (from {class_node.root().file})")
+        logger.debug(f"Applying `ClassDef` transform to '{class_node.name}' (from '{class_node.root().file}')")
         add_class_fields(class_node)
 
     @staticmethod
-    def _transform_Arguments(arguments_node: astroid.Arguments):
-        """Transforms to perform on a 'Arguments' node.
-
-        Args:
-            arguments_node (astroid.Arguments): input node.
-
-        """
+    def _transform_arguments(arguments_node: astroid.Arguments):
         def add_args_type(args_node: astroid.Arguments):
             """Adds a new set of attributes to a node of type `Arguments`, linking its annotations to the AST nodes
              defining the types to which the annotations might refer.
@@ -189,5 +177,86 @@ class Transformer:
                     type_ann_attr = type_ann_attr[0]
                 setattr(args_node, f"type_{ann_attr_name}", type_ann_attr)
 
-        logger.debug(f"Applying Arguments transform to '{arguments_node.parent.name}' (from {arguments_node.root().file})")
+        logger.debug(f"Applying `Arguments` transform to '{arguments_node.parent.name}'"
+                     f" (from '{arguments_node.root().file}')")
         add_args_type(arguments_node)
+
+    @staticmethod
+    def _transform_import(import_node: astroid.Import):
+        def add_imported_modules(_import_node: astroid.Import):
+            """Adds a new `references` attribute to a node of type `Import`, linking the names in the import statement
+             to the AST nodes of the respective modules. The new attribute is therefore a list with an entry for every
+             imported name, with each entry being either a `astroid.Module` node or `None` (unresolved matches).
+
+            Args:
+                _import_node (astroid.Import): a node representing an 'import statement'.
+
+            """
+            references = []
+            for name, alias in _import_node.names:
+                try:
+                    module = import_node.do_import_module(name)
+                    references.append(module)
+                except Exception:
+                    references.append(None)
+            assert len(references) == len(_import_node.names)
+            _import_node.references = references
+
+        logger.debug(f"Applying `Import` transform to statement on line '{import_node.lineno}'"
+                     f" (from '{import_node.root().file}')")
+        add_imported_modules(import_node)
+
+    @staticmethod
+    def _transform_import_from(import_node: astroid.ImportFrom):
+        def add_imported_objects(_import_node: astroid.ImportFrom):
+            """Adds a new `references` attribute to a node of type `ImportFrom`, linking the names in the import from
+             statement to the AST nodes of the respective objects. The new attribute is therefore a list with an entry
+             for every imported name (excluding the case of wildcard imports), with each entry being either `None`
+             (unresolved matches) or a list of nodes of type:
+              - `astroid.Module` for imported modules/packages;
+              - `astroid.ClassDef` for imported classes;
+              - `astroid.FunctionDef` for imported functions;
+              - `astroid.Assign`, `astroid.AssignName`, `astroid.AssignAttr` and `astroid.AnnAssign` for imported global
+                 variables/names;
+            Unlike the `Import` case, in which there will be no match or a single match, with the import from statement
+             there can be multiple matches, caused by possible conditional declarations (e.g., an if-else in which the
+             same name is defined in different ways, usually OS-dependent).
+
+            Args:
+                _import_node (astroid.ImportFrom): a node representing an 'import from statement'.
+
+            """
+            from codeontology.rdfization.python3.extract.transforms_utils import track_name
+
+            references = []
+            if _import_node.names[0] == "*":
+                # We have a wildcard import, so we are importing all the content from a module/package
+                assert len(_import_node.names) == 1
+                with pass_on_exception():
+                    module: astroid.Module = _import_node.do_import_module(f"{_import_node.modname}")
+                    for imported_name in module.wildcard_import_names():
+                        tracked = track_name(imported_name, module)
+                        references.append(tracked if tracked else None)
+                    assert len(references) == len(module.wildcard_import_names())
+            else:
+                # We have not a wildcard import: we have to discover the nature of what we are importing: is it a
+                #  module/package or another object?
+                for name, alias in _import_node.names:
+                    try:
+                        module: astroid.Module = _import_node.do_import_module(f"{_import_node.modname}.{name}")
+                        # It is a module/package
+                        references.append([module])
+                    except Exception:
+                        # It is not a module/package
+                        try:
+                            module: astroid.Module = _import_node.do_import_module(f"{_import_node.modname}")
+                            tracked = track_name(name, module)
+                            references.append(tracked if tracked else None)
+                        except Exception:
+                            references.append(None)
+                assert len(references) == len(_import_node.names)
+            _import_node.references = references
+
+        logger.debug(f"Applying `ImportFrom` transform to statement on line '{import_node.lineno}'"
+                     f" (from '{import_node.root().file}')")
+        add_imported_objects(import_node)

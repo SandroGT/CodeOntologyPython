@@ -78,7 +78,7 @@ class Parser:
                 ast = cached_ast
             if ast:
                 package.ast = ast
-                ast.package = package
+                ast._package = package
                 parsed_packages[package.source] = package
                 self.__parse_imports_recursively(ast, parsed_packages)
             else:
@@ -158,7 +158,7 @@ class Parser:
         package = self.project.find_package(package_init_path)
         ast.file = package.source
         package.ast = ast
-        ast.package = package
+        ast._package = package
 
     @staticmethod
     def parse_comment(comment_text: str) -> Docstring:
