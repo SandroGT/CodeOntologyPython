@@ -299,10 +299,12 @@ class Extractor:
         for references in import_node.references:
             if references is not None:
                 for referenced_node in references:
+                    if referenced_node is None:
+                        continue
                     assert type(referenced_node) in [
                         astroid.Module,
                         astroid.ClassDef,
-                        astroid.FunctionDef,
+                        astroid.FunctionDef, astroid.AsyncFunctionDef,
                         astroid.Assign, astroid.AssignName, astroid.AssignAttr, astroid.AnnAssign
                     ]
                     Extractor._extract(referenced_node, False)
@@ -312,7 +314,7 @@ class Extractor:
                     elif type(referenced_node) in [astroid.ClassDef]:
                         # TODO INIT
                         pass
-                    elif type(referenced_node) in [astroid.FunctionDef]:
+                    elif type(referenced_node) in [astroid.FunctionDef, astroid.AsyncFunctionDef]:
                         # TODO INIT
                         pass
                     elif type(referenced_node) in \

@@ -36,8 +36,6 @@ class Transformer:
             """
             assert isinstance(fun_node, astroid.FunctionDef)
 
-            if not isinstance(fun_node, astroid.FunctionDef):
-                raise Exception("Wrong transformation call.")
             # Set 'overrides' default value
             fun_node.overrides = None
             # Search for the possible overridden method
@@ -113,7 +111,9 @@ class Transformer:
             for field, (annotation, value, node) in favn_dict.items():
                 type_ = None
                 if annotation:
-                    type_ = resolve_annotation(annotation)
+                    with pass_on_exception((AssertionError,)):
+                        # TODO remove `AssertionError`! Assert trigger should help improve the code!
+                        type_ = resolve_annotation(annotation)
                 # TODO find a way to restore this!
                 #  Had to cut this out, because the `astroid`'s `infer()` function used there brings to stack overflow
                 # if value and not type_:
@@ -156,9 +156,6 @@ class Transformer:
             assert isinstance(args_node, astroid.Arguments)
             from codeontology.rdfization.python3.extract.transforms_utils import resolve_annotation
 
-            if not isinstance(args_node, astroid.Arguments):
-                raise Exception("Wrong transformation call.")
-
             for i, ann_attr_name in enumerate(["annotations", "posonlyargs_annotations", "kwonlyargs_annotations",
                                                "varargannotation", "kwargannotation"]):
                 ann_attr = getattr(args_node, ann_attr_name)
@@ -168,7 +165,12 @@ class Transformer:
 
                 # Try to link any annotation to a type, defined by a node from an AST. Just link to `None` at fail
                 for ann in ann_attr:
-                    structured_ann = resolve_annotation(ann)
+                    try:
+                        structured_ann = resolve_annotation(ann)
+                    except (RecursionError, AssertionError):
+                        # TODO remove `AssertionError`! Assert trigger should help improve the code!
+                        #  Investigate `RecursionError`.
+                        structured_ann = None
                     type_ann_attr.append(structured_ann)
 
                 # Add the resolved (or not) annotations to the `Arguments` node
@@ -197,7 +199,7 @@ class Transformer:
                 try:
                     module = import_node.do_import_module(name)
                     references.append(module)
-                except Exception:
+                except astroid.AstroidImportError:
                     references.append(None)
             assert len(references) == len(_import_node.names)
             _import_node.references = references
@@ -232,7 +234,7 @@ class Transformer:
             if _import_node.names[0] == "*":
                 # We have a wildcard import, so we are importing all the content from a module/package
                 assert len(_import_node.names) == 1
-                with pass_on_exception():
+                with pass_on_exception((astroid.AstroidError,)):
                     module: astroid.Module = _import_node.do_import_module(f"{_import_node.modname}")
                     for imported_name in module.wildcard_import_names():
                         tracked = track_name(imported_name, module)
@@ -246,13 +248,13 @@ class Transformer:
                         module: astroid.Module = _import_node.do_import_module(f"{_import_node.modname}.{name}")
                         # It is a module/package
                         references.append([module])
-                    except Exception:
+                    except astroid.AstroidImportError:
                         # It is not a module/package
                         try:
                             module: astroid.Module = _import_node.do_import_module(f"{_import_node.modname}")
                             tracked = track_name(name, module)
                             references.append(tracked if tracked else None)
-                        except Exception:
+                        except astroid.AstroidError:
                             references.append(None)
                 assert len(references) == len(_import_node.names)
             _import_node.references = references

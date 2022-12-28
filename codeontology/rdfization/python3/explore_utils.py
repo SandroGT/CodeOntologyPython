@@ -52,8 +52,8 @@ class ProjectHandler:
              folder containing the top level packages paths related to the project dependencies.
 
         Raises:
-            Exception: invalid project folder; non empty install directory; unable to install project; unable to
-             retrieve dependencies.
+            ValueError: invalid project folder; non empty install directory.
+            InstallError: unable to install project; unable to retrieve dependencies.
 
         Notes:
             This method makes use of the functionalities offered by the 'pip' module, and it has been used accordingly
@@ -64,10 +64,10 @@ class ProjectHandler:
         install_dir = install_dir.resolve().absolute()
 
         if not ProjectHandler.is_project_dir(project_dir):
-            raise Exception("Invalid project folder.")
+            raise ValueError("Invalid project folder.")
         if install_dir.exists():
             if len(set(install_dir.iterdir())) > 0:
-                raise Exception("Non empty install directory.")
+                raise ValueError("Non empty install directory.")
         else:
             install_dir.mkdir()
         install_dir_tmp = install_dir.joinpath("tmp")
@@ -91,12 +91,12 @@ class ProjectHandler:
         process = subprocess.Popen(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = process.communicate()
         if process.returncode != 0:
-            raise Exception(f"Unable to install project from '{project_dir}'.")
+            raise InstallError(f"Unable to install project from '{project_dir}'.")
 
         # HACK should be better to get the name from the configuration file, but this way it is just easier.
         project_name = regex.search(r"(?<=Successfully installed ).*?(?=\\r\\n)", str(out)).group()
         if " " in project_name:
-            raise Exception(f"Unexpected result! More than one distribution installed: '{project_name}'.")
+            raise InstallError(f"Unexpected result! More than one distribution installed: '{project_name}'.")
         # NOTE Focusing only on distribution packages, ignoring 'test' or other kind of development packages
         project_pkg_dirs = ProjectHandler.get_packages_from_installation_dir(install_dir_tmp)
         logger.info(f"Installed project '{project_name}'.")
@@ -108,7 +108,7 @@ class ProjectHandler:
         process = subprocess.Popen(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         _, err = process.communicate()
         if process.returncode != 0:
-            raise Exception(f"Unable to install dependencies of project '{project_name}': {str(err)}.")
+            raise InstallError(f"Unable to install dependencies of project '{project_name}': {str(err)}.")
 
         # TODO add a way to add dependencies from reading the import statements in the packages. Some modules, like
         #  testing modules, do import libraries that are not declared in the configuration dependencies, since they
@@ -141,7 +141,8 @@ class ProjectHandler:
             str: the name of the local project.
 
         Raises:
-            Exception: invalid project folder; unable to retrieve name.
+            ValueError: invalid project folder.
+            InstallError: unable to retrieve name.
 
         Notes:
             This method makes use of the functionalities offered by the 'pip' module, and it has been used accordingly
@@ -151,7 +152,7 @@ class ProjectHandler:
         project_dir = project_dir.resolve().absolute()
 
         if not ProjectHandler.is_project_dir(project_dir):
-            raise Exception("Invalid project folder.")
+            raise ValueError("Invalid project folder.")
 
         # Make a fake install of the project, to determine its name
         command_list = [
@@ -167,12 +168,12 @@ class ProjectHandler:
         process = subprocess.Popen(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = process.communicate()
         if process.returncode != 0:
-            raise Exception(f"Unable to retrieve project name from '{project_dir}'.")
+            raise InstallError(f"Unable to retrieve project name from '{project_dir}'.")
 
         # HACK should be better to get the name from the configuration file, but this way it is just easier.
         project_name = regex.search(r"(?<=Would install ).*?(?=\\r\\n)", str(out)).group()
         if " " in project_name:
-            raise Exception(f"Unexpected result! More than one distribution installed: '{project_name}'.")
+            raise InstallError(f"Unexpected result! More than one distribution installed: '{project_name}'.")
 
         return project_name
 
@@ -188,7 +189,8 @@ class ProjectHandler:
             Path: the path to the folder that will contain the source code of the project.
 
         Raises:
-            Exception: invalid download directory, project name or version; unable to download from PyPI.
+            ValueError: invalid download directory, project name or version.
+            DownloadError: unable to download from PyPI.
 
         Notes:
             This method makes use of the download functionality offered by the 'pip' module, which seems to be not very
@@ -209,14 +211,14 @@ class ProjectHandler:
 
         # Check input
         if not download_dir.is_dir():
-            raise Exception(f"Specified folder '{download_dir}' is not a valid directory.")
+            raise ValueError(f"Specified folder '{download_dir}' is not a valid directory.")
         if not ProjectHandler.is_valid_project_name(project_name):
-            raise Exception(f"Invalid project name '{project_name}' in specified target '{project_target}'.")
+            raise ValueError(f"Invalid project name '{project_name}' in specified target '{project_target}'.")
         available_versions = self.get_project_versions(project_name)
         if not available_versions:
-            raise Exception(f"Project name '{project_name}' not available from PyPI.")
+            raise ValueError(f"Project name '{project_name}' not available from PyPI.")
         if project_version and project_version not in available_versions:
-            raise Exception(f"Specified project version '{project_version}' not available from PyPI.")
+            raise ValueError(f"Specified project version '{project_version}' not available from PyPI.")
         if not project_version:
             project_version = available_versions[0]
 
@@ -241,9 +243,10 @@ class ProjectHandler:
         )
         _, _ = process.communicate()
         if process.returncode != 0:
-            raise Exception(f"Unable to download '{download_target}' from PyPI as source. Probably only wheels packages"
-                            f" are available. Try to manually download the source code and try again with the `local`"
-                            f" option.")
+            raise DownloadError(
+                f"Unable to download '{download_target}' from PyPI as source. Probably only wheels packages"
+                f" are available. Try to manually download the source code and try again with the `local` option."
+            )
 
         # Find the downloaded source archive
         archive_path = set(download_dir.iterdir()) - pre_download_dir_content
@@ -263,6 +266,8 @@ class ProjectHandler:
     def get_config_file_content(project_dir: Path) -> Dict:
         """Reads the configuration file/s of a project to extract the distribution info.
 
+        !!! Actually unused
+
         Args:
             project_dir (Path): the path to the folder containing the project.
 
@@ -271,6 +276,9 @@ class ProjectHandler:
             Allowed keywords for the 'setup.py' file can be found at
              <https://setuptools.pypa.io/en/latest/references/keywords.html>.
             The 'pyproject.toml' is not yet supported.
+
+        Raises:
+            SetupReadingError: unable to securely read the setup file.
 
         Notes:
             Actually unused, but may be useful, or even of better use, in those parts where some information is
@@ -328,8 +336,10 @@ class ProjectHandler:
                     # Get the args passed to the mock object faking the 'setuptools.setup' needed for a real setup
                     _, config_dict = mock_setup.call_args
                     # conf_dict = read_configuration(self.__PROJECT_CONF_FILE)  # may be useful, but not yet
-                except Exception:
-                    raise Exception(f"Unable to securely read the '{setup_path.resolve().absolute()}' file content.")
+                except Exception as e:
+                    logger.warning(f"Bare except clause with observed type '{type(e)}' in `get_config_file_content`.")
+                    raise SetupReadingError(f"Unable to securely read the '{setup_path.resolve().absolute()}' file"
+                                            f" content.")
 
         return config_dict
 
@@ -348,12 +358,12 @@ class ProjectHandler:
             bool: `True` for a Python3 project, `False` otherwise.
 
         Raises:
-            Exception: nonexistent folder.
+            ValueError: nonexistent folder.
 
         """
         folder_path = folder_path.resolve().absolute()
         if not folder_path.exists():
-            raise Exception(f"Nonexistent folder '{folder_path}'.")
+            raise ValueError(f"Nonexistent folder '{folder_path}'.")
         for file in folder_path.iterdir():
             if file.name in ProjectHandler.__CONFIG_FILES:
                 return True
@@ -386,7 +396,7 @@ class ProjectHandler:
             bool: `True` if the the project, eventually with that specified version, exists on PyPI; `False` otherwise.
 
         Raises:
-            Exception: unable to communicate with PyPI.
+            PipError: unable to communicate with PyPI.
 
         """
         available_versions = self.get_project_versions(project_name)
@@ -409,7 +419,7 @@ class ProjectHandler:
             List[str]: the list of identified project versions.
 
         Raises:
-            Exception: unable to communicate with PyPI.
+            PipError: unable to communicate with PyPI.
 
         Notes:
             This method makes use of the functionalities offered by the 'pip' module, and it has been used accordingly
@@ -431,7 +441,7 @@ class ProjectHandler:
         out, _ = process.communicate()
 
         if process.returncode != 0:
-            raise Exception(f"Unable to communicate with PyPI about project '{project_name}'.")
+            raise PipError(f"Unable to communicate with PyPI about project '{project_name}'.")
 
         versions = []
         if process.returncode == 0:
@@ -452,7 +462,7 @@ class ProjectHandler:
             Set[Path]: the set of identified installed distributions.
 
         Raises:
-            Exception: impossible to find packages related to distribution.
+            InstallError: impossible to find packages related to distribution.
         
         """
         install_dir = install_dir.resolve().absolute()
@@ -513,7 +523,7 @@ class ProjectHandler:
                     if package_file.exists():
                         installed_distr_paths.add(package_file)
                     if not package_dir.exists() and not package_file.exists():
-                        raise Exception(f"Impossible to find packages related to distribution info in '{file}'.")
+                        raise InstallError(f"Impossible to find packages related to distribution info in '{file}'.")
                 else:
                     for path in lib_distr_paths:
                         installed_distr_paths.add(path)
@@ -561,14 +571,14 @@ class PySourceHandler:
             str: the specified Python3 version in a full '3.x.y' format.
 
         Raises:
-            Exception: invalid Python3 version format.
+            ValueError: invalid Python3 version format.
 
         """
         if PySourceHandler.is_valid_py_version(version):
             version_nums_list = version.split(".")
             return ".".join(version_nums_list + ["0"] * (3-len(version_nums_list)))
         else:
-            raise Exception("Invalid Python3 version format.")
+            raise ValueError("Invalid Python3 version format.")
 
     def download_python_source(self, python_version: str, download_dir: Path) -> Path:
         """Downloads the source code for a specific Python3 version.
@@ -581,23 +591,25 @@ class PySourceHandler:
             Path: the path to the folder containing the source code.
 
         Raises:
-            Exception: invalid version format or unknown version; unable to download source.
+            ValueError: invalid version format or unknown version.
+            DownloadError: unable to download source.
 
         """
         python_version = self.normalize_python_version(python_version)
         download_dir = download_dir.resolve().absolute()
 
         if not self.is_valid_py_version(python_version):
-            raise Exception(f"Specified version '{python_version}' has an invalid format.")
+            raise ValueError(f"Specified version '{python_version}' has an invalid format.")
         python_version = self.normalize_python_version(python_version)
         if python_version not in self.__norm_python_versions:
-            raise Exception(f"Specified Python version '{python_version}' is unknown.")
+            raise ValueError(f"Specified Python version '{python_version}' is unknown.")
 
         # Request the source archive
         download_url = f"https://www.python.org/ftp/python/{python_version}/Python-{python_version}.tgz"
         response = requests.get(download_url)
         if not response.status_code == 200:
-            raise Exception(f"Unable to find the specified Python version '{python_version}', something went wrong.")
+            raise DownloadError(f"Unable to find the specified Python version '{python_version}', something went"
+                                f" wrong.")
 
         # Store the requested archive
         archive_path = download_dir.joinpath(f"python-{python_version}.tgz")
@@ -653,6 +665,9 @@ class PySourceHandler:
         Returns:
             str: a string representing the Python3 version, something like '3.x.y'.
 
+        Raises:
+            PipError: Unable to read Python3 version.
+
         """
         command_list = [
             str(py3_exec),
@@ -665,7 +680,7 @@ class PySourceHandler:
         )
         out, _ = process.communicate()
         if process.returncode != 0:
-            raise Exception(f"Unable to read Python3 version from '{py3_exec}' executable.")
+            raise PipError(f"Unable to read Python3 version from '{py3_exec}' executable.")
 
         return regex.search(r"(?<=Python )3(\.\d+){,2}", str(out)).group()
 
@@ -681,3 +696,23 @@ def is_valid_package_name(package_name: str) -> bool:
 
     """
     return bool(regex.match(r"^[A-Za-z_]+$", package_name))
+
+
+class PipError(Exception):
+    """Generic Error during the use of pip."""
+    pass
+
+
+class InstallError(Exception):
+    """Error during the installation of Python libraries."""
+    pass
+
+
+class DownloadError(Exception):
+    """Error during the download of Python libraries."""
+    pass
+
+
+class SetupReadingError(Exception):
+    """Error during the parsing/reading of Python setup files."""
+    pass

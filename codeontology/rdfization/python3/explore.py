@@ -56,7 +56,7 @@ class Project:
             python3_path (Path): the path to the folder containing the Python3 source.
 
         Raises:
-            Exception: invalid project, distribution or dependency packages.
+            ValueError: invalid project, distribution or dependency packages.
 
         """
         project_path = project_path.resolve().absolute()
@@ -66,15 +66,15 @@ class Project:
 
         # Check input
         if not Project.is_project(project_path):
-            raise Exception(f"Invalid project directory '{project_path}'.")
+            raise ValueError(f"Invalid project directory '{project_path}'.")
         for package_path in packages_path.iterdir():
             if not Library.is_library(package_path):
-                raise Exception(f"Invalid library '{package_path}'.")
+                raise ValueError(f"Invalid library '{package_path}'.")
         for dependency_path in dependencies_path.iterdir():
             if not Library.is_library(dependency_path):
-                raise Exception(f"Invalid dependency '{dependency_path}'.")
+                raise ValueError(f"Invalid dependency '{dependency_path}'.")
         if not Library.is_library(python3_path):
-            raise Exception(f"Invalid standard library '{python3_path}'.")
+            raise ValueError(f"Invalid standard library '{python3_path}'.")
 
         # Init
         self.name = project_name
@@ -115,7 +115,7 @@ class Project:
             # Leveraging the uniqueness of the file system paths
             return self.path.resolve().absolute() == other.path.resolve().absolute()
         else:
-            raise Exception(f"Cannot compare '{type(self)}' with type '{type(other)}'.")
+            raise TypeError(f"Cannot compare '{type(self)}' with type '{type(other)}'.")
 
     def __str__(self):
         return str(self.path.resolve().absolute())
@@ -153,7 +153,7 @@ class Project:
         # Remove previous library trace, if it existed
         if library_package:
             for package in library_package.get_packages():
-                del self.packages[package.path]
+                del self.packages[package.get_ref_path()]
             for stdlib in set(self.stdlibs):
                 if stdlib.path == path:
                     self.stdlibs.remove(stdlib)
@@ -172,7 +172,7 @@ class Project:
             bool: `True` if the path points to a valid Project folder, `False` otherwise.
 
         Raises:
-            Exception: nonexistent folder.
+            ValueError: nonexistent folder.
 
         """
         from codeontology.rdfization.python3.explore_utils import ProjectHandler
@@ -207,14 +207,14 @@ class Library:
              dependency.
 
         Raises:
-            Exception: invalid library.
+            ValueError: invalid library.
 
         """
         library_path = library_path.resolve().absolute()
 
         # Check input
         if not Library.is_library(library_path):
-            raise Exception(f"Invalid library '{library_path}'.")
+            raise ValueError(f"Invalid library '{library_path}'.")
 
         # Init
         self.name = Library.__get_name(library_path)
@@ -232,7 +232,7 @@ class Library:
             # Leveraging the uniqueness of the file system paths
             return self.path.resolve().absolute() == other.path.resolve().absolute()
         else:
-            raise Exception(f"Cannot compare '{type(self)}' with type '{type(other)}'.")
+            raise TypeError(f"Cannot compare '{type(self)}' with type '{type(other)}'.")
 
     def __str__(self):
         return str(self.path.resolve().absolute())
@@ -310,14 +310,14 @@ class Package:
             library (Library): the library of which the package is part of.
 
         Raises:
-            Exception: invalid package.
+            ValueError: invalid package.
         """
         package_path = package_path.resolve().absolute()
 
         # Check input
         package_type = Package.get_package_type(package_path)
         if package_type is Package.Type.NONE:
-            raise Exception(f"Invalid package '{package_path}'.")
+            raise ValueError(f"Invalid package '{package_path}'.")
 
         # Init
         self.simple_name, self.full_name = Package.__get_name(package_path, library)
@@ -347,7 +347,7 @@ class Package:
             # Leveraging the uniqueness of the file system paths
             return self.get_ref_path().resolve().absolute() == other.get_ref_path().resolve().absolute()
         else:
-            raise Exception(f"Cannot compare '{type(self)}' with type '{type(other)}'.")
+            raise TypeError(f"Cannot compare '{type(self)}' with type '{type(other)}'.")
 
     def __str__(self):
         return str(self.get_ref_path())
@@ -390,7 +390,7 @@ class Package:
             BOOL: `True` if the path is considerable a package, `False` otherwise.
 
         Raises:
-            Exception: nonexistent file/folder.
+            ValueError: nonexistent file/folder.
 
         """
         return Package.get_package_type(file_path) is not Package.Type.NONE
@@ -406,11 +406,11 @@ class Package:
             Package.Type: the kind of package the path matches with.
 
         Raises:
-            Exception: nonexistent file/folder.
+            ValueError: nonexistent file/folder.
 
         """
         if not file_path.exists():
-            raise Exception(f"Nonexistent file/folder for path '{file_path}'.")
+            raise ValueError(f"Nonexistent file/folder for path '{file_path}'.")
 
         if file_path.is_file():
             if file_path.name == Package.REGULAR_PKG_FILE_ID:
@@ -442,11 +442,11 @@ class Package:
             Tuple[str, str]: the simple and full name of the package.
 
         Raises:
-            Exception: package not in library.
+            ValueError: package not in library.
 
         """
         if not str(package_path).startswith(str(library.path)):
-            raise Exception(f"Package '{package_path}' not in Library '{library.path}'.")
+            raise ValueError(f"Package '{package_path}' not in Library '{library.path}'.")
         simple_name = package_path.stem
         full_name = ".".join(package_path.parent.joinpath(package_path.stem).parts[len(library.path.parts)-1:])
         return simple_name, full_name

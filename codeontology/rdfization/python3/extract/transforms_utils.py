@@ -86,12 +86,15 @@ def resolve_annotation(annotation_node: astroid.NodeNG) -> ...:
             # Definition of a parameterized type, such as 'Tuple[...]'
             base_type = [structure_annotation(ann_node.value)]
             base_type_parameterization = structure_annotation(ann_node.slice)
-            if isinstance(base_type_parameterization, str):
-                base_type_parameterization = [base_type_parameterization]
+            if base_type_parameterization:
+                if isinstance(base_type_parameterization, str):
+                    base_type_parameterization = [base_type_parameterization]
+                else:
+                    assert isinstance(base_type_parameterization, list) or isinstance(base_type_parameterization, tuple)
+                    base_type_parameterization = list(base_type_parameterization)
+                structured_ann = tuple(base_type + base_type_parameterization)
             else:
-                assert isinstance(base_type_parameterization, list) or isinstance(base_type_parameterization, tuple)
-                base_type_parameterization = list(base_type_parameterization)
-            structured_ann = tuple(base_type + base_type_parameterization)
+                structured_ann = None
         elif isinstance(ann_node, astroid.Tuple) or isinstance(ann_node, astroid.List):
             # Definition of the parameterization of a type with possible multiple values, such as '...[int, float]'
             assert isinstance(ann_node.elts, list)
@@ -127,7 +130,7 @@ def resolve_annotation(annotation_node: astroid.NodeNG) -> ...:
 
     try:
         matched_type = resolve_class_names(annotation_node, structure_annotation(annotation_node))
-    except Exception:
+    except (astroid.AstroidError, TrackingFailException,):
         matched_type = None
 
     return matched_type
@@ -144,35 +147,34 @@ def resolve_value(value_node: astroid.NodeNG) -> astroid.ClassDef:
          possible to resolve the value type.
 
     """
-    type_ = None
-    with pass_on_exception():
+    _type = None
+    with pass_on_exception((astroid.AstroidError, TrackingFailException,)):
+        i = 0
         max_inferences = 3
-        inferred_values = value_node.infer()
-        i = 0; inferred_value = astroid.Uninferable
+        inferred_value = astroid.Uninferable
+        inferred_generator = value_node.infer()
         while i < max_inferences and inferred_value in [astroid.Uninferable, astroid.Instance]:
             try:
-                inferred_value = next(inferred_values)
+                inferred_value = next(inferred_generator)
                 i += 1
-            except Exception:
-                break
-            if inferred_values not in [astroid.Uninferable, astroid.Instance]:
+            except StopIteration:
                 break
         if inferred_value not in [astroid.Uninferable, astroid.Instance]:
             if isinstance(inferred_value, astroid.ClassDef):
-                type_ = inferred_value
+                _type = inferred_value
             else:
-                # ??? May need more cases
+                # ??? May need more `elif` clauses
                 str_type_list = inferred_value.pytype().split(".")
                 str_type_module = str_type_list[0]
                 if str_type_module in ['', 'builtins', value_node.root().name]:
                     str_type = ".".join(str_type_list[1:])  # Skip the module info
                 else:
                     str_type = inferred_value.pytype()  # Keep everything, since the module is out
-                type_ = lookup_type_by_name(str_type, get_lookup_node(value_node))
+                _type = lookup_type_by_name(str_type, get_lookup_node(value_node))
 
-    if type_:
-        assert isinstance(type_, astroid.ClassDef)
-    return type_
+    if _type:
+        assert isinstance(_type, astroid.ClassDef)
+    return _type
 
 
 def lookup_type_by_name(
@@ -191,7 +193,7 @@ def lookup_type_by_name(
         astroid.ClassDef: the reference to the type/class corresponding to the name.
 
     Raises:
-        Exception: if the lookup operation fails and finds no match.
+        AstroidError: if the lookup operation fails and finds no match.
 
     """
 
@@ -215,7 +217,7 @@ def lookup_type_by_name(
             astroid.ClassDef: the reference to the type/class matched to the name.
 
         Raises:
-            Exception: if the tracking operation fails and finds no match.
+            InvalidMatchException: if the tracking operation fails finding no matches.
 
         """
         assert base is not None
@@ -234,7 +236,7 @@ def lookup_type_by_name(
             #     for `Mapping` and a class `collections.abc.Mapping`. Looking at the context is clear that we should
             #     get the first result, but this is not easily generalizable.
             #  On the `typing` module we find MANY double matches, so may be very important to find a way to address
-            #   this and give an answer instead of stopping raising an Exception.
+            #   this and give an answer instead of stopping raising an `InvalidMatchException`.
 
             # logger.debug(
             #     f"searching for:\n"
@@ -246,7 +248,7 @@ def lookup_type_by_name(
             #     f"result:\n"
             #     f"{matches}\n"
             # )
-            raise Exception(f"No unique match for '{base}'.")
+            raise InvalidMatchException(f"No unique match for '{base}'.")
 
         # We have one only unique match
         match_node = matches[0]
@@ -259,7 +261,7 @@ def lookup_type_by_name(
         elif isinstance(match_node, astroid.AssignName):
             match_type = utils_handle_type_match_assign_name(base, tail, match_node)
         else:
-            raise Exception(f"Unknown type of matched node tracking '{base}'.")
+            raise InvalidMatchException(f"Unknown type of matched node tracking '{base}'.")
 
         return match_type
 
@@ -333,7 +335,7 @@ def lookup_type_by_name(
             to_import_mod = ".".join(complete_type_name_list[:-i])
             try:
                 to_follow_ast = match_node.do_import_module(to_import_mod)
-            except Exception:
+            except astroid.AstroidImportError:
                 i += 1
         if to_follow_ast:
             if to_follow_ast.root() == match_node.root() and new_base == base:
@@ -343,13 +345,13 @@ def lookup_type_by_name(
                 msg = f"Trying to import '{to_follow_ast.root().file}' from '{match_node.root().file}'" \
                       f" while searching for '{new_base}', '{new_tail}'."
                 logger.debug(msg)
-                raise Exception(msg)
+                raise TrackCyclingException(msg)
             j = len(complete_type_name_list) - i
             new_base = ".".join(complete_type_name_list[j:j + 1])
             new_tail = ".".join(complete_type_name_list[j + 1:])
             match_type = track_type_name(new_base, new_tail, to_follow_ast)
         else:
-            raise Exception(f"No AST found in which to continue the search for '{new_base}', '{new_tail}'.")
+            raise InvalidMatchException(f"No AST found in which to continue the search for '{new_base}', '{new_tail}'.")
 
         return match_type
 
@@ -690,7 +692,7 @@ def track_name(name: str, scope_module: astroid.Module, trace: Dict[str, List[st
         List[Union[
             astroid.Module,
             astroid.ClassDef,
-            astroid.FunctionDef,
+            astroid.FunctionDef, astroid.AsyncFunctionDef,
             astroid.Assign, astroid.AssignName, astroid.AssignAttr, astroid.AnnAssign
         ]]:
     """Tracks the objects to which a name may refer by finding the nodes related to their definitions.
@@ -704,9 +706,9 @@ def track_name(name: str, scope_module: astroid.Module, trace: Dict[str, List[st
     Returns:
         Union[ List[Union[astroid.Module, astroid.ClassDef, astroid.FunctionDef, astroid.Assign, astroid.AssignName,
          astroid.AssignAttr, astroid.AnnAssign]]]: `[]` for no results on tracking, otherwise a list of:
-         `astroid.Module` for matches on modules/packages; `astroid.ClassDef` for classes; `astroid.FunctionDef` for
-         functions; astroid.Assign`, `astroid.AssignName`, `astroid.AssignAttr` and `astroid.AnnAssign` for global
-         variables/names.
+         `astroid.Module` for matches on modules/packages; `astroid.ClassDef` for classes; `astroid.FunctionDef` and
+         `astroid.AsyncFunctionDef` for functions; astroid.Assign`, `astroid.AssignName`, `astroid.AssignAttr` and
+         `astroid.AnnAssign` for global variables/names.
 
     """
     def is_cycling(_module_name: str, _name: str, _trace: Dict[str, List[str]]) -> bool:
@@ -717,7 +719,7 @@ def track_name(name: str, scope_module: astroid.Module, trace: Dict[str, List[st
         return cycling
 
     def update_trace(_module_name: str, _name: str, _trace: Dict[str, List[str]]):
-        if _trace.get(_module_name, None) is not None:
+        if _trace.get(_module_name, None) is None:
             _trace[_module_name] = [_name]
         else:
             _trace[_module_name].append(_name)
@@ -733,28 +735,29 @@ def track_name(name: str, scope_module: astroid.Module, trace: Dict[str, List[st
             assert type(matched_node) in [
                 astroid.Module,
                 astroid.ClassDef,
-                astroid.FunctionDef,
+                astroid.FunctionDef, astroid.AsyncFunctionDef,
                 astroid.Assign, astroid.AssignName, astroid.AssignAttr, astroid.AnnAssign,
-                astroid.Import, astroid.ImportFrom
-            ]
+                astroid.Import, astroid.ImportFrom,
+                astroid.Const, astroid.BoundMethod  # ??? TODO updated to account for this types
+            ], type(matched_node)
             if isinstance(matched_node, astroid.Import):
                 # It is a module/package
                 module = None
                 _count_matches = 0
                 for _name, _alias in matched_node.names:
                     to_compare = _alias if _alias else _name
-                    if to_compare == name:
+                    if to_compare.startswith(name):
                         _count_matches += 1
-                        with pass_on_exception():
+                        with pass_on_exception((astroid.AstroidImportError,)):
                             module = matched_node.do_import_module(name)
-                assert _count_matches == 1
+                assert _count_matches == 1, f"{matched_node.as_string()}\n|\n{name}\n|\n{_count_matches}"
                 references.append(module)
             elif isinstance(matched_node, astroid.ImportFrom):
                 if matched_node.names[0] == "*":
                     # We have a wildcard import, so we are importing all the content from a module/package: continue
                     #  tracking in that module
                     assert len(matched_node.names) == 1
-                    with pass_on_exception():
+                    with pass_on_exception((astroid.AstroidImportError,)):
                         module = matched_node.do_import_module(f"{matched_node.modname}")
                         if not is_cycling(module.name, name, trace):
                             update_trace(module.name, name, trace)
@@ -766,15 +769,15 @@ def track_name(name: str, scope_module: astroid.Module, trace: Dict[str, List[st
                     _count_matches = 0
                     for _name, _alias in matched_node.names:
                         to_compare = _alias if _alias else _name
-                        if to_compare == name:
+                        if to_compare.startswith(name):
                             _count_matches += 1
                             try:
                                 module = matched_node.do_import_module(f"{matched_node.modname}.{name}")
                                 # It is a module/package
                                 references.append(module)
-                            except Exception:
+                            except astroid.AstroidImportError:
                                 # It is not a module/package: continue tracking in that module
-                                with pass_on_exception():
+                                with pass_on_exception(astroid.AstroidImportError):
                                     module = matched_node.do_import_module(f"{matched_node.modname}")
                                     if not is_cycling(module.name, name, trace):
                                         update_trace(module.name, name, trace)
@@ -784,3 +787,15 @@ def track_name(name: str, scope_module: astroid.Module, trace: Dict[str, List[st
                 references.append(matched_node)
 
     return references
+
+
+class TrackingFailException(Exception):
+    pass
+
+
+class InvalidMatchException(TrackingFailException):
+    pass
+
+
+class TrackCyclingException(TrackingFailException):
+    pass

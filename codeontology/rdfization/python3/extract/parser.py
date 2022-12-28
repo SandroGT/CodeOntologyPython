@@ -66,14 +66,14 @@ class Parser:
                 try:
                     with package.source.open("rb") as stream:
                         source_text = stream.read().decode()
-                except Exception as e:
+                except UnicodeError as e:
                     logger.warning(f"Failed decoding '{package.source}' with error '{e}'.")
                     source_text = None
                 if source_text is not None:
                     try:
                         ast = astroid.parse(source_text, path=str(package.source), module_name=package.full_name)
-                    except Exception as e:
-                        logger.warning(f"Failed parsing '{package.source}' with error '{e}'.")
+                    except astroid.AstroidError as e:
+                        logger.warning(f"Failed parsing '{package.source}' with error '{e}' (error '{type(e)}').")
             else:
                 ast = cached_ast
             if ast:
@@ -110,11 +110,10 @@ class Parser:
                     package = self.project.find_package(ast_path)
                     if package and not parsed_packages.get(ast_path, None):
                         self.__parse_package_recursively(package, parsed_packages)
-                except Exception:
+                except (astroid.AstroidError, AttributeError):
                     # Many modules may have failing imports, and the error is usually properly handled at runtime. It
                     #  is ok, especially if we are sure we are parsing an actually working project.
                     logger.debug(f"Impossible to load AST for module '{name}' from file '{child.root().file}'")
-                    pass
             self.__parse_imports_recursively(child, parsed_packages)
 
     def __reconstruct_stdlib_module_from_ast(self, ast: astroid.Module):
