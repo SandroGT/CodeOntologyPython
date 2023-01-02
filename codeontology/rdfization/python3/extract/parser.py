@@ -7,20 +7,20 @@ import astroid
 import docstring_parser
 from docstring_parser.common import Docstring
 
-from codeontology import logger
+from codeontology import LOGGER
 from codeontology.rdfization.python3.explore import Package, Project
 
 
 class Parser:
     """Parsing functionalities for the source code of a `Project`.
 
-    Notes:
-        During parsing it adds an `ast` attribute to the parsed packages to link them with their `astroid` AST
-         objects; it also adds a `package` attribute to the AST objects to link them with their package in return.
-
     Attributes:
         project (Project): the project defining the structure and location of the source files.
         parsed_packages (Dict[Path, Package]): the actually parsed packages.
+
+    Notes:
+        During parsing it adds an `ast` attribute to the parsed packages to link them with their `astroid` AST
+         objects; it also adds a `package` attribute to the AST objects to link them with their package in return.
 
     """
 
@@ -67,22 +67,22 @@ class Parser:
                     with package.source.open("rb") as stream:
                         source_text = stream.read().decode()
                 except UnicodeError as e:
-                    logger.warning(f"Failed decoding '{package.source}' with error '{e}'.")
+                    LOGGER.warning(f"Failed decoding '{package.source}' with error '{e}'.")
                     source_text = None
                 if source_text is not None:
                     try:
                         ast = astroid.parse(source_text, path=str(package.source), module_name=package.full_name)
                     except astroid.AstroidError as e:
-                        logger.warning(f"Failed parsing '{package.source}' with error '{e}' (error '{type(e)}').")
+                        LOGGER.warning(f"Failed parsing '{package.source}' with error '{e}' (error '{type(e)}').")
             else:
                 ast = cached_ast
             if ast:
                 package.ast = ast
-                ast._package = package
+                ast.package_ = package
                 parsed_packages[package.source] = package
                 self.__parse_imports_recursively(ast, parsed_packages)
             else:
-                logger.warning(f"No AST found for parsed package '{package.source}'.")
+                LOGGER.warning(f"No AST found for parsed package '{package.source}'.")
 
     def __parse_imports_recursively(self, node: astroid.NodeNG, parsed_packages: Dict[Path, Package]):
         """Goes through the remaining nodes of an AST to search for the actually imported `Package`s, looking at the
@@ -95,10 +95,10 @@ class Parser:
         """
         for child in node.get_children():
             to_import_names = []
-            if isinstance(child, astroid.Import):
+            if type(child) is astroid.Import:
                 for mod_name, mod_alias in child.names:
                     to_import_names.append(mod_name)
-            if isinstance(child, astroid.ImportFrom):
+            if type(child) is astroid.ImportFrom:
                 to_import_names.append(child.modname)
             for name in to_import_names:
                 try:
@@ -113,7 +113,7 @@ class Parser:
                 except (astroid.AstroidError, AttributeError):
                     # Many modules may have failing imports, and the error is usually properly handled at runtime. It
                     #  is ok, especially if we are sure we are parsing an actually working project.
-                    logger.debug(f"Impossible to load AST for module '{name}' from file '{child.root().file}'")
+                    LOGGER.debug(f"Impossible to load AST for module '{name}' from file '{child.root().file}'")
             self.__parse_imports_recursively(child, parsed_packages)
 
     def __reconstruct_stdlib_module_from_ast(self, ast: astroid.Module):
@@ -136,7 +136,7 @@ class Parser:
             ast (astroid.Module): an entire AST of a module.
 
         """
-        logger.debug(f"Reconstructing standard library module for '{ast.name}'.")
+        LOGGER.debug(f"Reconstructing standard library module for '{ast.name}'.")
 
         package_name_parts = ast.name.split(".")
         stdlib_path = self.project.python3_path
@@ -157,7 +157,7 @@ class Parser:
         package = self.project.find_package(package_init_path)
         ast.file = package.source
         package.ast = ast
-        ast._package = package
+        ast.package_ = package
 
     @staticmethod
     def parse_comment(comment_text: str) -> Docstring:

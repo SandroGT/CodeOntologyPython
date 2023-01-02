@@ -8,7 +8,7 @@ from typing import Any, Dict, Iterator, Set, Tuple, Union
 
 import astroid
 
-from codeontology import logger
+from codeontology import LOGGER
 from codeontology.ontology import ontology
 
 
@@ -79,7 +79,7 @@ class Project:
         # Init
         self.name = project_name
         self.path = project_path
-        logger.info(f"Creating object for `Project` '{self.name}' (from '{self.path}').")
+        LOGGER.info(f"Creating object for `Project` '{self.name}' (from '{self.path}').")
 
         self.packages_paths = packages_path
         self.dependencies_paths = dependencies_path
@@ -105,7 +105,7 @@ class Project:
         n_libs = len(self.libraries) + len(self.dependencies) + len(self.stdlibs)
         n_pkgs = len([pkg for lib in (self.libraries | self.dependencies | self.stdlibs)
                       for pkg in lib.root_package.get_packages()])
-        logger.debug(f"Created '{n_libs:,}' `Library` objects and '{n_pkgs:,}' `Package` objects.")
+        LOGGER.debug(f"Created '{n_libs:,}' `Library` objects and '{n_pkgs:,}' `Package` objects.")
 
     def __hash__(self):
         return self.path.__hash__()
@@ -175,7 +175,7 @@ class Project:
             ValueError: nonexistent folder.
 
         """
-        from codeontology.rdfization.python3.explore_utils import ProjectHandler
+        from codeontology.rdfization.python3.explore.utils import ProjectHandler
         return ProjectHandler.is_project_dir(folder_path)
 
 
@@ -188,7 +188,7 @@ class Library:
         project (Project): the project to which the library is related.
         root_package (Package): the top level package defining the library.
         is_by_project (bool): `True` if the library is declared inside the project, `False` if comes from a dependency.
-    
+
     """
     name: str
     path: Path
@@ -448,7 +448,7 @@ class Package:
         if not str(package_path).startswith(str(library.path)):
             raise ValueError(f"Package '{package_path}' not in Library '{library.path}'.")
         simple_name = package_path.stem
-        full_name = ".".join(package_path.parent.joinpath(package_path.stem).parts[len(library.path.parts)-1:])
+        full_name = ".".join(package_path.parent.joinpath(package_path.stem).parts[len(library.path.parts) - 1:])
         return simple_name, full_name
 
     @staticmethod

@@ -22,11 +22,11 @@ def rdfization(*, project_path: Path = None, project_pkgs: Path = None, project_
     """
     # NOTE in-library imports should stay here inside the function, or they will be executed before calling the
     #  function, for example, triggering the loading of the base ontology before even running the command parser
-    from codeontology import logger
+    from codeontology import LOGGER
     from codeontology.ontology import ontology
     from codeontology.rdfization.python3.explore import Project
     from codeontology.rdfization.python3.extract.serializer import Serializer
-    from codeontology.rdfization.python3.explore_utils import ProjectHandler, PySourceHandler
+    from codeontology.rdfization.python3.explore.utils import ProjectHandler, PySourceHandler
 
     # Retrieve project files
     assert output_dir and download_dir and python3_exec
@@ -60,5 +60,5 @@ def rdfization(*, project_path: Path = None, project_pkgs: Path = None, project_
 
     # Store everything
     save_file = str(output_dir.joinpath(project_name+".nt"))
-    logger.info(f"Saving triples at '{save_file}'.")
+    LOGGER.info(f"Saving triples at '{save_file}'.")
     ontology.save(save_file, format="ntriples")

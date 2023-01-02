@@ -2,7 +2,7 @@
 
 import astroid
 
-from codeontology import logger
+from codeontology import LOGGER
 from codeontology.utils import pass_on_exception
 
 
@@ -14,7 +14,7 @@ class Transformer:
         def get_transform_fun_name(_node: astroid.NodeNG) -> str:
             _type_name = type(_node).__name__
             return "_transform_" + \
-                   _type_name[0].lower() + "".join([ch if ch.islower() else "_" + ch.lower() for ch in _type_name[1:]])
+                _type_name[0].lower() + "".join([ch if ch.islower() else "_" + ch.lower() for ch in _type_name[1:]])
 
         transform_function_name = get_transform_fun_name(node)
         transform_function = getattr(Transformer, transform_function_name, None)
@@ -34,7 +34,7 @@ class Transformer:
                 fun_node (astroid.FunctionDef): a node representing a function/method/constructor definition and body.
 
             """
-            assert isinstance(fun_node, astroid.FunctionDef)
+            assert type(fun_node) is astroid.FunctionDef
 
             # Set 'overrides' default value
             fun_node.overrides = None
@@ -43,11 +43,11 @@ class Transformer:
                 # Methods definition may be enclosed in 'if statements' (maybe even try-except?) and not directly be in
                 #  the class body, so we have to search for the class node further than the direct parent node
                 node = fun_node
-                while not isinstance(node, astroid.Module):
-                    if isinstance(node, astroid.ClassDef):
+                while not type(node) is astroid.Module:
+                    if type(node) is astroid.ClassDef:
                         break
                     node = node.parent
-                assert isinstance(node, astroid.ClassDef)
+                assert type(node) is astroid.ClassDef
                 class_node = node
                 ancestors_mro = class_node.mro()[1:]  # First in MRO is the parent class itself
                 for ancestor_node in ancestors_mro:
@@ -58,7 +58,7 @@ class Transformer:
                             fun_node.overrides = ancestor_method_node
                             return
 
-        logger.debug(f"Applying `FunctionDef` transform to '{function_node.name}' (from '{function_node.root().file}')")
+        LOGGER.debug(f"Applying `FunctionDef` transform to '{function_node.name}' (from '{function_node.root().file}')")
         add_method_overrides(function_node)
 
     @staticmethod
@@ -75,17 +75,17 @@ class Transformer:
                 cls_node (astroid.ClassDef): a node representing a class definition and body.
 
             """
-            assert isinstance(cls_node, astroid.ClassDef)
-            from codeontology.rdfization.python3.extract.transforms_utils import \
-                get_tavn_list, resolve_annotation, resolve_value
+            assert type(cls_node) is astroid.ClassDef
+            from codeontology.rdfization.python3.extract.transformer.tracking import \
+                resolve_annotation, resolve_fields, resolve_value, TrackingFailException
 
             # Get the list of assignments to potential fields in the class with `get_tavn_list`. It organizes these
             #  assignments on a dictionary by `field` (whose name is found in the assignment `target` value). Since the
             #  list is ordered from oldest to newest assignment, when a field is encountered more than once, it
             #  overwrites the previously assigned annotation, value, and node (if provided).
             favn_dict = dict()  # {field: (annotation, value, node,)}
-            for target, annotation, value, node in get_tavn_list(cls_node):
-                if isinstance(target, list):  # Multiple targets from tuple assignments
+            for target, annotation, value, node in resolve_fields(cls_node):
+                if type(target) is list:  # Multiple targets from tuple assignments
                     assert annotation is None  # Tuple assignments cannot be annotated, so no astroid.AnnAssign
                     for field in target:
                         if field:
@@ -98,7 +98,7 @@ class Transformer:
                             new_node = node
                             favn_dict[field] = (new_annotation, new_value, new_node,)
                 else:
-                    assert isinstance(target, str)
+                    assert type(target) is str
                     field = target
                     prev_annotation, prev_value, _ = favn_dict.get(field, (None, None, None))
                     new_annotation = annotation if annotation else prev_annotation
@@ -116,12 +116,12 @@ class Transformer:
                         type_ = resolve_annotation(annotation)
                 # TODO find a way to restore this!
                 #  Had to cut this out, because the `astroid`'s `infer()` function used there brings to stack overflow
-                # if value and not type_:
-                #     type_ = resolve_value(value)
+                if value and not type_:
+                    type_ = resolve_value(value)
                 ftn_dict[field] = (type_, node,)
             cls_node.fields = ftn_dict
 
-        logger.debug(f"Applying `ClassDef` transform to '{class_node.name}' (from '{class_node.root().file}')")
+        LOGGER.debug(f"Applying `ClassDef` transform to '{class_node.name}' (from '{class_node.root().file}')")
         add_class_fields(class_node)
 
     @staticmethod
@@ -153,8 +153,8 @@ class Transformer:
                 args_node (astroid.Arguments): a node representing the arguments of a function/method/constructor.
 
             """
-            assert isinstance(args_node, astroid.Arguments)
-            from codeontology.rdfization.python3.extract.transforms_utils import resolve_annotation
+            assert type(args_node) is astroid.Arguments
+            from codeontology.rdfization.python3.extract.transformer.tracking import resolve_annotation
 
             for i, ann_attr_name in enumerate(["annotations", "posonlyargs_annotations", "kwonlyargs_annotations",
                                                "varargannotation", "kwargannotation"]):
@@ -179,7 +179,7 @@ class Transformer:
                     type_ann_attr = type_ann_attr[0]
                 setattr(args_node, f"type_{ann_attr_name}", type_ann_attr)
 
-        logger.debug(f"Applying `Arguments` transform to '{arguments_node.parent.name}'"
+        LOGGER.debug(f"Applying `Arguments` transform to '{arguments_node.parent.name}'"
                      f" (from '{arguments_node.root().file}')")
         add_args_type(arguments_node)
 
@@ -204,7 +204,7 @@ class Transformer:
             assert len(references) == len(_import_node.names)
             _import_node.references = references
 
-        logger.debug(f"Applying `Import` transform to statement on line '{import_node.lineno}'"
+        LOGGER.debug(f"Applying `Import` transform to statement on line '{import_node.lineno}'"
                      f" (from '{import_node.root().file}')")
         add_imported_modules(import_node)
 
@@ -228,7 +228,8 @@ class Transformer:
                 _import_node (astroid.ImportFrom): a node representing an 'import from statement'.
 
             """
-            from codeontology.rdfization.python3.extract.transforms_utils import track_name
+            from codeontology.rdfization.python3.extract.transformer.tracking import \
+                track_name_from_scope, TrackingFailException
 
             references = []
             if _import_node.names[0] == "*":
@@ -237,7 +238,7 @@ class Transformer:
                 with pass_on_exception((astroid.AstroidError,)):
                     module: astroid.Module = _import_node.do_import_module(f"{_import_node.modname}")
                     for imported_name in module.wildcard_import_names():
-                        tracked = track_name(imported_name, module)
+                        tracked = track_name_from_scope(imported_name, module)
                         references.append(tracked if tracked else None)
                     assert len(references) == len(module.wildcard_import_names())
             else:
@@ -252,13 +253,21 @@ class Transformer:
                         # It is not a module/package
                         try:
                             module: astroid.Module = _import_node.do_import_module(f"{_import_node.modname}")
-                            tracked = track_name(name, module)
+                            tracked = track_name_from_scope(name, module)
                             references.append(tracked if tracked else None)
-                        except astroid.AstroidError:
+                        except (astroid.AstroidError, TrackingFailException):
                             references.append(None)
                 assert len(references) == len(_import_node.names)
             _import_node.references = references
 
-        logger.debug(f"Applying `ImportFrom` transform to statement on line '{import_node.lineno}'"
+        LOGGER.debug(f"Applying `ImportFrom` transform to statement on line '{import_node.lineno}'"
                      f" (from '{import_node.root().file}')")
         add_imported_objects(import_node)
+
+    @staticmethod
+    def _transform_name(name_node: astroid.Name):
+        pass
+
+    @staticmethod
+    def _transform_assign_name(assign_name_node: astroid.AssignName):
+        pass

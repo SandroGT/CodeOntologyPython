@@ -8,10 +8,10 @@ from typing import Set
 
 import astroid
 
-from codeontology import logger
+from codeontology import LOGGER
 from codeontology.rdfization.python3.explore import Project, Package
 from codeontology.rdfization.python3.extract.parser import Parser
-from codeontology.rdfization.python3.extract.transforms import Transformer
+from codeontology.rdfization.python3.extract.transformer import Transformer
 from codeontology.rdfization.python3.extract.extractor import Extractor
 
 
@@ -99,17 +99,17 @@ class Serializer:
             So, we first parse all the files at hand, then, and just then, extract the triples!
 
         """
-        logger.info(f"Building unique model of '{self.project.name}':")
-        logger.info(f" - Parsing modules.")
+        LOGGER.info(f"Building unique model of '{self.project.name}':")
+        LOGGER.info(f" - Parsing modules.")
         parser = Parser(self.project)
-        logger.info(f" - Applying transformations to module ASTs.")
+        LOGGER.info(f" - Applying transformations to module ASTs.")
         packages_list = list(parser.parsed_packages.values())
         for i, package in enumerate(packages_list, 1):
-            logger.debug(f"{i}/{len(packages_list)}")
+            LOGGER.debug(f"{i}/{len(packages_list)}")
             Transformer.visit_to_transform(package.ast)
             self.packages.add(package)
 
     def __serialize_from_project(self):
         """Extract the RDF triples."""
-        logger.info(f"Extracting RDF triples from '{self.project.name}'.")
+        LOGGER.info(f"Extracting RDF triples from '{self.project.name}'.")
         Extractor(self.project)

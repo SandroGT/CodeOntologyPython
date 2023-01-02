@@ -10,7 +10,7 @@ import subprocess
 import sys
 from typing import Dict, List, Set, Tuple
 
-from codeontology import logger
+from codeontology import LOGGER
 
 
 class ProjectHandler:
@@ -84,10 +84,10 @@ class ProjectHandler:
             "install", str(project_dir),
             "-t", str(install_dir_tmp),
             "--no-cache-dir",  # no use of caches
-            "--no-deps",       # no dependencies
+            "--no-deps",  # no dependencies
         ]
-        logger.info(f"Installing project in '{install_dir}'.")
-        logger.debug(f"Sub-processing command <{' '.join(command_list)}>.")
+        LOGGER.info(f"Installing project in '{install_dir}'.")
+        LOGGER.debug(f"Sub-processing command <{' '.join(command_list)}>.")
         process = subprocess.Popen(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = process.communicate()
         if process.returncode != 0:
@@ -99,12 +99,12 @@ class ProjectHandler:
             raise InstallError(f"Unexpected result! More than one distribution installed: '{project_name}'.")
         # NOTE Focusing only on distribution packages, ignoring 'test' or other kind of development packages
         project_pkg_dirs = ProjectHandler.get_packages_from_installation_dir(install_dir_tmp)
-        logger.info(f"Installed project '{project_name}'.")
+        LOGGER.info(f"Installed project '{project_name}'.")
 
         # Install the project with its dependencies, to determine which folders and files are dependency packages
         command_list.pop(-1)  # remove the 'no dependencies' option
-        logger.info(f"Installing project with its dependencies in '{install_dir}'.")
-        logger.debug(f"Sub-processing command <{' '.join(command_list)}>.")
+        LOGGER.info(f"Installing project with its dependencies in '{install_dir}'.")
+        LOGGER.debug(f"Sub-processing command <{' '.join(command_list)}>.")
         process = subprocess.Popen(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         _, err = process.communicate()
         if process.returncode != 0:
@@ -163,8 +163,8 @@ class ProjectHandler:
             "--no-deps",  # no dependencies
             "--dry-run",  # fake install process
         ]
-        logger.info(f"Retrieving project name.")
-        logger.debug(f"Sub-processing command <{' '.join(command_list)}>.")
+        LOGGER.info(f"Retrieving project name.")
+        LOGGER.debug(f"Sub-processing command <{' '.join(command_list)}>.")
         process = subprocess.Popen(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = process.communicate()
         if process.returncode != 0:
@@ -230,12 +230,12 @@ class ProjectHandler:
             "-m", "pip",
             "download", download_target,
             "-d", str(download_dir),
-            "--no-deps",             # no dependencies
+            "--no-deps",  # no dependencies
             "--no-binary", ":all:",  # no distributions, source code
-            "--no-cache-dir",        # no use of caches, no track of the download on your venv
+            "--no-cache-dir",  # no use of caches, no track of the download on your venv
         ]
-        logger.info(f"Downloading '{download_target}' sources in '{download_dir}'.")
-        logger.debug(f"Sub-processing command <{' '.join(command_list)}>.")
+        LOGGER.info(f"Downloading '{download_target}' sources in '{download_dir}'.")
+        LOGGER.debug(f"Sub-processing command <{' '.join(command_list)}>.")
         process = subprocess.Popen(
             command_list,
             stdout=subprocess.PIPE,
@@ -325,9 +325,9 @@ class ProjectHandler:
         # SEE stop setup prints at https://stackoverflow.com/a/10321751/13640701
         setup_path = project_dir.joinpath(f"setup.py")
         config_dict = dict()
-        logger.info(f"Reading setup file '{setup_path}'.")
+        LOGGER.info(f"Reading setup file '{setup_path}'.")
         if setup_path.exists():
-            with safe_setup_read(project_dir),\
+            with safe_setup_read(project_dir), \
                     mock.patch.object(setuptools, "setup") as mock_setup:
                 try:
                     # IDEA Another option could be to use subprocess to read it
@@ -337,7 +337,7 @@ class ProjectHandler:
                     _, config_dict = mock_setup.call_args
                     # conf_dict = read_configuration(self.__PROJECT_CONF_FILE)  # may be useful, but not yet
                 except Exception as e:
-                    logger.warning(f"Bare except clause with observed type '{type(e)}' in `get_config_file_content`.")
+                    LOGGER.warning(f"Bare except clause with observed type '{type(e)}' in `get_config_file_content`.")
                     raise SetupReadingError(f"Unable to securely read the '{setup_path.resolve().absolute()}' file"
                                             f" content.")
 
@@ -382,6 +382,7 @@ class ProjectHandler:
         Notes:
             Check the link <https://packaging.python.org/en/latest/tutorials/packaging-projects/> to know more about the
              naming conventions.
+
         """
         return bool(regex.match(r"[a-zA-Z][a-zA-Z0-9._\-]*", project_name))
 
@@ -431,8 +432,8 @@ class ProjectHandler:
             "-m", "pip",
             "index", "versions", project_name
         ]
-        logger.info(f"Accessing availables '{project_name}' versions.")
-        logger.debug(f"Sub-processing command <{' '.join(command_list)}>.")
+        LOGGER.info(f"Accessing availables '{project_name}' versions.")
+        LOGGER.debug(f"Sub-processing command <{' '.join(command_list)}>.")
         process = subprocess.Popen(
             command_list,
             stdout=subprocess.PIPE,
@@ -463,7 +464,7 @@ class ProjectHandler:
 
         Raises:
             InstallError: impossible to find packages related to distribution.
-        
+
         """
         install_dir = install_dir.resolve().absolute()
         installed_distr_paths: Set[Path] = set()
@@ -576,7 +577,7 @@ class PySourceHandler:
         """
         if PySourceHandler.is_valid_py_version(version):
             version_nums_list = version.split(".")
-            return ".".join(version_nums_list + ["0"] * (3-len(version_nums_list)))
+            return ".".join(version_nums_list + ["0"] * (3 - len(version_nums_list)))
         else:
             raise ValueError("Invalid Python3 version format.")
 
@@ -651,7 +652,7 @@ class PySourceHandler:
                 released_version = regex.search(self.__REGEX_PY3_VERSION + r'(?=<)',
                                                 release_match.group(0)).group(0)
                 assert released_version == self.normalize_python_version(released_version), \
-                       f"Wrong assumption, '{released_version}' is not normalized"
+                    f"Wrong assumption, '{released_version}' is not normalized"
                 self.__norm_python_versions.append(released_version)
         return self.__norm_python_versions
 

@@ -95,7 +95,6 @@
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/declares">
         <rdfs:subPropertyOf rdf:resource="http://rdf-vocabulary.ddialliance.org/xkos#hasPart"/>
         <owl:inverseOf rdf:resource="http://rdf.webofcode.org/woc/isDeclaredBy"/>
-        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
         <rdfs:comment>Relates a `Code Element` to the elements it declares. For example, a `Class` is linked to its `Field`s, `Method`s and `Constructor`s.</rdfs:comment>
@@ -349,7 +348,6 @@
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasDeclaration">
         <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/isDeclaredBy"/>
-        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/DeclarationStatement"/>
         <rdfs:comment xml:lang="en">Relates a `Code Element` to the `Statement` it is declared by.</rdfs:comment>
@@ -1009,7 +1007,6 @@
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasVariableDeclaration">
         <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/hasDeclaration"/>
-        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Variable"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/VariableDeclarationStatement"/>
         <rdfs:comment>Relates a `Variable` to the `Statement` it is declared by.</rdfs:comment>
@@ -1284,7 +1281,6 @@
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isDeclaredBy">
         <rdfs:subPropertyOf rdf:resource="http://rdf-vocabulary.ddialliance.org/xkos#isPartOf"/>
-        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
         <rdfs:comment xml:lang="en">Relates a `Code Element` to the element it is declared by.</rdfs:comment>
