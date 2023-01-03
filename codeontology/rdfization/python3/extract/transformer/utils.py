@@ -1,4 +1,4 @@
-"""Support generic functions for the transforms to apply on AST nodes."""
+"""Support generic functions for the transformations to apply on AST nodes."""
 
 from typing import Set, Union
 

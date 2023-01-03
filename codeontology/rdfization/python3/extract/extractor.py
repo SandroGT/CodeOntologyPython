@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import astroid
+from tqdm import tqdm
 
 from codeontology.rdfization.python3.explore import Project
 from codeontology.rdfization.python3.extract.individuals import Individuals
@@ -27,10 +28,13 @@ class Extractor:
          existent. Just as an example, if we instantiate a (hypothetical) `dependsOn` property, the correspondent
          `isDependentFrom` property will be automatically created.
 
+        We allow to call `extract` more than once on the same node, because duplicated triples are not a problem, and
+         because this way we don't have to check or remember if we previously extracted with linking statements or not.
+
     """
     def __init__(self, project: Project):
         Individuals.init_project(project)
-        for package in project.get_packages():
+        for package in tqdm(list(project.get_packages())):
             Extractor._extract_recursively(package.ast, package.ast, True)
 
     @staticmethod
@@ -108,34 +112,29 @@ class Extractor:
         if do_link_stmts:
             Extractor._link_stmts(import_node)
 
-        for references in import_node.references:
-            if references is not None:
-                for referenced_node in references:
-                    if referenced_node is None:
-                        continue
-                    assert type(referenced_node) in [
-                        astroid.Module,
-                        astroid.ClassDef,
-                        astroid.FunctionDef, astroid.AsyncFunctionDef,
-                        astroid.Assign, astroid.AssignName, astroid.AssignAttr, astroid.AnnAssign
-                    ]
-                    Extractor._extract(referenced_node, False)
-                    if type(referenced_node) in [astroid.Module]:
-                        if getattr(referenced_node, "package_", NonExistent) is not NonExistent:
-                            import_node.stmt_individual.imports.append(referenced_node.package_.individual)
-                    elif type(referenced_node) in [astroid.ClassDef]:
-                        # TODO INIT
-                        pass
-                    elif type(referenced_node) in [astroid.FunctionDef, astroid.AsyncFunctionDef]:
-                        # TODO INIT
-                        pass
-                    elif type(referenced_node) in \
-                            [astroid.Assign, astroid.AssignName, astroid.AssignAttr, astroid.AnnAssign]:
-
-                        # TODO INIT
-                        pass
-                    else:
-                        raise NotPredictedClauseException
+        for referenced_node in import_node.references:
+            if referenced_node is not None:
+                assert type(referenced_node) in [
+                    astroid.Module,
+                    astroid.ClassDef,
+                    astroid.FunctionDef, astroid.AsyncFunctionDef,
+                    astroid.Assign, astroid.AssignName, astroid.AssignAttr, astroid.AnnAssign
+                ], type(referenced_node)
+                Extractor._extract(referenced_node, False)
+                if type(referenced_node) is astroid.Module:
+                    if getattr(referenced_node, "package_", NonExistent) is not NonExistent:
+                        import_node.stmt_individual.imports.append(referenced_node.package_.individual)
+                elif type(referenced_node) is astroid.ClassDef:
+                    import_node.stmt_individual.imports.append(referenced_node.individual)
+                elif type(referenced_node) in [astroid.FunctionDef, astroid.AsyncFunctionDef]:
+                    # TODO INIT
+                    pass
+                elif type(referenced_node) in \
+                        [astroid.Assign, astroid.AssignName, astroid.AssignAttr, astroid.AnnAssign]:
+                    # TODO INIT
+                    pass
+                else:
+                    raise NotPredictedClauseException
 
     # ------------------------------------------------------------------------------------------------------------------
 
@@ -153,6 +152,9 @@ class Extractor:
             return f"{_module.package_.full_name}.{'.'.join(scope_hierarchy_names)}"
 
         assert class_node.is_statement
+
+        if getattr(class_node, "individual", NonExistent) is NonExistent:
+            assert getattr(class_node, "stmt_individual", NonExistent) is NonExistent
 
         Individuals.init_class(class_node)
         Individuals.init_declaration_statement(class_node)
@@ -207,13 +209,25 @@ class Extractor:
 
     @staticmethod
     def _extract_yield(node: astroid.Yield, do_link_stmts: bool):
-        assert not node.is_statement  # ??? It is a statement from my point of view
+        # Even though `yield` is considered to be a statement
+        #  (https://docs.python.org/3/reference/simple_stmts.html#grammar-token-python-grammar-yield_stmt)
+        #  these nodes represent `yield expressions`
+        #  (https://docs.python.org/3/reference/expressions.html#yieldexpr)
+        #  Their parent so are mandatory `expression statements`!
+        assert not node.is_statement
+        assert node.parent and type(node.parent) is astroid.Expr and node.parent.is_statement
 
         pass
 
     @staticmethod
     def _extract_yield_from(node: astroid.YieldFrom, do_link_stmts: bool):
-        assert not node.is_statement  # ??? It is a statement from my point of view
+        # Even though `yield` is considered to be a statement
+        #  (https://docs.python.org/3/reference/simple_stmts.html#grammar-token-python-grammar-yield_stmt)
+        #  these nodes represent `yield expressions`
+        #  (https://docs.python.org/3/reference/expressions.html#yieldexpr)
+        #  Their parent so are mandatory `expression statements`!
+        assert not node.is_statement
+        assert node.parent and type(node.parent) is astroid.Expr and node.parent.is_statement
 
         pass
 

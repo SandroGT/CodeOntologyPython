@@ -1,11 +1,12 @@
 """Python parsing functionalities."""
 
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Set
 
 import astroid
 import docstring_parser
 from docstring_parser.common import Docstring
+from tqdm import tqdm
 
 from codeontology import LOGGER
 from codeontology.rdfization.python3.explore import Package, Project
@@ -26,6 +27,7 @@ class Parser:
 
     project: Project
     parsed_packages: Dict[Path, Package]  # TODO rename
+    __failed_imports: Set[str]
 
     def __init__(self, project: Project):
         """Creates a `Parser` instance, parsing all the source files of the project's own libraries and packages, as
@@ -38,10 +40,10 @@ class Parser:
         """
         self.project = project
         self.parsed_packages = dict()
+        self.__failed_imports = set()
 
-        for library in project.libraries:
-            for package in library.root_package.get_packages():
-                self.__parse_package_recursively(package, self.parsed_packages)
+        for package in tqdm(list(project.get_packages())):
+            self.__parse_package_recursively(package, self.parsed_packages)
 
     def __parse_package_recursively(self, package: Package, parsed_packages: Dict[Path, Package]):
         """Accesses and parses the source code related to a `package, storing the AST in the `Package` object itself
@@ -113,7 +115,9 @@ class Parser:
                 except (astroid.AstroidError, AttributeError):
                     # Many modules may have failing imports, and the error is usually properly handled at runtime. It
                     #  is ok, especially if we are sure we are parsing an actually working project.
-                    LOGGER.debug(f"Impossible to load AST for module '{name}' from file '{child.root().file}'")
+                    if name not in self.__failed_imports:
+                        LOGGER.debug(f"Impossible to load AST for module '{name}'.")
+                        self.__failed_imports.add(name)
             self.__parse_imports_recursively(child, parsed_packages)
 
     def __reconstruct_stdlib_module_from_ast(self, ast: astroid.Module):

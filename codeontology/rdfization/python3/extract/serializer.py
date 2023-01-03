@@ -100,16 +100,13 @@ class Serializer:
 
         """
         LOGGER.info(f"Building unique model of '{self.project.name}':")
-        LOGGER.info(f" - Parsing modules.")
+        LOGGER.info(f" - parsing project packages and actual referenced dependencies (gets progressively faster);")
         parser = Parser(self.project)
-        LOGGER.info(f" - Applying transformations to module ASTs.")
-        packages_list = list(parser.parsed_packages.values())
-        for i, package in enumerate(packages_list, 1):
-            LOGGER.debug(f"{i}/{len(packages_list)}")
-            Transformer.visit_to_transform(package.ast)
-            self.packages.add(package)
+        self.packages = set(parser.parsed_packages.values())
+        LOGGER.info(f" - applying transformations to the ASTs of the project and its actual referenced dependencies.")
+        Transformer(self.packages)
 
     def __serialize_from_project(self):
         """Extract the RDF triples."""
-        LOGGER.info(f"Extracting RDF triples from '{self.project.name}'.")
+        LOGGER.info(f"Extracting RDF triples from '{self.project.name}' (project and actual referenced dependencies).")
         Extractor(self.project)

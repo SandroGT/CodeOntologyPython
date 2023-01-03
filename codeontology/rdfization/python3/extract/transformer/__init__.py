@@ -1,13 +1,28 @@
 """Class and methods to visit the AST nodes and apply transform functions to increase their expressiveness."""
 
+from typing import Set
+
 import astroid
+from tqdm import tqdm
 
 from codeontology import LOGGER
+from codeontology.rdfization.python3.explore import Package
 from codeontology.utils import pass_on_exception
 
 
 class Transformer:
     """A collection of methods to integrate the information carried by the AST nodes of 'astroid'."""
+
+    def __init__(self, packages: Set[Package]):
+        """Launches the application of the proper transformations on the AST nodes of the respective packages.
+
+        Args:
+            packages (Set[Package]): the set of packages on which to apply the transformations.
+
+        """
+
+        for package in tqdm(list(packages)):
+            self.visit_to_transform(package.ast)
 
     @staticmethod
     def visit_to_transform(node: astroid.NodeNG) -> None:
@@ -58,7 +73,7 @@ class Transformer:
                             fun_node.overrides = ancestor_method_node
                             return
 
-        LOGGER.debug(f"Applying `FunctionDef` transform to '{function_node.name}' (from '{function_node.root().file}')")
+        LOGGER.debug(f"Applying `FunctionDef` transform to '{function_node.name}' (from '{function_node.root().file}').")
         add_method_overrides(function_node)
 
     @staticmethod
@@ -77,7 +92,7 @@ class Transformer:
             """
             assert type(cls_node) is astroid.ClassDef
             from codeontology.rdfization.python3.extract.transformer.tracking import \
-                resolve_annotation, resolve_fields, resolve_value, TrackingFailException
+                resolve_annotation, resolve_fields, resolve_value
 
             # Get the list of assignments to potential fields in the class with `get_tavn_list`. It organizes these
             #  assignments on a dictionary by `field` (whose name is found in the assignment `target` value). Since the
@@ -111,8 +126,9 @@ class Transformer:
             for field, (annotation, value, node) in favn_dict.items():
                 type_ = None
                 if annotation:
-                    with pass_on_exception((AssertionError,)):
+                    with pass_on_exception((RecursionError, AssertionError,)):
                         # TODO remove `AssertionError`! Assert trigger should help improve the code!
+                        #  Investigate `RecursionError`.
                         type_ = resolve_annotation(annotation)
                 # TODO find a way to restore this!
                 #  Had to cut this out, because the `astroid`'s `infer()` function used there brings to stack overflow
@@ -121,7 +137,7 @@ class Transformer:
                 ftn_dict[field] = (type_, node,)
             cls_node.fields = ftn_dict
 
-        LOGGER.debug(f"Applying `ClassDef` transform to '{class_node.name}' (from '{class_node.root().file}')")
+        LOGGER.debug(f"Applying `ClassDef` transform to '{class_node.name}' (from '{class_node.root().file}').")
         add_class_fields(class_node)
 
     @staticmethod
@@ -167,7 +183,7 @@ class Transformer:
                 for ann in ann_attr:
                     try:
                         structured_ann = resolve_annotation(ann)
-                    except (RecursionError, AssertionError):
+                    except (RecursionError, AssertionError,):
                         # TODO remove `AssertionError`! Assert trigger should help improve the code!
                         #  Investigate `RecursionError`.
                         structured_ann = None
@@ -248,7 +264,7 @@ class Transformer:
                     try:
                         module: astroid.Module = _import_node.do_import_module(f"{_import_node.modname}.{name}")
                         # It is a module/package
-                        references.append([module])
+                        references.append(module)
                     except astroid.AstroidImportError:
                         # It is not a module/package
                         try:
@@ -258,6 +274,7 @@ class Transformer:
                         except (astroid.AstroidError, TrackingFailException):
                             references.append(None)
                 assert len(references) == len(_import_node.names)
+            assert type(references) is list
             _import_node.references = references
 
         LOGGER.debug(f"Applying `ImportFrom` transform to statement on line '{import_node.lineno}'"
@@ -266,8 +283,44 @@ class Transformer:
 
     @staticmethod
     def _transform_name(name_node: astroid.Name):
-        pass
+        """TODO"""
+        from codeontology.rdfization.python3.extract.transformer.tracking import \
+            track_name_from_local, TrackingFailException
+
+        LOGGER.debug(f"Applying `Name` transform to statement on line '{name_node.lineno}'"
+                     f" (from '{name_node.root().file}')")
+        with pass_on_exception((TrackingFailException,)):
+            name_node.reference = track_name_from_local(name_node)
 
     @staticmethod
     def _transform_assign_name(assign_name_node: astroid.AssignName):
-        pass
+        """TODO"""
+        from codeontology.rdfization.python3.extract.transformer.tracking import \
+            track_name_from_local, TrackingFailException
+
+        LOGGER.debug(f"Applying `AssignName` transform to statement on line '{assign_name_node.lineno}'"
+                     f" (from '{assign_name_node.root().file}')")
+        with pass_on_exception((TrackingFailException,)):
+            assign_name_node.reference = track_name_from_local(assign_name_node)
+
+    @staticmethod
+    def _transform_attribute(attribute_node: astroid.Attribute):
+        """TODO"""
+        from codeontology.rdfization.python3.extract.transformer.tracking import \
+            track_attr_from_local, TrackingFailException
+
+        LOGGER.debug(f"Applying `Attribute` transform to statement on line '{attribute_node.lineno}'"
+                     f" (from '{attribute_node.root().file}')")
+        with pass_on_exception((TrackingFailException,)):
+            attribute_node.reference = track_attr_from_local(attribute_node)
+
+    @staticmethod
+    def _transform_assign_attr(assign_attr_node: astroid.AssignAttr):
+        """TODO"""
+        from codeontology.rdfization.python3.extract.transformer.tracking import \
+            track_attr_from_local, TrackingFailException
+
+        LOGGER.debug(f"Applying `AssignAttr` transform to statement on line '{assign_attr_node.lineno}'"
+                     f" (from '{assign_attr_node.root().file}')")
+        with pass_on_exception((TrackingFailException,)):
+            assign_attr_node.reference = track_attr_from_local(assign_attr_node)

@@ -114,7 +114,10 @@ def track_name_from_scope(
         raise FoundCyclingException
     track_update_trace(name, scope_node, __trace)
 
-    matches_scope, matches = scope_node.lookup(name)
+    try:
+        matches_scope, matches = scope_node.lookup(name)
+    except astroid.AstroidError:
+        raise TrackingFailException
 
     matched = None
     if matches:
@@ -302,6 +305,8 @@ def track_type_name_from_scope(
         __trace = dict()
     matched = track_attr_list_from_scope(name.split("."), scope_node, __trace=__trace)
 
+    max_iterations = 10
+    iterations = 0
     while matched is not None and type(matched) is astroid.AssignName:
         # We have got an alias: the class is assigned here and the real type is on the right side, that we should solve.
         # NOTE this is typical of the `typing` module, whereas many type names are aliases of other classes; for
@@ -316,15 +321,23 @@ def track_type_name_from_scope(
                     right_side = list(right_side.get_children())[0]
                     assert type(right_side) in [astroid.Name, astroid.Attribute]
                 if type(right_side) is astroid.Name:
-                    matched = track_name_from_local(right_side)
+                    new_matched = track_name_from_local(right_side)
                 elif type(right_side) is astroid.Attribute:
-                    matched = track_attr_from_local(right_side)
+                    new_matched = track_attr_from_local(right_side)
                 else:
                     assert False
+                if matched is new_matched:
+                    raise FoundCyclingException
+                else:
+                    matched = new_matched
             else:
                 matched = resolve_value(right_side)
         else:
             matched = None
+
+        iterations += 1
+        if iterations >= max_iterations:
+            raise MaxIterationsException
 
     if matched is None or type(matched) is not astroid.ClassDef:
         raise NoMatchesException
@@ -614,7 +627,7 @@ def resolve_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]
             # Anyway, since it is syntactically possible we do not raise any Exception, just yield nothing. We do not
             #  except to reach this case anyway.
             if not self_ref:
-                LOGGER.debug(f"Found an '__init__()' with no self-reference in '{ctor_node.root().file}'")
+                LOGGER.debug(f"Found an '__init__()' with no self-reference in '{ctor_node.root().file}'.")
                 return
 
             # Check the body for self-assignments and calls to ancestor constructors
@@ -744,4 +757,8 @@ class NotPredictedClauseException(TrackingFailException):
 
 
 class FoundCyclingException(TrackingFailException):
+    pass
+
+
+class MaxIterationsException(TrackingFailException):
     pass
