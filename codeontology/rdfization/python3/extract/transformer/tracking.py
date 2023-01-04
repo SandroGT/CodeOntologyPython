@@ -412,6 +412,15 @@ def resolve_annotation(annotation_node: astroid.NodeNG) -> ...:
          references to AST Class nodes, or `None`, if it is not possible to resolve the annotation.
 
     """
+    class Nothing():
+        """Used during structuring to distinguish no results from `None`."""
+        pass
+
+    class Union(list):
+        """Used during structuring to distinguish a list from a list of equivalent types. Not needed afters the class
+         name resolution."""
+        pass
+
     def structure_annotation(ann_node: astroid.NodeNG) -> ...:
         """Structures the information about types as described in the parent function, but uses 'Class' names instead of
          the references to the AST nodes in which the respective classes are declared.
@@ -424,7 +433,7 @@ def resolve_annotation(annotation_node: astroid.NodeNG) -> ...:
             This is obviously an overly complex and unusual annotation, but it should serve as a clear example.
         """
         # Default value, in case it is not possible to resolve the annotation with the defined cases
-        structured_ann = None
+        structured_ann = Nothing
 
         # Explore the cases that may constitute an annotation
 
@@ -443,12 +452,15 @@ def resolve_annotation(annotation_node: astroid.NodeNG) -> ...:
             nested_names.insert(0, nested_annotation_node.name)
             structured_ann = ".".join(nested_names)
         elif type(ann_node) is astroid.Const:
-            if type(ann_node.value) is type(Ellipsis):
+            if ann_node.value is None:
+                # When used in typing, `None` is considered equivalent to its type `NoneType`
+                structured_ann = "NoneType"
+            elif type(ann_node.value) is type(Ellipsis):
                 # Use of '...' in the annotation, meaning 'any value' in a type hinting context
                 structured_ann = "Any"
             elif type(ann_node.value) is str:
-                # Use of a stringified annotations, such as ' "List[str]" ' instead of ' List[str] ', but just skip
-                #  them for now and treat them like unresolvable cases
+                # Use of a stringified annotations, such as `"List[str]"` instead of `List[str]`, but just skip them for
+                #  now and treat them like unresolvable cases
                 pass
 
         # B) Equivalent types (recursive step)
@@ -461,21 +473,18 @@ def resolve_annotation(annotation_node: astroid.NodeNG) -> ...:
                 equivalent_types.insert(0, bin_op_node.right)
                 bin_op_node = bin_op_node.left
             equivalent_types.insert(0, bin_op_node)
-            structured_ann = [structure_annotation(ann_node) for ann_node in equivalent_types]
+            structured_ann = Union([structure_annotation(ann_node) for ann_node in equivalent_types])
         # TODO should also look for uses of `typing.Union`
 
         # C) Parameterized types (recursive step)
         elif type(ann_node) is astroid.Subscript:
             # Definition of a parameterized type, such as 'Tuple[...]'
             base_type = [structure_annotation(ann_node.value)]
-            base_type_parameterization = structure_annotation(ann_node.slice)
-            if base_type_parameterization:
-                if type(base_type_parameterization) is str:
-                    base_type_parameterization = [base_type_parameterization]
-                else:
-                    assert type(base_type_parameterization) in [list, tuple]
-                    base_type_parameterization = list(base_type_parameterization)
-                structured_ann = tuple(base_type + base_type_parameterization)
+            base_type_param = structure_annotation(ann_node.slice)
+            if base_type_param:
+                if type(base_type_param) in [str, Union]:
+                    base_type_param = [base_type_param]
+                structured_ann = tuple(base_type + base_type_param)
             else:
                 structured_ann = None
         elif type(ann_node) in [astroid.List, astroid.Tuple]:
@@ -493,7 +502,7 @@ def resolve_annotation(annotation_node: astroid.NodeNG) -> ...:
         match_type = None
 
         # Explore the cases that may constitute the structured annotation
-        if structured_ann is None:
+        if structured_ann is Nothing:
             # Absence of the structured annotation info, no matches with any type
             match_type = None
 
@@ -503,7 +512,7 @@ def resolve_annotation(annotation_node: astroid.NodeNG) -> ...:
                 match_type = track_type_name_from_scope(structured_ann, get_scope_node(ann_node, TRACKING_SCOPES))
 
         # B) Equivalent types (recursive step)
-        elif type(structured_ann) is list:
+        elif type(structured_ann) in [list, Union]:
             match_type = [resolve_class_names(ann_node, a) for a in structured_ann]
 
         # C) Parameterized types (recursive step)
