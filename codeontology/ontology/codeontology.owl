@@ -137,6 +137,8 @@
     <!-- http://rdf.webofcode.org/woc/hasActualTypeArgument -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasActualTypeArgument">
+        <owl:inverseOf rdf:resource="http://rdf.webofcode.org/woc/isActualTypeArgumentOf"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/ParameterizedType"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/TypeArgument"/>
         <rdfs:comment>Relates a `Parameterized Type` to each of the `Type Argument`s that take the place of the `Type Variable`s and/or `Wildcard`s used by a generic `Type` in its parameterization.</rdfs:comment>
@@ -185,7 +187,6 @@
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasArgumentType">
         <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/hasType"/>
         <owl:inverseOf rdf:resource="http://rdf.webofcode.org/woc/isArgumentTypeOf"/>
-        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/TypeArgument"/>
         <rdfs:range>
             <owl:Class>
@@ -199,7 +200,7 @@
                 </owl:unionOf>
             </owl:Class>
         </rdfs:range>
-        <rdfs:comment>Relates a `Type Argument` to the actual `Type` it represents.</rdfs:comment>
+        <rdfs:comment>Relates a `Type Argument` to the actual `Type`s it represents.</rdfs:comment>
         <rdfs:label>has argument type</rdfs:label>
     </owl:ObjectProperty>
     
@@ -711,7 +712,6 @@
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasReturnType">
         <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/hasType"/>
         <owl:inverseOf rdf:resource="http://rdf.webofcode.org/woc/isReturnTypeOf"/>
-        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain>
             <owl:Class>
                 <owl:unionOf rdf:parseType="Collection">
@@ -722,7 +722,7 @@
             </owl:Class>
         </rdfs:domain>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Type"/>
-        <rdfs:comment xml:lang="en">Relates a `Function`, `Method` or `Lambda Expression` to the `Type` it returns.</rdfs:comment>
+        <rdfs:comment xml:lang="en">Relates a `Function`, `Method` or `Lambda Expression` to the `Type`s it returns.</rdfs:comment>
         <rdfs:label xml:lang="en">has return type</rdfs:label>
     </owl:ObjectProperty>
     
@@ -747,7 +747,6 @@
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasReturnedVariable">
         <owl:inverseOf rdf:resource="http://rdf.webofcode.org/woc/isReturnedVariableOf"/>
-        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain>
             <owl:Class>
                 <owl:unionOf rdf:parseType="Collection">
@@ -757,7 +756,7 @@
             </owl:Class>
         </rdfs:domain>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Variable"/>
-        <rdfs:comment xml:lang="en">Relates a `Method` or `Function` to the `Variable` they return, if any.</rdfs:comment>
+        <rdfs:comment xml:lang="en">Relates a `Method` or `Function` to the `Variable`s they return, if any.</rdfs:comment>
         <rdfs:label xml:lang="en">has returned variable</rdfs:label>
     </owl:ObjectProperty>
     
@@ -983,7 +982,6 @@
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasType">
         <owl:inverseOf rdf:resource="http://rdf.webofcode.org/woc/isTypeOf"/>
-        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain>
             <owl:Class>
                 <owl:unionOf rdf:parseType="Collection">
@@ -997,7 +995,7 @@
             </owl:Class>
         </rdfs:domain>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Type"/>
-        <rdfs:comment xml:lang="en">Relates an entity associable to a type to its `Type`.</rdfs:comment>
+        <rdfs:comment xml:lang="en">Relates an entity associable to a type to its `Type` (or &apos;Type&apos;s).</rdfs:comment>
         <rdfs:label xml:lang="en">has type</rdfs:label>
     </owl:ObjectProperty>
     
@@ -1075,6 +1073,18 @@
     
 
 
+    <!-- http://rdf.webofcode.org/woc/isActualTypeArgumentOf -->
+
+    <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isActualTypeArgumentOf">
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/TypeArgument"/>
+        <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/ParameterizedType"/>
+        <rdfs:comment>Relates a `Type Argument` to the `Parameterized Type` of which it is a parameterization.</rdfs:comment>
+        <rdfs:label>is actual type argument of</rdfs:label>
+    </owl:ObjectProperty>
+    
+
+
     <!-- http://rdf.webofcode.org/woc/isAnnotationDeclarationOf -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isAnnotationDeclarationOf">
@@ -1104,7 +1114,6 @@
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isArgumentTypeOf">
         <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/isTypeOf"/>
-        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
         <rdfs:domain>
             <owl:Class>
                 <owl:unionOf rdf:parseType="Collection">
@@ -1611,7 +1620,6 @@
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isReturnTypeOf">
         <rdfs:subPropertyOf rdf:resource="http://rdf.webofcode.org/woc/isTypeOf"/>
-        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Type"/>
         <rdfs:range>
             <owl:Class>
@@ -1645,7 +1653,6 @@
     <!-- http://rdf.webofcode.org/woc/isReturnedVariableOf -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isReturnedVariableOf">
-        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Variable"/>
         <rdfs:range>
             <owl:Class>
@@ -1655,7 +1662,7 @@
                 </owl:unionOf>
             </owl:Class>
         </rdfs:range>
-        <rdfs:comment xml:lang="en">Relates a `Variable` to the `Method` or `Function` that returns it.</rdfs:comment>
+        <rdfs:comment xml:lang="en">Relates a `Variable` to the `Method`s or `Function`s that returns it.</rdfs:comment>
         <rdfs:label xml:lang="en">is returned variable of</rdfs:label>
     </owl:ObjectProperty>
     
@@ -1820,7 +1827,6 @@
     <!-- http://rdf.webofcode.org/woc/isTypeOf -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isTypeOf">
-        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Type"/>
         <rdfs:range>
             <owl:Class>
@@ -2258,21 +2264,6 @@
             <owl:Class>
                 <owl:intersectionOf rdf:parseType="Collection">
                     <owl:Restriction>
-                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isArrayOf"/>
-                        <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Type"/>
-                    </owl:Restriction>
-                    <owl:Restriction>
-                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isArrayOf"/>
-                        <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
-                        <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/Type"/>
-                    </owl:Restriction>
-                </owl:intersectionOf>
-            </owl:Class>
-        </rdfs:subClassOf>
-        <rdfs:subClassOf>
-            <owl:Class>
-                <owl:intersectionOf rdf:parseType="Collection">
-                    <owl:Restriction>
                         <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasDimensions"/>
                         <owl:allValuesFrom rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
                     </owl:Restriction>
@@ -2283,6 +2274,12 @@
                     </owl:Restriction>
                 </owl:intersectionOf>
             </owl:Class>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isArrayOf"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Type"/>
+            </owl:Restriction>
         </rdfs:subClassOf>
         <rdfs:comment xml:lang="en">A collection of elements of the same `Type` organized in matrix form, with direct access by indexes.</rdfs:comment>
         <rdfs:label xml:lang="en">Array Type</rdfs:label>
@@ -3203,7 +3200,7 @@
                     </owl:Restriction>
                     <owl:Restriction>
                         <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasType"/>
-                        <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+                        <owl:minQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:minQualifiedCardinality>
                         <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/Type"/>
                     </owl:Restriction>
                 </owl:intersectionOf>
@@ -3710,36 +3707,6 @@
             <owl:Class>
                 <owl:intersectionOf rdf:parseType="Collection">
                     <owl:Restriction>
-                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasReturnType"/>
-                        <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Type"/>
-                    </owl:Restriction>
-                    <owl:Restriction>
-                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasReturnType"/>
-                        <owl:maxQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:maxQualifiedCardinality>
-                        <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/Type"/>
-                    </owl:Restriction>
-                </owl:intersectionOf>
-            </owl:Class>
-        </rdfs:subClassOf>
-        <rdfs:subClassOf>
-            <owl:Class>
-                <owl:intersectionOf rdf:parseType="Collection">
-                    <owl:Restriction>
-                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasReturnedVariable"/>
-                        <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Variable"/>
-                    </owl:Restriction>
-                    <owl:Restriction>
-                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasReturnedVariable"/>
-                        <owl:maxQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:maxQualifiedCardinality>
-                        <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/Variable"/>
-                    </owl:Restriction>
-                </owl:intersectionOf>
-            </owl:Class>
-        </rdfs:subClassOf>
-        <rdfs:subClassOf>
-            <owl:Class>
-                <owl:intersectionOf rdf:parseType="Collection">
-                    <owl:Restriction>
                         <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasFullyQualifiedName"/>
                         <owl:allValuesFrom rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
                     </owl:Restriction>
@@ -3770,6 +3737,18 @@
             <owl:Restriction>
                 <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasReturnStatement"/>
                 <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/ReturnStatement"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasReturnType"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Type"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasReturnedVariable"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Variable"/>
             </owl:Restriction>
         </rdfs:subClassOf>
         <rdfs:comment>A named `Executable`.</rdfs:comment>
@@ -4082,24 +4061,15 @@
             </owl:Class>
         </rdfs:subClassOf>
         <rdfs:subClassOf>
-            <owl:Class>
-                <owl:intersectionOf rdf:parseType="Collection">
-                    <owl:Restriction>
-                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasReturnType"/>
-                        <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Type"/>
-                    </owl:Restriction>
-                    <owl:Restriction>
-                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasReturnType"/>
-                        <owl:maxQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:maxQualifiedCardinality>
-                        <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/Type"/>
-                    </owl:Restriction>
-                </owl:intersectionOf>
-            </owl:Class>
-        </rdfs:subClassOf>
-        <rdfs:subClassOf>
             <owl:Restriction>
                 <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasParameter"/>
                 <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Parameter"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasReturnType"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Type"/>
             </owl:Restriction>
         </rdfs:subClassOf>
         <rdfs:subClassOf>
@@ -4298,21 +4268,6 @@
             <owl:Class>
                 <owl:intersectionOf rdf:parseType="Collection">
                     <owl:Restriction>
-                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasReturnType"/>
-                        <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Type"/>
-                    </owl:Restriction>
-                    <owl:Restriction>
-                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasReturnType"/>
-                        <owl:maxQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:maxQualifiedCardinality>
-                        <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/Type"/>
-                    </owl:Restriction>
-                </owl:intersectionOf>
-            </owl:Class>
-        </rdfs:subClassOf>
-        <rdfs:subClassOf>
-            <owl:Class>
-                <owl:intersectionOf rdf:parseType="Collection">
-                    <owl:Restriction>
                         <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasReturnedVariable"/>
                         <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Variable"/>
                     </owl:Restriction>
@@ -4343,6 +4298,18 @@
             <owl:Restriction>
                 <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasReturnStatement"/>
                 <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/ReturnStatement"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasReturnType"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Type"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasReturnedVariable"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Variable"/>
             </owl:Restriction>
         </rdfs:subClassOf>
         <rdfs:subClassOf>
@@ -5084,7 +5051,7 @@ synchronized &lt;`Expression`&gt; &lt;`Block Statement`&gt;</rdfs:comment>
                     </owl:Restriction>
                     <owl:Restriction>
                         <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasArgumentType"/>
-                        <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+                        <owl:minQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:minQualifiedCardinality>
                         <owl:onClass>
                             <owl:Class>
                                 <owl:unionOf rdf:parseType="Collection">
@@ -5097,6 +5064,21 @@ synchronized &lt;`Expression`&gt; &lt;`Block Statement`&gt;</rdfs:comment>
                                 </owl:unionOf>
                             </owl:Class>
                         </owl:onClass>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isActualTypeArgumentOf"/>
+                        <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/ParameterizedType"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isActualTypeArgumentOf"/>
+                        <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+                        <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/ParameterizedType"/>
                     </owl:Restriction>
                 </owl:intersectionOf>
             </owl:Class>
@@ -5201,7 +5183,7 @@ synchronized &lt;`Expression`&gt; &lt;`Block Statement`&gt;</rdfs:comment>
                     </owl:Restriction>
                     <owl:Restriction>
                         <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasType"/>
-                        <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+                        <owl:minQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:minQualifiedCardinality>
                         <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/Type"/>
                     </owl:Restriction>
                 </owl:intersectionOf>

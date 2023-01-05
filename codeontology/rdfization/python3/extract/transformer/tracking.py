@@ -391,7 +391,7 @@ def resolve_value(value_node: astroid.NodeNG) -> astroid.ClassDef:
     return type_
 
 
-def resolve_annotation(annotation_node: astroid.NodeNG) -> ...:
+def resolve_annotation(annotation_node: astroid.NodeNG) -> Union[str, List, Tuple, None]:
     """Gets a reference to the AST nodes representing the types to which an annotation may be referring to, whenever
      possible.
 
@@ -412,7 +412,7 @@ def resolve_annotation(annotation_node: astroid.NodeNG) -> ...:
          references to AST Class nodes, or `None`, if it is not possible to resolve the annotation.
 
     """
-    class Nothing():
+    class Nothing:
         """Used during structuring to distinguish no results from `None`."""
         pass
 
@@ -481,9 +481,12 @@ def resolve_annotation(annotation_node: astroid.NodeNG) -> ...:
             # Definition of a parameterized type, such as 'Tuple[...]'
             base_type = [structure_annotation(ann_node.value)]
             base_type_param = structure_annotation(ann_node.slice)
-            if base_type_param:
+            if base_type_param is not Nothing:
                 if type(base_type_param) in [str, Union]:
                     base_type_param = [base_type_param]
+                else:
+                    assert type(base_type_param) in [list, tuple]
+                    base_type_param = list(base_type_param)
                 structured_ann = tuple(base_type + base_type_param)
             else:
                 structured_ann = None

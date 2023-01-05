@@ -80,7 +80,9 @@ class Transformer:
     def _transform_class_def(class_node: astroid.ClassDef):
         def add_class_fields(cls_node: astroid.ClassDef):
             """Adds a new attribute `fields` to represent all the recognized fields/attributes/class variables of the
-             class. The new attribute will contain a dictionary `{<field>: (<field type>, <declaring node>,)}`.
+             class. The new attribute will contain a dictionary `{<field>: (<structured annotation>,
+             <declaring node>,)}`. The <structured annotation> respects the 'structured annotation' criteria described
+             in `codeontology.rdfization.python3.exract.transformer.tracking.resolve_annotation()`.
 
             The fields of a class in Python can only be determined with certainty at runtime, but we can try to predict
              at least the most obvious fields by looking at the assignments (but not deletions) to the class object
@@ -124,17 +126,16 @@ class Transformer:
             # Use the annotation and value information from the dictionary to infer the field type
             ftn_dict = {}  # {field: (type, node,)}
             for field, (annotation, value, node) in favn_dict.items():
-                type_ = None
+                structured_annotation = None
                 if annotation:
-                    with pass_on_exception((RecursionError, AssertionError,)):
-                        # TODO remove `AssertionError`! Assert trigger should help improve the code!
-                        #  Investigate `RecursionError`.
-                        type_ = resolve_annotation(annotation)
+                    with pass_on_exception((RecursionError,)):
+                        # TODO Investigate `RecursionError`.
+                        structured_annotation = resolve_annotation(annotation)
                 # TODO find a way to restore this!
                 #  Had to cut this out, because the `astroid`'s `infer()` function used there brings to stack overflow
-                if value and not type_:
-                    type_ = resolve_value(value)
-                ftn_dict[field] = (type_, node,)
+                if value and not structured_annotation:
+                    structured_annotation = resolve_value(value)
+                ftn_dict[field] = (structured_annotation, node,)
             cls_node.fields = ftn_dict
 
         LOGGER.debug(f"Applying `ClassDef` transform to '{class_node.name}' (from '{class_node.root().file}').")
@@ -184,8 +185,7 @@ class Transformer:
                     try:
                         structured_ann = resolve_annotation(ann)
                     except (RecursionError, AssertionError,):
-                        # TODO remove `AssertionError`! Assert trigger should help improve the code!
-                        #  Investigate `RecursionError`.
+                        # TODO Investigate `RecursionError`.
                         structured_ann = None
                     type_ann_attr.append(structured_ann)
 
