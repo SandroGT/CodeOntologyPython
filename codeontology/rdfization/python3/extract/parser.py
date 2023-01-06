@@ -1,14 +1,14 @@
 """Python parsing functionalities."""
 
 from pathlib import Path
-from typing import Dict, Set
+from typing import Dict, Set, Tuple, Type, Union
 
 import astroid
 import docstring_parser
-from docstring_parser.common import Docstring
 from tqdm import tqdm
 
 from codeontology import LOGGER
+from codeontology.rdfization.python3.extract.utils import get_parent_node
 from codeontology.rdfization.python3.explore import Package, Project
 
 
@@ -163,15 +163,53 @@ class Parser:
         package.ast = ast
         ast.package_ = package
 
+
+class CommentParser:
+    """TODO"""
+
     @staticmethod
-    def parse_comment(comment_text: str) -> Docstring:
-        """Parse and structures a comment, automatically recognising the format.
+    def get_description(node: astroid.NodeNG) -> Union[str, None]:
+        """TODO"""
+        assert hasattr(node, "doc_node")
 
-        Args:
-            comment_text (str): the raw text comment as a string.
+        short_description, long_description = (None, None,)
+        if node.doc_node is not None:
+            docstring = docstring_parser.parse(node.doc_node.value)
+            short_description = docstring.short_description
+            long_description = docstring.long_description
 
-        Returns:
-            Docstring: a structured representation of the comment.
+        description = None
+        if long_description is not None:
+            assert short_description is not None
+        if short_description is not None:
+            description = short_description
+            if long_description is not None:
+                assert short_description is not None
+                description += f"\n\n{long_description}"
 
-        """
-        return docstring_parser.parse(comment_text)
+        return description
+
+    @staticmethod
+    def get_param_info(
+            param_name: str,
+            param_node: astroid.NodeNG,
+            param_scope_type: Type[Union[astroid.ClassDef, astroid.FunctionDef, astroid.AsyncFunctionDef]]
+    ) -> Tuple[Union[str, None], Union[str, None]]:
+        """TODO"""
+        assert param_scope_type in [astroid.ClassDef, astroid.FunctionDef, astroid.AsyncFunctionDef]
+        if type(param_node) is not param_scope_type:
+            param_scope = get_parent_node(param_node, {param_scope_type})
+        else:
+            param_scope = param_node
+        assert hasattr(param_scope, "doc_node")
+
+        param_type, param_description = (None, None,)
+        if param_scope.doc_node is not None:
+            docstring = docstring_parser.parse(param_scope.doc_node.value)
+            for param_docstring in docstring.params:
+                if param_docstring.arg_name == param_name:
+                    param_type = param_docstring.type_name
+                    param_description = param_docstring.description
+                    break
+
+        return param_type, param_description

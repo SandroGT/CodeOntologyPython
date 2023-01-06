@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from typing import List, Union
+from typing import List, Type, Union
 
 import astroid
 
 from codeontology.ontology import ontology
 from codeontology.rdfization.python3.explore import Project, Library, Package
-from codeontology.rdfization.python3.extract.parser import Parser
 from codeontology.rdfization.python3.extract.utils import get_parent_node
 
 
@@ -139,10 +138,8 @@ class OntologyIndividuals:
             assert package.individual in package.library.individual.isLibraryOf
 
             # package.individual.hasSourceCode = package.ast.as_string()
-            if package.ast.doc_node:
-                docstring = Parser.parse_comment(package.ast.doc_node.value)
-                short_description = docstring.short_description if docstring.short_description else ""
-                package.individual.hasDocumentation.append(short_description)
+            if hasattr(package.ast, "description") and package.ast.description is not None:
+                package.individual.hasDocumentation.append(package.ast.description)
 
     # --- Start Statement related --------------------------------------------------------------------------------------
 
@@ -150,7 +147,7 @@ class OntologyIndividuals:
     def init_statement(
             node: astroid.NodeNG,
             ref_node: astroid.NodeNG = None,
-            stmt_type: ontology.Statement = ontology.Statement
+            stmt_type: Type[ontology.Statement] = ontology.Statement
     ):
         # The `ref_node` is the real statement, but `node` is where we store the information! We do this because some
         #  statements may simultaneously have multiple meanings, even of different kinds, such as an example:
@@ -266,8 +263,8 @@ class OntologyIndividuals:
 
     @staticmethod
     def init_field_declaration_statement(field_declaration_node: Union[astroid.AssignName, astroid.AssignAttr]):
-        assign_parent = get_parent_node(field_declaration_node, {astroid.Assign})
-        assert type(assign_parent) is astroid.Assign
+        assign_parent = get_parent_node(field_declaration_node, {astroid.Assign, astroid.AnnAssign})
+        assert type(assign_parent) in [astroid.Assign, astroid.AnnAssign]
         OntologyIndividuals.init_declaration_statement(
             field_declaration_node, ref_node=assign_parent, stmt_type=ontology.FieldDeclarationStatement
         )
@@ -344,10 +341,8 @@ class OntologyIndividuals:
 
             class_node.individual.hasSimpleName = class_node.name
 
-            if class_node.doc_node:
-                docstring = Parser.parse_comment(class_node.doc_node.value)
-                short_description = docstring.short_description if docstring.short_description else ""
-                class_node.individual.hasDocumentation.append(short_description)
+            if hasattr(class_node, "description") and class_node.description is not None:
+                class_node.individual.hasDocumentation.append(class_node.description)
 
     @staticmethod
     def init_enum():
@@ -425,6 +420,7 @@ class OntologyIndividuals:
     @staticmethod
     def init_field(
             field_name: str,
+            field_description: Union[str, None],
             field_declaration_node: Union[astroid.AssignName, astroid.AssignAttr],
             class_node: astroid.ClassDef
     ):
@@ -439,7 +435,8 @@ class OntologyIndividuals:
             field_declaration_node.individual.isFieldOf = class_node.individual
             assert field_declaration_node.individual in class_node.individual.hasField
 
-            # TODO search for the docs in the Class comment if any
+            if field_description is not None:
+                field_declaration_node.individual.hasDocumentation.append(field_description)
 
     @staticmethod
     def init_global_variable():

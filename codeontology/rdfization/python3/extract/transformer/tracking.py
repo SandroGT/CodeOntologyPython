@@ -6,6 +6,7 @@ import astroid
 
 from codeontology import LOGGER
 from codeontology.rdfization.python3.extract.utils import get_parent_node
+from codeontology.rdfization.python3.extract.parser import CommentParser
 from codeontology.rdfization.python3.extract.transformer.utils import is_static_method, get_self_ref
 from codeontology.utils import pass_on_exception
 
@@ -59,7 +60,7 @@ def track_name_from_nonlocal(name: str, ref_node: astroid.Nonlocal):
     assert type(ref_node) is astroid.Nonlocal
 
     current_scope = get_parent_node(ref_node, TRACKING_SCOPES)
-    upper_scope = get_parent_node(current_scope.parent, TRACKING_SCOPES)
+    upper_scope = get_parent_node(current_scope, TRACKING_SCOPES)
     assert type(current_scope) in [astroid.FunctionDef, astroid.AsyncFunctionDef] and \
            type(upper_scope) in [astroid.FunctionDef, astroid.AsyncFunctionDef]
 
@@ -67,7 +68,7 @@ def track_name_from_nonlocal(name: str, ref_node: astroid.Nonlocal):
     while type(upper_scope) in [astroid.FunctionDef, astroid.AsyncFunctionDef] and matched is None:
         with pass_on_exception((TrackingFailException,)):
             matched = track_name_from_scope(name, upper_scope, __extend_search=False)
-        upper_scope = get_parent_node(upper_scope.parent, TRACKING_SCOPES)
+        upper_scope = get_parent_node(upper_scope, TRACKING_SCOPES)
 
     # Redundant
     if matched is None:
@@ -128,10 +129,10 @@ def track_name_from_scope(
             matched = track_name_from_import_from(name, matches[0], __trace=__trace)
         else:
             matched = matches[0]
-    elif __extend_search and not type(scope_node) is astroid.Module:
+    elif __extend_search and type(scope_node) is not astroid.Module:
         # If match failed locally, try upward scopes
         with pass_on_exception((TrackingFailException,)):
-            matched = track_name_from_scope(name, get_parent_node(scope_node.parent, TRACKING_SCOPES), __trace=__trace)
+            matched = track_name_from_scope(name, get_parent_node(scope_node, TRACKING_SCOPES), __trace=__trace)
     elif __extend_search:
         # If there are no more upwards scopes, try global wildcard imports
         assert type(scope_node) is astroid.Module
@@ -275,12 +276,13 @@ def track_attr_list_from_scope(
     #  reference to the instance of the class itself! We should consider this!
     for i in range(0, len(attr_list)):
         # If attributes are `[a, b, c]`, track `a`, then `b`, then `c`
+        scope = _ref_node if type(_ref_node) in TRACKING_SCOPES else get_parent_node(_ref_node, TRACKING_SCOPES)
         for j in range(i, -1, -1):
             # When tracking for `c`, you may not find it alone, so search for `c`, then `b.c`, then `a.b.c` on its whole
             name = '.'.join(attr_list[j:i + 1])
             matched = None
             with pass_on_exception((TrackingFailException,)):
-                matched = track_name_from_scope(name, get_parent_node(_ref_node, TRACKING_SCOPES))
+                matched = track_name_from_scope(name, scope)
             if matched is not None:
                 break
         if matched is None:
@@ -480,15 +482,17 @@ def resolve_annotation(annotation_node: astroid.NodeNG) -> Union[str, List, Tupl
         # C) Parameterized types (recursive step)
         elif type(ann_node) is astroid.Subscript:
             # Definition of a parameterized type, such as 'Tuple[...]'
-            base_type = [structure_annotation(ann_node.value)]
+            base_type = structure_annotation(ann_node.value)
             base_type_param = structure_annotation(ann_node.slice)
-            if base_type_param is not Nothing:
+            if base_type is not Nothing:
                 if type(base_type_param) in [str, Union]:
                     base_type_param = [base_type_param]
-                else:
-                    assert type(base_type_param) in [list, tuple]
+                elif type(base_type_param) in [list, tuple]:
                     base_type_param = list(base_type_param)
-                structured_ann = tuple(base_type + base_type_param)
+                else:
+                    assert base_type_param is Nothing
+
+                structured_ann = tuple([base_type] + base_type_param) if base_type_param is not Nothing else base_type
             else:
                 structured_ann = None
         elif type(ann_node) in [astroid.List, astroid.Tuple]:
@@ -538,6 +542,7 @@ def track_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
     """Gets the ordered list of assignments that are expected and may define some fields. Each assignment of interest is
      represented by a tuple of:
       (t) `target` is the name, or list of names (for tuple assignments) that are being instantiated;
+      (d) `description` is the optional description of the field in the documentation;
       (a) `annotation` is the optional annotation that may be tagging the assignment;
       (v) `value` is the expression assigned to the target, and may be missing for 'annotation assignments';
       (n) `node` is the node related to the assignment.
@@ -553,7 +558,7 @@ def track_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
 
     """
     def get_tavn_list_class(cls_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
-        """1) Gets the assignments tuples '(target, annotation, value, node,)' from a class body."""
+        """1) Gets the assignments tuples '(target, description, annotation, value, node,)' from a class body."""
         assert type(cls_node) is astroid.ClassDef
 
         # Find the names which refer to global variables to properly skip their assignments: they are not attributes
@@ -578,7 +583,8 @@ def track_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                                 # !!! We set the value of `(v)` to `None` because the only value we know is
                                 #  `cls_body_node.value`, which indicates the value of the entire tuple, and it is not
                                 #  easily correlated to its individual elements.
-                                yield element.name, None, None, element
+                                e_ann, e_desc = CommentParser.get_param_info(element.name, cls_node, astroid.ClassDef)
+                                yield element.name, e_desc, e_ann, None, element
                             elif type(element, astroid.AssignAttr) or element.name in global_names:
                                 # `name` is not referencing a class attribute
                                 pass
@@ -588,7 +594,8 @@ def track_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                         # Single named target, so `<target_x>` is something like `<element_1>`
                         if target.name not in global_names:
                             # `name` is referencing a class attribute, yield the tuple
-                            yield target.name, None, cls_body_node.value, target,
+                            t_ann, t_desc = CommentParser.get_param_info(target.name, cls_node, astroid.ClassDef)
+                            yield target.name, t_desc, t_ann, cls_body_node.value, target,
                     elif type(target) is astroid.AssignAttr:
                         # Single named attribute target, so `<target_x>` is something like `<object.attr>`, and cannot
                         #  be a class attribute
@@ -608,7 +615,8 @@ def track_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                 if type(target) is astroid.AssignName:
                     if target.name not in global_names:
                         # `name` is referencing a class attribute, yield the tuple
-                        yield target.name, cls_body_node.annotation, cls_body_node.value, target,
+                        _, t_desc = CommentParser.get_param_info(target.name, cls_node, astroid.ClassDef)
+                        yield target.name, t_desc, cls_body_node.annotation, cls_body_node.value, target,
                 elif type(target) is astroid.AssignAttr:
                     # Single named attribute target, so <target> is something like <object.attr>, and cannot be a class
                     #  attribute
@@ -642,7 +650,6 @@ def track_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
 
             # Check the body for self-assignments and calls to ancestor constructors
             for ctor_body_node in ctor_node.body:
-
                 # - Self-assignments check
                 if type(ctor_body_node) is astroid.Assign:
                     # Assignment with no annotation, such as: `<target_1> = <target_2> = ... = <expression>`
@@ -659,7 +666,9 @@ def track_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                                     # !!! We set the value of `(v)` to `None` because the only value we know is
                                     #  `cls_body_node.value`, which indicates the value of the entire tuple, and it is
                                     #  not easily correlated to its individual elements.
-                                    yield element.attrname, None, None, element
+                                    e_ann, e_desc = CommentParser.get_param_info(element.attrname, cls_node,
+                                                                                 astroid.ClassDef)
+                                    yield element.attrname, e_desc, e_ann, None, element
                                 else:
                                     # `name` is not referencing a class attribute
                                     pass
@@ -667,7 +676,9 @@ def track_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                             # Single named target, so `<target_x>` is something like `<object.attr>`, and if `object`
                             #  is a self-reference then it is a class attribute assignment
                             if type(target.expr) is astroid.Name and target.expr.name == self_ref:
-                                yield target.attrname, None, ctor_body_node.value, target,
+                                t_ann, t_desc = CommentParser.get_param_info(target.attrname, cls_node,
+                                                                             astroid.ClassDef)
+                                yield target.attrname, t_desc, t_ann, ctor_body_node.value, target,
                         elif type(target) is astroid.AssignName:
                             # Single named attribute target, so `<target_x>` is something like `<element_1>`, and cannot
                             #  be a class attribute without self-reference
@@ -687,7 +698,8 @@ def track_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                         assert type(target.expr) is astroid.Name
                         if target.expr.name == self_ref:
                             # `name` is referencing a class attribute, yield the tuple
-                            yield target.attrname, ctor_body_node.annotation, ctor_body_node.value, target,
+                            _, t_desc = CommentParser.get_param_info(target.attrname, cls_node, astroid.ClassDef)
+                            yield target.attrname, t_desc, ctor_body_node.annotation, ctor_body_node.value, target,
                     elif type(target) is astroid.AssignName:
                         # Single named attribute target, so `<target_x>` is something like `<element_1>`, and cannot
                         #  be a class attribute without self-reference

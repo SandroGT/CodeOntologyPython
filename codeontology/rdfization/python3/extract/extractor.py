@@ -179,10 +179,11 @@ class Extractor:
                 class_node.individual.hasFullyQualifiedName = class_full_name
 
         for field_name in getattr(class_node, "fields", {}):
-            field_type, field_declaration_node = class_node.fields[field_name]
+            field_type, field_description, field_declaration_node = class_node.fields[field_name]
+            # TODO USE field_description
             assert type(field_declaration_node) in [astroid.AssignName, astroid.AssignAttr]
 
-            OntologyIndividuals.init_field(field_name, field_declaration_node, class_node)
+            OntologyIndividuals.init_field(field_name, field_description, field_declaration_node, class_node)
             OntologyIndividuals.init_field_declaration_statement(field_declaration_node)
             field_type_individual = extract_structured_type(field_type)
             access_modifier_individual = get_access_modifier(field_name, field_declaration_node)
