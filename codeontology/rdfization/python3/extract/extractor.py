@@ -68,7 +68,7 @@ class Extractor:
 
     @staticmethod
     def _link_stmts(node: astroid.NodeNG):
-        assert node.is_statement and getattr(node, "stmt_individual", NonExistent) is not NonExistent
+        assert node.is_statement and hasattr(node, "stmt_individual")
         if node.previous_sibling():
             # !!! We are extracting and linking statements only from scopes we are visiting in their entirety: in that
             #  case AST nodes are visited sequentially, so we always pass through the previous node first, for which
@@ -76,7 +76,7 @@ class Extractor:
             prev = node.previous_sibling()
             assert prev.is_statement
             # !!! TODO Convert to assert once all the statements are extracted
-            if getattr(prev, "stmt_individual", NonExistent) is not NonExistent:
+            if hasattr(prev, "stmt_individual"):
                 for node_stmt_individual in [node.stmt_individual] + node.stmt_individual.get_equivalent_to():
                     node_stmt_individual.hasPreviousStatement = prev.stmt_individual
                     assert prev.stmt_individual.hasNextStatement is node_stmt_individual
@@ -88,7 +88,7 @@ class Extractor:
     @staticmethod
     def extract_module(node: astroid.Module, do_link_stmts: bool):
         assert not node.is_statement
-        if getattr(node, "package_", NonExistent) is not NonExistent:
+        if hasattr(node, "package_"):
             OntologyIndividuals.init_package(node.package_)
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -105,7 +105,7 @@ class Extractor:
         for module in import_node.references:
             if module:
                 Extractor.extract(module, False)
-                if getattr(module, "package_", NonExistent) is not NonExistent:
+                if hasattr(module, "package_"):
                     import_node.stmt_individual.imports.append(module.package_.individual)
 
     @staticmethod
@@ -127,7 +127,7 @@ class Extractor:
                 ], type(referenced_node)
                 Extractor.extract(referenced_node, False)
                 if type(referenced_node) is astroid.Module:
-                    if getattr(referenced_node, "package_", NonExistent) is not NonExistent:
+                    if hasattr(referenced_node, "package_"):
                         import_node.stmt_individual.imports.append(referenced_node.package_.individual)
                 elif type(referenced_node) is astroid.ClassDef:
                     import_node.stmt_individual.imports.append(referenced_node.individual)
@@ -158,8 +158,8 @@ class Extractor:
 
         assert class_node.is_statement
 
-        if getattr(class_node, "individual", NonExistent) is NonExistent:
-            assert getattr(class_node, "stmt_individual", NonExistent) is NonExistent
+        if not hasattr(class_node, "individual"):
+            assert not hasattr(class_node, "stmt_individual")
 
         OntologyIndividuals.init_class(class_node)
         OntologyIndividuals.init_declaration_statement(class_node)
@@ -171,7 +171,7 @@ class Extractor:
 
         module = class_node.root()
         Extractor.extract(module, False)
-        if getattr(module, "package_", NonExistent) is not NonExistent:
+        if hasattr(module, "package_"):
             class_node.individual.hasPackage = module.package_.individual
             assert class_node.individual in module.package_.individual.isPackageOf
             class_full_name = get_class_full_name(class_node, module)
@@ -608,9 +608,6 @@ def get_access_modifier(name: str, ref_node: astroid.NodeNG) -> ontology.AccessM
         elif name.startswith("_"):
             return OntologyIndividuals.protected_access_modifier
     return OntologyIndividuals.public_access_modifier
-
-class NonExistent:
-    pass
 
 
 class ExtractionFailingException(Exception):

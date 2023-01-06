@@ -127,13 +127,13 @@ class OntologyIndividuals:
 
     @staticmethod
     def init_package(package: Package):
-        if getattr(package, "individual", NonExistent) is NonExistent:
+        if not hasattr(package, "individual"):
             package.individual = ontology.Package()
 
             package.individual.hasSimpleName = package.simple_name
             package.individual.hasFullyQualifiedName = package.full_name
 
-            if getattr(package.library, "individual", NonExistent) is NonExistent:
+            if not hasattr(package.library, "individual"):
                 OntologyIndividuals.init_library(package.library)
             package.individual.hasLibrary = package.library.individual
             assert package.individual in package.library.individual.isLibraryOf
@@ -160,7 +160,7 @@ class OntologyIndividuals:
         #  declaration statement individuals in its child of type `astroid.AssignName`, that are behind our `node`.
         # We obviously later link the statements as equivalent (same individual) with `owlready2.set_equivalent_to`, and
         #  we can get them back with `owlready2.get_equivalent_to`.
-        if getattr(node, "stmt_individual", NonExistent) is NonExistent:
+        if not hasattr(node, "stmt_individual"):
             if ref_node is None:
                 ref_node = node
             else:
@@ -172,7 +172,7 @@ class OntologyIndividuals:
             node.stmt_individual.hasSourceCode = ref_node.as_string()
             node.stmt_individual.hasLine = ref_node.lineno
             if ref_node is not node:
-                if getattr(ref_node, "stmt_individual", NonExistent) is NonExistent:
+                if not hasattr(ref_node, "stmt_individual"):
                     OntologyIndividuals.init_statement(ref_node)
                 node.stmt_individual.hasNextStatement = ref_node.stmt_individual.hasNextStatement
                 node.stmt_individual.hasPreviousStatement = ref_node.stmt_individual.hasPreviousStatement
@@ -339,7 +339,7 @@ class OntologyIndividuals:
     @staticmethod
     def init_class(class_node: astroid.ClassDef):
         # The only Type we use along with `Parameterized Type`
-        if getattr(class_node, "individual", NonExistent) is NonExistent:
+        if not hasattr(class_node, "individual"):
             class_node.individual = ontology.Class()
 
             class_node.individual.hasSimpleName = class_node.name
@@ -428,7 +428,7 @@ class OntologyIndividuals:
             field_declaration_node: Union[astroid.AssignName, astroid.AssignAttr],
             class_node: astroid.ClassDef
     ):
-        if getattr(field_declaration_node, "individual", NonExistent) is NonExistent:
+        if not hasattr(field_declaration_node, "individual"):
             field_declaration_node.individual = ontology.Field()
 
             field_declaration_node.individual.hasName = field_name
@@ -474,7 +474,3 @@ class OntologyIndividuals:
         project.individual.hasName = project.name
         # TODO `project.individual.hasBuildFile`, retrieving the content of the setup file
         # TODO `project.individual.hasComment`, retrieving the description from the setup file
-
-
-class NonExistent:
-    pass
