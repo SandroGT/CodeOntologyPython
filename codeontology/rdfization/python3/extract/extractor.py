@@ -77,7 +77,9 @@ class Extractor:
             assert prev.is_statement
             # !!! TODO Convert to assert once all the statements are extracted
             if getattr(prev, "stmt_individual", NonExistent) is not NonExistent:
-                node.stmt_individual.hasPreviousStatement = prev.stmt_individual
+                for node_stmt_individual in [node.stmt_individual] + node.stmt_individual.get_equivalent_to():
+                    node_stmt_individual.hasPreviousStatement = prev.stmt_individual
+                    assert prev.stmt_individual.hasNextStatement is node_stmt_individual
 
     # TODO Add a general comment about the following methods, so you don't put doc inside every method
 
@@ -178,9 +180,26 @@ class Extractor:
 
         for field_name in getattr(class_node, "fields", {}):
             field_type, field_declaration_node = class_node.fields[field_name]
+            assert type(field_declaration_node) in [astroid.AssignName, astroid.AssignAttr]
+
+            OntologyIndividuals.init_field(field_name, field_declaration_node, class_node)
+            OntologyIndividuals.init_field_declaration_statement(field_declaration_node)
             field_type_individual = extract_structured_type(field_type)
-            # !!! TODO Create Field individuals
-            pass
+            access_modifier_individual = get_access_modifier(field_name, field_declaration_node)
+
+            if type(field_type_individual) is not list:
+                if field_type_individual is None:
+                    field_type_individual = []
+                else:
+                    field_type_individual = [field_type_individual]
+            for type_individual in field_type_individual:
+                field_declaration_node.individual.hasType.append(type_individual)
+                assert field_declaration_node.individual in type_individual.isTypeOf
+
+            field_declaration_node.individual.hasModifier.append(access_modifier_individual)
+            assert field_declaration_node.individual in access_modifier_individual.isModifierOf
+
+            field_declaration_node.individual.hasVariableDeclaration.append(field_declaration_node.stmt_individual)
 
         for super_class_node in class_node.ancestors(recurs=False):
             Extractor.extract(super_class_node, do_link_stmts=False)
@@ -577,6 +596,18 @@ def extract_structured_type(
 
     return type_individual_s
 
+
+def get_access_modifier(name: str, ref_node: astroid.NodeNG) -> ontology.AccessModifier:
+    """TODO"""
+    from codeontology.rdfization.python3.extract.utils import get_parent_node
+
+    scope_node = get_parent_node(ref_node, parent_types={astroid.Module, astroid.ClassDef})
+    if type(scope_node) is astroid.ClassDef:
+        if name.startswith("__"):
+            return OntologyIndividuals.private_access_modifier
+        elif name.startswith("_"):
+            return OntologyIndividuals.protected_access_modifier
+    return OntologyIndividuals.public_access_modifier
 
 class NonExistent:
     pass

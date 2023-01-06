@@ -5,7 +5,8 @@ from typing import Dict, Generator, List, Tuple, Union
 import astroid
 
 from codeontology import LOGGER
-from codeontology.rdfization.python3.extract.transformer.utils import get_scope_node, is_static_method, get_self_ref
+from codeontology.rdfization.python3.extract.utils import get_parent_node
+from codeontology.rdfization.python3.extract.transformer.utils import is_static_method, get_self_ref
 from codeontology.utils import pass_on_exception
 
 TRACKING_SCOPES = {astroid.Module, astroid.ClassDef, astroid.FunctionDef, astroid.AsyncFunctionDef}
@@ -25,7 +26,7 @@ def track_name_from_local(ref_node: Union[astroid.Name, astroid.AssignName]):
 
     matched = None
     if not scope_modifier:
-        matched = track_name_from_scope(ref_node.name, get_scope_node(ref_node, TRACKING_SCOPES))
+        matched = track_name_from_scope(ref_node.name, get_parent_node(ref_node, TRACKING_SCOPES))
     elif type(scope_modifier) is astroid.Global:
         matched = track_name_from_global(ref_node.name, scope_modifier)
     elif type(scope_modifier) is astroid.Nonlocal:
@@ -57,8 +58,8 @@ def track_name_from_nonlocal(name: str, ref_node: astroid.Nonlocal):
     """TODO"""
     assert type(ref_node) is astroid.Nonlocal
 
-    current_scope = get_scope_node(ref_node, TRACKING_SCOPES)
-    upper_scope = get_scope_node(current_scope.parent, TRACKING_SCOPES)
+    current_scope = get_parent_node(ref_node, TRACKING_SCOPES)
+    upper_scope = get_parent_node(current_scope.parent, TRACKING_SCOPES)
     assert type(current_scope) in [astroid.FunctionDef, astroid.AsyncFunctionDef] and \
            type(upper_scope) in [astroid.FunctionDef, astroid.AsyncFunctionDef]
 
@@ -66,7 +67,7 @@ def track_name_from_nonlocal(name: str, ref_node: astroid.Nonlocal):
     while type(upper_scope) in [astroid.FunctionDef, astroid.AsyncFunctionDef] and matched is None:
         with pass_on_exception((TrackingFailException,)):
             matched = track_name_from_scope(name, upper_scope, __extend_search=False)
-        upper_scope = get_scope_node(upper_scope.parent, TRACKING_SCOPES)
+        upper_scope = get_parent_node(upper_scope.parent, TRACKING_SCOPES)
 
     # Redundant
     if matched is None:
@@ -130,7 +131,7 @@ def track_name_from_scope(
     elif __extend_search and not type(scope_node) is astroid.Module:
         # If match failed locally, try upward scopes
         with pass_on_exception((TrackingFailException,)):
-            matched = track_name_from_scope(name, get_scope_node(scope_node.parent, TRACKING_SCOPES), __trace=__trace)
+            matched = track_name_from_scope(name, get_parent_node(scope_node.parent, TRACKING_SCOPES), __trace=__trace)
     elif __extend_search:
         # If there are no more upwards scopes, try global wildcard imports
         assert type(scope_node) is astroid.Module
@@ -259,7 +260,7 @@ def track_attr_from_local(
             raise NotPredictedClauseException
         children = list(child.get_children())
 
-    return track_attr_list_from_scope(attr_list, get_scope_node(ref_node, TRACKING_SCOPES), __trace=__trace)
+    return track_attr_list_from_scope(attr_list, get_parent_node(ref_node, TRACKING_SCOPES), __trace=__trace)
 
 
 def track_attr_list_from_scope(
@@ -279,7 +280,7 @@ def track_attr_list_from_scope(
             name = '.'.join(attr_list[j:i + 1])
             matched = None
             with pass_on_exception((TrackingFailException,)):
-                matched = track_name_from_scope(name, get_scope_node(_ref_node, TRACKING_SCOPES))
+                matched = track_name_from_scope(name, get_parent_node(_ref_node, TRACKING_SCOPES))
             if matched is not None:
                 break
         if matched is None:
@@ -383,7 +384,7 @@ def resolve_value(value_node: astroid.NodeNG) -> astroid.ClassDef:
                     # Keep everything, since the module is in an outside scope and we need it for tracking
                     str_type = ".".join(str_type_list)
                 with pass_on_exception((TrackingFailException,)):
-                    type_ = track_type_name_from_scope(str_type, get_scope_node(value_node))
+                    type_ = track_type_name_from_scope(str_type, get_parent_node(value_node))
 
     if type(type_) is not astroid.ClassDef:
         type_ = None
@@ -512,7 +513,7 @@ def resolve_annotation(annotation_node: astroid.NodeNG) -> Union[str, List, Tupl
         # A) Single types (base case)
         elif type(structured_ann) is str:
             with pass_on_exception((TrackingFailException,)):
-                match_type = track_type_name_from_scope(structured_ann, get_scope_node(ann_node, TRACKING_SCOPES))
+                match_type = track_type_name_from_scope(structured_ann, get_parent_node(ann_node, TRACKING_SCOPES))
 
         # B) Equivalent types (recursive step)
         elif type(structured_ann) in [list, Union]:
@@ -533,7 +534,7 @@ def resolve_annotation(annotation_node: astroid.NodeNG) -> Union[str, List, Tupl
     return matched_type
 
 
-def resolve_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
+def track_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
     """Gets the ordered list of assignments that are expected and may define some fields. Each assignment of interest is
      represented by a tuple of:
       (t) `target` is the name, or list of names (for tuple assignments) that are being instantiated;
@@ -570,27 +571,24 @@ def resolve_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]
                 for target in cls_body_node.targets:
                     if type(target) is astroid.Tuple:
                         # Tuple assignment, so `<target_x>` is something like `<element_1, element_2, ...>`
-                        target_name_list = []
                         for element in target.elts:
                             assert type(element) in [astroid.AssignName, astroid.AssignAttr]
                             if type(element) is astroid.AssignName and element.name not in global_names:
                                 # `name` is referencing a class attribute
-                                target_name_list.append(element.name)
+                                # !!! We set the value of `(v)` to `None` because the only value we know is
+                                #  `cls_body_node.value`, which indicates the value of the entire tuple, and it is not
+                                #  easily correlated to its individual elements.
+                                yield element.name, None, None, element
                             elif type(element, astroid.AssignAttr) or element.name in global_names:
                                 # `name` is not referencing a class attribute
-                                target_name_list.append(None)
+                                pass
                             else:
                                 assert False
-                        # Yield the tuple only if there is at least one valid assignment to a class attribute
-                        for name in target_name_list:
-                            if name is not None:
-                                yield target_name_list, None, cls_body_node.value, cls_body_node,
-                                break
                     elif type(target) is astroid.AssignName:
                         # Single named target, so `<target_x>` is something like `<element_1>`
                         if target.name not in global_names:
                             # `name` is referencing a class attribute, yield the tuple
-                            yield target.name, None, cls_body_node.value, cls_body_node,
+                            yield target.name, None, cls_body_node.value, target,
                     elif type(target) is astroid.AssignAttr:
                         # Single named attribute target, so `<target_x>` is something like `<object.attr>`, and cannot
                         #  be a class attribute
@@ -610,7 +608,7 @@ def resolve_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]
                 if type(target) is astroid.AssignName:
                     if target.name not in global_names:
                         # `name` is referencing a class attribute, yield the tuple
-                        yield target.name, cls_body_node.annotation, cls_body_node.value, cls_body_node,
+                        yield target.name, cls_body_node.annotation, cls_body_node.value, target,
                 elif type(target) is astroid.AssignAttr:
                     # Single named attribute target, so <target> is something like <object.attr>, and cannot be a class
                     #  attribute
@@ -651,7 +649,6 @@ def resolve_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]
                     for target in ctor_body_node.targets:
                         if type(target) is astroid.Tuple:
                             # Tuple assignment, so `<target_x>` is something like `<element_1, element_2, ...>`
-                            target_name_list = []
                             for element in target.elts:
                                 assert type(element) in [astroid.AssignName, astroid.AssignAttr, astroid.Starred,
                                                          astroid.Subscript]
@@ -659,20 +656,18 @@ def resolve_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]
                                     assert type(element.expr) is astroid.Name
                                 if type(element) is astroid.AssignAttr and element.expr.name == self_ref:
                                     # `name` is referencing a class attribute through self-reference
-                                    target_name_list.append(element.attrname)
+                                    # !!! We set the value of `(v)` to `None` because the only value we know is
+                                    #  `cls_body_node.value`, which indicates the value of the entire tuple, and it is
+                                    #  not easily correlated to its individual elements.
+                                    yield element.attrname, None, None, element
                                 else:
                                     # `name` is not referencing a class attribute
-                                    target_name_list.append(None)
-                            # Yield the tuple only if there is at least one valid assignment to a class attribute
-                            for name in target_name_list:
-                                if name is not None:
-                                    yield target_name_list, None, ctor_body_node.value, ctor_body_node,
-                                    break
+                                    pass
                         elif type(target) is astroid.AssignAttr:
                             # Single named target, so `<target_x>` is something like `<object.attr>`, and if `object`
                             #  is a self-reference then it is a class attribute assignment
                             if type(target.expr) is astroid.Name and target.expr.name == self_ref:
-                                yield target.attrname, None, ctor_body_node.value, ctor_body_node,
+                                yield target.attrname, None, ctor_body_node.value, target,
                         elif type(target) is astroid.AssignName:
                             # Single named attribute target, so `<target_x>` is something like `<element_1>`, and cannot
                             #  be a class attribute without self-reference
@@ -692,7 +687,7 @@ def resolve_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]
                         assert type(target.expr) is astroid.Name
                         if target.expr.name == self_ref:
                             # `name` is referencing a class attribute, yield the tuple
-                            yield target.attrname, ctor_body_node.annotation, ctor_body_node.value, ctor_body_node,
+                            yield target.attrname, ctor_body_node.annotation, ctor_body_node.value, target,
                     elif type(target) is astroid.AssignName:
                         # Single named attribute target, so `<target_x>` is something like `<element_1>`, and cannot
                         #  be a class attribute without self-reference

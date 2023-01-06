@@ -103,7 +103,8 @@ class Serializer:
         LOGGER.info(f" - parsing project packages and actual referenced dependencies (not linear progression);")
         parser = Parser(self.project)
         self.packages = set(parser.parsed_packages.values())
-        LOGGER.info(f" - applying transformations to the ASTs of the project and its actual referenced dependencies.")
+        LOGGER.info(f" - applying transformations to the ASTs of the project and of its actual referenced"
+                    f" dependencies.")
         Transformer(self.packages)
 
     def __serialize_from_project(self):

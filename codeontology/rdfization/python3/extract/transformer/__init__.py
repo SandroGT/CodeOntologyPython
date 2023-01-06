@@ -94,34 +94,22 @@ class Transformer:
             """
             assert type(cls_node) is astroid.ClassDef
             from codeontology.rdfization.python3.extract.transformer.tracking import \
-                resolve_annotation, resolve_fields, resolve_value
+                resolve_annotation, resolve_value, track_fields
 
             # Get the list of assignments to potential fields in the class with `get_tavn_list`. It organizes these
             #  assignments on a dictionary by `field` (whose name is found in the assignment `target` value). Since the
             #  list is ordered from oldest to newest assignment, when a field is encountered more than once, it
             #  overwrites the previously assigned annotation, value, and node (if provided).
             favn_dict = dict()  # {field: (annotation, value, node,)}
-            for target, annotation, value, node in resolve_fields(cls_node):
-                if type(target) is list:  # Multiple targets from tuple assignments
-                    assert annotation is None  # Tuple assignments cannot be annotated, so no astroid.AnnAssign
-                    for field in target:
-                        if field:
-                            prev_annotation, _, _ = favn_dict.get(field, (None, None, None))
-                            # !!! We drop and don't use the current `value` since it's a tuple for the entire target:
-                            #  we would have to extract the corresponding bit that is assigned exactly to this field,
-                            #  and we don't know what that is statically
-                            new_annotation = prev_annotation
-                            new_value = None
-                            new_node = node
-                            favn_dict[field] = (new_annotation, new_value, new_node,)
-                else:
-                    assert type(target) is str
-                    field = target
-                    prev_annotation, prev_value, _ = favn_dict.get(field, (None, None, None))
-                    new_annotation = annotation if annotation else prev_annotation
-                    new_value = value if value else prev_value
-                    new_node = node
-                    favn_dict[field] = (new_annotation, new_value, new_node,)
+            for target, annotation, value, node in track_fields(cls_node):
+                assert type(target) is str
+                assert type(node) in [astroid.AssignName, astroid.AssignAttr]
+                field = target
+                prev_annotation, prev_value, _ = favn_dict.get(field, (None, None, None))
+                new_annotation = annotation if annotation else prev_annotation
+                new_value = value if value else prev_value
+                new_node = node
+                favn_dict[field] = (new_annotation, new_value, new_node,)
 
             # Use the annotation and value information from the dictionary to infer the field type
             ftn_dict = {}  # {field: (type, node,)}
@@ -131,8 +119,6 @@ class Transformer:
                     with pass_on_exception((RecursionError,)):
                         # TODO Investigate `RecursionError`.
                         structured_annotation = resolve_annotation(annotation)
-                # TODO find a way to restore this!
-                #  Had to cut this out, because the `astroid`'s `infer()` function used there brings to stack overflow
                 if value and not structured_annotation:
                     structured_annotation = resolve_value(value)
                 ftn_dict[field] = (structured_annotation, node,)

@@ -5,34 +5,6 @@ from typing import Set, Union
 import astroid
 
 
-def get_scope_node(
-        node: astroid.NodeNG,
-        scope_types: Set[astroid.nodes.LocalsDictNodeNG] = None
-) -> astroid.nodes.LocalsDictNodeNG:
-    """Gets the first scope node of the specified type that contains the input node.
-
-    Args:
-        node (astroid.NodeNG): the input node.
-        scope_types(Set[astroid.nodes.LocalsDictNodeNG]): the types of scopes to search for; by default it will be
-         the set `{astroid.Module, astroid.ClassDef, astroid.FunctionDef, astroid.AsyncFunctionDef}`.
-
-    Returns:
-        astroid.nodes.LocalsDictNodeNG: a scope node containing the input node in its descendants.
-
-    Notes:
-        I know there is the `astroid.NodeNG.scope()` method, but I needed these specific types of scopes
-
-    """
-    if scope_types is None:
-        scope_types = {astroid.Module, astroid.ClassDef, astroid.FunctionDef, astroid.AsyncFunctionDef}
-
-    while type(node) not in scope_types:
-        node = node.parent
-
-    assert node and isinstance(node, astroid.nodes.LocalsDictNodeNG)
-    return node
-
-
 def is_static_method(func_node: Union[astroid.FunctionDef, astroid.AsyncFunctionDef]) -> bool:
     """Tells if a method is a static method by looking at its decorators. A function is always considered static.
 
