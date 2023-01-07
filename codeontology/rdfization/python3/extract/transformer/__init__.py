@@ -85,7 +85,7 @@ class Transformer:
 
     @staticmethod
     def _transform_async_function_def(function_node: astroid.AsyncFunctionDef):
-        # They actually are the same, so we just redirect the call
+        # They practically are the same, so we just redirect the call
         Transformer._transform_function_def(function_node)
 
     @staticmethod
@@ -145,85 +145,93 @@ class Transformer:
 
     @staticmethod
     def _transform_arguments(arguments_node: astroid.Arguments):
-        def add_args_type(args_node: astroid.Arguments):
-            """Adds a new set of attributes to a node of type `Arguments`, linking its annotations to the AST nodes
-             defining the types to which the annotations might refer.
+        def add_args_info(args_node: astroid.Arguments):
+            """TODO 
+            Adds a `params` attribute with:
+            name,
+            position (None if not positional),
+            type,
+            description,
+            is_var_arg,
+            is_pos_only,
+            is_key_only,
 
-            These are the five added attributes:
-             - `type_annotations`, to match the annotations in `annotations` for normal arguments from `args`;
-             - `type_posonlyargs_annotations`, to match the annotations in `posonlyargs_annotations` for positional only
-                arguments from `posonlyargs`;
-             - `type_kwonlyargs_annotations`, to match the annotations in `kwonlyargs_annotations` for keyword only
-                arguments from `kwonlyargs`;
-             - `type_varargannotation` to match the single annotation in `varargannotation` for the various positional
-                arguments from `vararg`;
-             - `type_kwargannotation` to match the single annotation in `kwargannotation` for the various keyword
-                arguments from `kwarg`.
-
-            So, `type_annotations`, `type_posonlyargs_annotations` and `type_kwonlyargs_annotations` are lists, while
-             `type_varargannotation` and `type_kwargannotation` are single valued, matching the cardinality of the
-             annotation attributes they are referencing.
-
-            If an annotation is matched with no type, `None` is used in place of the nodes representing the type. If a
-             match occurs, then the type is represented by one or more nodes (for 'parameterized' types) according to
-             the specifics introduced with the function `resolve_annotation`.
-
-            Args:
-                args_node (astroid.Arguments): a node representing the arguments of a function/method/constructor.
-
+            Add is_var_args to the parent function FunctionDef
             """
             assert type(args_node) is astroid.Arguments
-            from codeontology.rdfization.python3.extract.transformer.tracking import resolve_annotation
+            from codeontology.rdfization.python3.extract.transformer.tracking import resolve_annotation, resolve_value
 
-            for i, ann_attr_name in enumerate(["annotations", "posonlyargs_annotations", "kwonlyargs_annotations",
-                                               "varargannotation", "kwargannotation"]):
-                ann_attr = getattr(args_node, ann_attr_name)
-                if i > 2:  # Only for "varargannotation" and "kwargannotation", that are not lists
-                    ann_attr = [ann_attr]
-                type_ann_attr = []
+            executable_node = args_node.parent
+            assert type(executable_node) in [astroid.FunctionDef, astroid.AsyncFunctionDef, astroid.Lambda], f"{executable_node}\n{executable_node.as_string()}\n({type(executable_node)})"
 
-                # Try to link any annotation to a type, defined by a node from an AST. Just link to `None` at fail
-                for ann in ann_attr:
-                    try:
-                        structured_ann = resolve_annotation(ann)
-                    except (RecursionError,):
-                        # TODO Investigate `RecursionError`.
-                        structured_ann = None
-                    type_ann_attr.append(structured_ann)
+            # Parameters field in the `args_node` ordered by position in the signature
+            args_fields = [
+                # arg_field_name, ann_field_name,            is_positional, is_vararg
+                ("posonlyargs",   "posonlyargs_annotations", True,          False,),
+                ("args",          "annotations",             True,          False,),
+                ("vararg",        "varargannotation",        False,         True,),
+                ("kwonlyargs",    "kwonlyargs_annotations",  False,         False,),
+                ("kwarg",         "kwargannotation",         False,         True,),
+            ]
 
-                # Add the resolved (or not) annotations to the `Arguments` node
-                if i > 2:  # Only for "varargannotation" and "kwargannotation", that are not lists
-                    assert len(type_ann_attr) == 1
-                    type_ann_attr = type_ann_attr[0]
-                setattr(args_node, f"type_{ann_attr_name}", type_ann_attr)
+            # Read all the parameters and accumulate them
+            parameters = []
+            i = 0
+            is_var_args = False
+            for arg_field_name, ann_field_name, is_positional, is_vararg in args_fields:
+                arg_field = getattr(args_node, arg_field_name)
+                ann_field = getattr(args_node, ann_field_name)
+                if type(arg_field) is not list:
+                    arg_field = [arg_field] if arg_field is not None else []
+                    ann_field = [ann_field] if ann_field is not None else []
+                if is_vararg and arg_field:
+                    is_var_args = True
 
-        def add_args_info(args_node: astroid.Arguments):
-            """TODO"""
-            # TODO ADD A UNIQUE NEW ATTR WITH INFO ABOUT name, description, annotation, param_type
-            assert type(args_node) is astroid.Arguments
-            from codeontology.rdfization.python3.extract.transformer.tracking import resolve_annotation
+                for arg, ann in zip(arg_field, ann_field):
+                    if is_vararg:
+                        assert type(arg) is str
+                        arg_name = arg
+                    else:
+                        assert type(arg) in [astroid.AssignName, astroid.Name]
+                        arg_name = arg.name
 
-            for i, ann_attr_name in enumerate(["annotations", "posonlyargs_annotations", "kwonlyargs_annotations",
-                                               "varargannotation", "kwargannotation"]):
-                ann_attr = getattr(args_node, ann_attr_name)
-                if i > 2:  # Only for "varargannotation" and "kwargannotation", that are not lists
-                    ann_attr = [ann_attr]
-                type_ann_attr = []
+                    comment_description, comment_ann = \
+                        CommentParser.get_param_info(arg_name, executable_node, type(executable_node))
+                    ann = comment_ann if not ann else ann
 
-                # Try to link any annotation to a type, defined by a node from an AST. Just link to `None` at fail
-                for ann in ann_attr:
-                    try:
-                        structured_ann = resolve_annotation(ann)
-                    except (RecursionError,):
-                        # TODO Investigate `RecursionError`.
-                        structured_ann = None
-                    type_ann_attr.append(structured_ann)
+                    type_ = None
+                    if ann:
+                        with pass_on_exception((RecursionError,)):
+                            # TODO Investigate `RecursionError`.
+                            type_ = resolve_annotation(ann)
+                    if not type_:
+                        value = None
+                        if is_positional and not is_vararg:
+                            if i < len(args_node.defaults):
+                                value = args_node.defaults[i]
+                        elif not is_positional and not is_vararg:
+                            if i < len(args_node.kw_defaults):
+                                value = args_node.kw_defaults[i]
+                        if value:
+                            type_ = resolve_value(value)
 
-                # Add the resolved (or not) annotations to the `Arguments` node
-                if i > 2:  # Only for "varargannotation" and "kwargannotation", that are not lists
-                    assert len(type_ann_attr) == 1
-                    type_ann_attr = type_ann_attr[0]
-                setattr(args_node, f"type_{ann_attr_name}", type_ann_attr)
+                    parameters.append((
+                        arg_name,
+                        i if is_positional else None,
+                        type_,
+                        comment_description,
+                        is_vararg,
+                        arg_field_name == "posonlyargs",
+                        arg_field_name == "kwonlyargs",
+                    ))
+                    assert type(parameters[-1]) is tuple
+                    i += 1
+
+                if arg_field_name == "vararg":
+                    i = 0
+
+            args_node.params = parameters
+            executable_node.is_var_args = is_var_args
 
         LOGGER.debug(f"Applying `Arguments` transform to '{arguments_node.parent.name}'"
                      f" (from '{arguments_node.root().file}')")

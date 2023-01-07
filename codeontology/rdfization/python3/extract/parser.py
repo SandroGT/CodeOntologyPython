@@ -170,6 +170,7 @@ class CommentParser:
     @staticmethod
     def get_description(node: astroid.NodeNG) -> Union[str, None]:
         """TODO"""
+
         assert hasattr(node, "doc_node")
 
         short_description, long_description = (None, None,)
@@ -187,29 +188,63 @@ class CommentParser:
                 assert short_description is not None
                 description += f"\n\n{long_description}"
 
-        return description
+        return CommentParser._clean_description(description) if description is not None else description
 
     @staticmethod
     def get_param_info(
             param_name: str,
             param_node: astroid.NodeNG,
-            param_scope_type: Type[Union[astroid.ClassDef, astroid.FunctionDef, astroid.AsyncFunctionDef]]
+            param_scope_type: Type[Union[astroid.ClassDef, astroid.FunctionDef,
+                                         astroid.AsyncFunctionDef, astroid.Lambda]]
     ) -> Tuple[Union[str, None], Union[str, None]]:
         """TODO"""
-        assert param_scope_type in [astroid.ClassDef, astroid.FunctionDef, astroid.AsyncFunctionDef]
+        assert param_scope_type in [astroid.ClassDef, astroid.FunctionDef, astroid.AsyncFunctionDef, astroid.Lambda]
         if type(param_node) is not param_scope_type:
             param_scope = get_parent_node(param_node, {param_scope_type})
         else:
             param_scope = param_node
-        assert hasattr(param_scope, "doc_node")
-
         param_type, param_description = (None, None,)
-        if param_scope.doc_node is not None:
-            docstring = docstring_parser.parse(param_scope.doc_node.value)
-            for param_docstring in docstring.params:
-                if param_docstring.arg_name == param_name:
-                    param_type = param_docstring.type_name
-                    param_description = param_docstring.description
-                    break
+
+        if hasattr(param_scope, "doc_node"):
+            if param_scope.doc_node is not None:
+                docstring = docstring_parser.parse(param_scope.doc_node.value)
+                for param_docstring in docstring.params:
+                    if param_docstring.arg_name == param_name:
+                        param_type = param_docstring.type_name
+                        param_description = CommentParser._clean_description(param_docstring.description)
+                        break
 
         return param_type, param_description
+
+    @staticmethod
+    def _clean_description(text: str) -> str:
+        """TODO
+        Task submitted to ChatGPT (credits to it for the help):
+        Can I have the Python code to performs this task on text:
+         - I want to remove new line chars `"\n"` if they are in the middle of a sentence;
+         - I want to add a trailing `"."` at the very of sentences if absent. We can say something is the end of the
+            sentence if it is the end of the string or it is the end of a word followed by one or more new line `"\n"`
+            and the next word is capitalized;
+         - I want to stretch multiple spaces and new lines `"\n"` into single ones;
+         - I want to remove starting or trailing spaces and new lines `"\n"`.
+        """
+        import re
+
+        if text is None:
+            return None
+
+        # Remove new line characters that are in the middle of a sentence
+        text = re.sub(r"(?<=[^\n])\n(?=[^\n])", " ", text)
+
+        # Add a trailing period to the end of sentences if absent
+        text = re.sub(r"(?<=[^\s.!?])(\s*)(\n)(\s*)(?=[A-Z])", ".\n", text)
+        text = re.sub(r"(?<=[^\n.!?])(\s+)$", ".", text)
+        text = re.sub(r"(?<=[^\n.!?])$", ".", text)
+
+        # Stretch multiple spaces and new lines into single ones
+        text = re.sub(r"\s+", " ", text)
+
+        # Remove starting or trailing spaces and new lines
+        text = text.strip()
+
+        return text

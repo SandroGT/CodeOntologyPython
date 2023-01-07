@@ -394,7 +394,7 @@ def resolve_value(value_node: astroid.NodeNG) -> astroid.ClassDef:
     return type_
 
 
-def resolve_annotation(annotation_node: astroid.NodeNG) -> Union[str, List, Tuple, None]:
+def resolve_annotation(annotation: Union[str, astroid.NodeNG]) -> Union[str, List, Tuple, None]:
     """Gets a reference to the AST nodes representing the types to which an annotation may be referring to, whenever
      possible.
 
@@ -408,7 +408,7 @@ def resolve_annotation(annotation_node: astroid.NodeNG) -> Union[str, List, Tupl
           recursively be a reference to an AST Class node, a list or a tuple;
 
     Args:
-        annotation_node (astroid.NodeNG): the node defining the annotation.
+        annotation (Union[str, astroid.NodeNG]): the string or node defining the annotation.
 
     Returns:
         The structured representation of the type to which the annotation may be referring to, in the form of structured
@@ -462,9 +462,11 @@ def resolve_annotation(annotation_node: astroid.NodeNG) -> Union[str, List, Tupl
                 # Use of '...' in the annotation, meaning 'any value' in a type hinting context
                 structured_ann = "Any"
             elif type(ann_node.value) is str:
-                # Use of a stringified annotations, such as `"List[str]"` instead of `List[str]`, but just skip them for
-                #  now and treat them like unresolvable cases
-                pass
+                ann = None
+                with pass_on_exception((astroid.AstroidError, ValueError,)):
+                    ann = astroid.extract_node(ann_node.value.strip('"').strip('"'))
+                with pass_on_exception((astroid.AstroidError, TrackingFailException, BadAnnotation)):
+                    structured_ann = structure_annotation(ann)
 
         # B) Equivalent types (recursive step)
         elif type(ann_node) is astroid.BinOp:
@@ -472,7 +474,8 @@ def resolve_annotation(annotation_node: astroid.NodeNG) -> Union[str, List, Tupl
             equivalent_types = []
             bin_op_node = ann_node
             while type(bin_op_node) is astroid.BinOp:
-                assert bin_op_node.op == "|"  # The only supported operator in annotations
+                if bin_op_node.op != "|":  # The only supported operator in annotations
+                    raise BadAnnotation
                 equivalent_types.insert(0, bin_op_node.right)
                 bin_op_node = bin_op_node.left
             equivalent_types.insert(0, bin_op_node)
@@ -529,11 +532,19 @@ def resolve_annotation(annotation_node: astroid.NodeNG) -> Union[str, List, Tupl
 
         return match_type
 
-    structured_annotation = None
-    with pass_on_exception((astroid.AstroidError, TrackingFailException,)):
-        structured_annotation = structure_annotation(annotation_node)
+    ann = None
+    if type(annotation) is str:
+        with pass_on_exception((astroid.AstroidError, ValueError,)):
+            ann = astroid.extract_node(annotation.strip('"').strip('"'))
+    else:
+        assert isinstance(annotation, astroid.NodeNG)
+        ann = annotation
 
-    matched_type = resolve_class_names(annotation_node, structured_annotation)
+    structured_annotation = None
+    with pass_on_exception((astroid.AstroidError, TrackingFailException, BadAnnotation)):
+        structured_annotation = structure_annotation(ann)
+
+    matched_type = resolve_class_names(ann, structured_annotation)
 
     return matched_type
 
@@ -780,4 +791,8 @@ class FoundCyclingException(TrackingFailException):
 
 
 class MaxIterationsException(TrackingFailException):
+    pass
+
+
+class BadAnnotation(Exception):
     pass
