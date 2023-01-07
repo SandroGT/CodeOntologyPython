@@ -12,6 +12,23 @@ from codeontology.rdfization.python3.explore import Project
 from codeontology.rdfization.python3.extract.individuals import OntologyIndividuals
 
 
+"""
+individual:
+ - astroid.Module
+ 
+stmt_individual:
+ - astroid.Import
+ - astroid.ImportFrom
+
+multi_individuals:
+ - ...
+ 
+No individuals:
+ - ...
+
+"""
+
+
 class Extractor:
     """A collection of methods for the operations to perform on different types of AST nodes.
 
@@ -178,29 +195,25 @@ class Extractor:
             if class_full_name:
                 class_node.individual.hasFullyQualifiedName = class_full_name
 
-        for field_name in getattr(class_node, "fields", {}):
-            field_type, field_description, field_declaration_node = class_node.fields[field_name]
-            # TODO USE field_description
-            assert type(field_declaration_node) in [astroid.AssignName, astroid.AssignAttr]
+        if hasattr(class_node, "fields"):
+            for field_name in getattr(class_node, "fields"):
+                field_type, field_description, field_declaration_node = class_node.fields[field_name]
+                # TODO USE field_description
+                assert type(field_declaration_node) in [astroid.AssignName, astroid.AssignAttr]
 
-            OntologyIndividuals.init_field(field_name, field_description, field_declaration_node, class_node)
-            OntologyIndividuals.init_field_declaration_statement(field_declaration_node)
-            field_type_individual = extract_structured_type(field_type)
-            access_modifier_individual = get_access_modifier(field_name, field_declaration_node)
+                OntologyIndividuals.init_field(field_name, field_description, field_declaration_node, class_node)
+                OntologyIndividuals.init_field_declaration_statement(field_declaration_node)
+                field_type_individuals = extract_structured_type(field_type)
+                access_modifier_individual = get_access_modifier(field_name, field_declaration_node)
 
-            if type(field_type_individual) is not list:
-                if field_type_individual is None:
-                    field_type_individual = []
-                else:
-                    field_type_individual = [field_type_individual]
-            for type_individual in field_type_individual:
-                field_declaration_node.individual.hasType.append(type_individual)
-                assert field_declaration_node.individual in type_individual.isTypeOf
+                for type_individual in field_type_individuals:
+                    field_declaration_node.individual.hasType.append(type_individual)
+                    assert field_declaration_node.individual in type_individual.isTypeOf
 
-            field_declaration_node.individual.hasModifier.append(access_modifier_individual)
-            assert field_declaration_node.individual in access_modifier_individual.isModifierOf
+                field_declaration_node.individual.hasModifier.append(access_modifier_individual)
+                assert field_declaration_node.individual in access_modifier_individual.isModifierOf
 
-            field_declaration_node.individual.hasVariableDeclaration.append(field_declaration_node.stmt_individual)
+                field_declaration_node.individual.hasVariableDeclaration.append(field_declaration_node.stmt_individual)
 
         for super_class_node in class_node.ancestors(recurs=False):
             Extractor.extract(super_class_node, do_link_stmts=False)
@@ -210,17 +223,40 @@ class Extractor:
     # ------------------------------------------------------------------------------------------------------------------
 
     @staticmethod
-    def extract_function_def(node: Union[astroid.FunctionDef, astroid.AsyncFunctionDef], do_link_stmts: bool):
-        assert node.is_statement
+    def extract_function_def(function_node: Union[astroid.FunctionDef, astroid.AsyncFunctionDef], do_link_stmts: bool):
+        assert function_node.is_statement
+
+        # TODO I can also do Lambda somehow
 
     @staticmethod
-    def extract_async_function_def(node: astroid.AsyncFunctionDef, do_link_stmts: bool):
+    def extract_async_function_def(async_function_node: astroid.AsyncFunctionDef, do_link_stmts: bool):
         # They practically are the same, so we just redirect the call
-        Extractor.extract_function_def(node, do_link_stmts=do_link_stmts)
+        Extractor.extract_function_def(async_function_node, do_link_stmts=do_link_stmts)
 
     @staticmethod
-    def extract_arguments(node: astroid.Arguments, do_link_stmts: bool):
-        assert not node.is_statement
+    def extract_arguments(args_node: astroid.Arguments, do_link_stmts: bool):
+        assert not args_node.is_statement
+        executable_node = args_node.parent
+        assert type(executable_node) in [astroid.FunctionDef, astroid.AsyncFunctionDef, astroid.Lambda]
+
+        Extractor.extract(executable_node, False)
+
+        if hasattr(args_node, "params") and not hasattr(args_node, "params_individuals"):
+            args_node.params_individuals = []
+
+            for param_info in args_node.params:
+                param_individual = OntologyIndividuals.init_parameter(*param_info)
+                args_node.params_individuals.append(param_individual)
+                param_type = param_info[2]
+                param_type_individuals = extract_structured_type(param_type)
+
+                for type_individual in param_type_individuals:
+                    param_individual.hasType.append(type_individual)
+                    assert param_individual in type_individual.isTypeOf
+
+                # TODO uncomment
+                # param_individual.isParameterOf = executable_node.individual
+                # assert param_individual in executable_node.individual
 
     @staticmethod
     def extract_decorators(node: astroid.Decorators, do_link_stmts: bool):
@@ -525,7 +561,7 @@ class Extractor:
 
 def extract_structured_type(
         structured_annotation: Union[astroid.ClassDef, List, Tuple, None]
-) -> Union[ontology.Class, ontology.ParameterizedType, List, None]:
+) -> List[Union[ontology.Class, ontology.ParameterizedType, List, None]]:
     """TODO"""
     def is_all_none(l: list):
         for e in l:
@@ -533,49 +569,61 @@ def extract_structured_type(
                 return False
         return True
 
-    type_individual_s = None
+    def extract_structured_type_rec(
+            structured_annotation_: Union[astroid.ClassDef, List, Tuple, None]
+    ) -> Union[ontology.Class, ontology.ParameterizedType, List, None]:
+        type_individual_s = None
 
-    if type(structured_annotation) is astroid.ClassDef:
-        # A single simple type bringing to a `Class` individual (base case)
-        Extractor.extract(structured_annotation, False)
-        type_individual_s = structured_annotation.individual
-        assert type(type_individual_s) is ontology.Class
-    elif type(structured_annotation) is list:
-        # More equivalent types bringing to a list of `Class` or `Parameterized Type` individuals
-        for ann_ in structured_annotation:
-            assert type(ann_) in [astroid.ClassDef, tuple, type(None)]
-        type_individual_s = [extract_structured_type(ann_) for ann_ in structured_annotation]
-        for individual in type_individual_s:
-            assert type(individual) in [ontology.Class, ontology.ParameterizedType, type(None)]
-        if is_all_none(type_individual_s):
-            type_individual_s = None
-    elif type(structured_annotation) is tuple:
-        # A generic type with a parameterization bringing to a `Parameterized Type` individual
-        structured_annotation = list(structured_annotation)
-        assert type(structured_annotation[0]) is astroid.ClassDef
-        generic_individual = extract_structured_type(structured_annotation[0])
-        assert type(generic_individual) is ontology.Class
-        if generic_individual is not None:
-            for ann_ in structured_annotation[1:]:
-                assert type(ann_) in [astroid.ClassDef, list, tuple, type(None)]
-            parameterized_individuals = [extract_structured_type(ann_) for ann_ in structured_annotation[1:]]
-            if not is_all_none(parameterized_individuals):
-                type_individual_s = OntologyIndividuals.init_parameterized_type(generic_individual,
-                                                                                parameterized_individuals)
-                assert type(type_individual_s) is ontology.ParameterizedType
-            else:
-                type_individual_s = generic_individual
-    else:
-        assert type(structured_annotation) is type(None)
+        if type(structured_annotation_) is astroid.ClassDef:
+            # A single simple type bringing to a `Class` individual (base case)
+            Extractor.extract(structured_annotation_, False)
+            type_individual_s = structured_annotation_.individual
+            assert type(type_individual_s) is ontology.Class
+        elif type(structured_annotation_) is list:
+            # More equivalent types bringing to a list of `Class` or `Parameterized Type` individuals
+            for ann_ in structured_annotation_:
+                assert type(ann_) in [astroid.ClassDef, tuple, type(None)]
+            type_individual_s = [extract_structured_type_rec(ann_) for ann_ in structured_annotation_]
+            for individual in type_individual_s:
+                assert type(individual) in [ontology.Class, ontology.ParameterizedType, type(None)]
+            if is_all_none(type_individual_s):
+                type_individual_s = None
+        elif type(structured_annotation_) is tuple:
+            # A generic type with a parameterization bringing to a `Parameterized Type` individual
+            structured_annotation_ = list(structured_annotation_)
+            assert type(structured_annotation_[0]) is astroid.ClassDef
+            generic_individual = extract_structured_type_rec(structured_annotation_[0])
+            assert type(generic_individual) is ontology.Class
+            if generic_individual is not None:
+                for ann_ in structured_annotation_[1:]:
+                    assert type(ann_) in [astroid.ClassDef, list, tuple, type(None)]
+                parameterized_individuals = [extract_structured_type_rec(ann_) for ann_ in structured_annotation_[1:]]
+                if not is_all_none(parameterized_individuals):
+                    type_individual_s = OntologyIndividuals.init_parameterized_type(generic_individual,
+                                                                                    parameterized_individuals)
+                    assert type(type_individual_s) is ontology.ParameterizedType
+                else:
+                    type_individual_s = generic_individual
+        else:
+            assert type(structured_annotation_) is type(None)
 
-    return type_individual_s
+        return type_individual_s
+
+    individual = extract_structured_type_rec(structured_annotation)
+    if type(individual) is not list:
+        if individual is None:
+            individual = []
+        else:
+            individual = [individual]
+
+    return individual
 
 
 def get_access_modifier(name: str, ref_node: astroid.NodeNG) -> ontology.AccessModifier:
     """TODO"""
     from codeontology.rdfization.python3.extract.utils import get_parent_node
 
-    scope_node = get_parent_node(ref_node, parent_types={astroid.Module, astroid.ClassDef})
+    scope_node = get_parent_node(ref_node)
     if type(scope_node) is astroid.ClassDef:
         if name.startswith("__"):
             return OntologyIndividuals.private_access_modifier

@@ -394,7 +394,7 @@ def resolve_value(value_node: astroid.NodeNG) -> astroid.ClassDef:
     return type_
 
 
-def resolve_annotation(annotation: Union[str, astroid.NodeNG]) -> Union[str, List, Tuple, None]:
+def resolve_annotation(annotation: Union[str, astroid.NodeNG]) -> Union[astroid.ClassDef, List, Tuple, None]:
     """Gets a reference to the AST nodes representing the types to which an annotation may be referring to, whenever
      possible.
 
@@ -424,7 +424,7 @@ def resolve_annotation(annotation: Union[str, astroid.NodeNG]) -> Union[str, Lis
          name resolution."""
         pass
 
-    def structure_annotation(ann_node: astroid.NodeNG) -> ...:
+    def structure_annotation(ann_node: astroid.NodeNG) -> Union[str, List, Tuple, Nothing]:
         """Structures the information about types as described in the parent function, but uses 'Class' names instead of
          the references to the AST nodes in which the respective classes are declared.
 
@@ -505,7 +505,8 @@ def resolve_annotation(annotation: Union[str, astroid.NodeNG]) -> Union[str, Lis
 
         return structured_ann
 
-    def resolve_class_names(ann_node: astroid.NodeNG, structured_ann: ...) -> ...:
+    def resolve_class_names(ann_node: astroid.NodeNG, structured_ann: Union[str, List, Tuple, Nothing]) \
+            -> Union[astroid.ClassDef, List, Tuple, None]:
         """Resolves the names of the classes in a structured annotation, replacing them with the reference to the
          respective AST Class nodes.
         """

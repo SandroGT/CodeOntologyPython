@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import List, Type, Union
+from typing import List, Tuple, Type, Union
 
 import astroid
 
@@ -447,8 +447,23 @@ class OntologyIndividuals:
         pass
 
     @staticmethod
-    def init_parameter():
-        pass
+    def init_parameter(
+            param_name: str, param_pos: Union[int, None], param_type: Union[astroid.ClassDef, List, Tuple, None],
+            param_description: Union[str, None], param_is_vararg: bool, param_is_pos_only: bool, param_is_key_only: bool
+    ) -> ontology.Parameter:
+        parameter_individual = ontology.Parameter()
+
+        parameter_individual.hasName = param_name
+        if param_pos is not None:
+            assert not (param_is_vararg or param_is_key_only)
+            parameter_individual.hasParameterPosition = param_pos
+        if param_description is not None:
+            parameter_individual.hasDocumentation.append(param_description)
+        parameter_individual.isVarArgs = param_is_vararg
+        parameter_individual.isPositionalOnly = param_is_pos_only
+        parameter_individual.isKeywordOnly = param_is_key_only
+
+        return parameter_individual
 
     # --- End Variable related -----------------------------------------------------------------------------------------
 

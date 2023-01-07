@@ -25,7 +25,7 @@ def get_parent_node(
 
     iter_node = node.parent
     while type(iter_node) not in parent_types:
-        assert iter_node is not None, f"'{node}' ({type(node)}) on line '{node.lineno}' from file {node.root().file}"
+        assert iter_node is not None
         iter_node = iter_node.parent
 
     return iter_node

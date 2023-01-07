@@ -147,22 +147,22 @@ class Transformer:
     def _transform_arguments(arguments_node: astroid.Arguments):
         def add_args_info(args_node: astroid.Arguments):
             """TODO 
-            Adds a `params` attribute with:
-            name,
-            position (None if not positional),
-            type,
-            description,
-            is_var_arg,
-            is_pos_only,
-            is_key_only,
+            Adds a `params` that is a list attribute with tuples of:
+                name: str,
+                position (None if not positional): int | None,
+                type: Union[astroid.ClassDef, List, Tuple, None],
+                description: str |  None,
+                is_var_arg: bool,
+                is_pos_only: bool,
+                is_key_only: bool,
 
-            Add is_var_args to the parent function FunctionDef
+            Adds `is_var_args: bool` to the parent function FunctionDef
             """
             assert type(args_node) is astroid.Arguments
             from codeontology.rdfization.python3.extract.transformer.tracking import resolve_annotation, resolve_value
 
             executable_node = args_node.parent
-            assert type(executable_node) in [astroid.FunctionDef, astroid.AsyncFunctionDef, astroid.Lambda], f"{executable_node}\n{executable_node.as_string()}\n({type(executable_node)})"
+            assert type(executable_node) in [astroid.FunctionDef, astroid.AsyncFunctionDef, astroid.Lambda]
 
             # Parameters field in the `args_node` ordered by position in the signature
             args_fields = [

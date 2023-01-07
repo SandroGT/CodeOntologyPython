@@ -29,25 +29,32 @@
 
     <!-- http://rdf-vocabulary.ddialliance.org/xkos#generalizes -->
 
-    <owl:ObjectProperty rdf:about="http://rdf-vocabulary.ddialliance.org/xkos#generalizes"/>
+    <owl:ObjectProperty rdf:about="http://rdf-vocabulary.ddialliance.org/xkos#generalizes">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+    </owl:ObjectProperty>
     
 
 
     <!-- http://rdf-vocabulary.ddialliance.org/xkos#hasPart -->
 
-    <owl:ObjectProperty rdf:about="http://rdf-vocabulary.ddialliance.org/xkos#hasPart"/>
+    <owl:ObjectProperty rdf:about="http://rdf-vocabulary.ddialliance.org/xkos#hasPart">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+    </owl:ObjectProperty>
     
 
 
     <!-- http://rdf-vocabulary.ddialliance.org/xkos#isPartOf -->
 
-    <owl:ObjectProperty rdf:about="http://rdf-vocabulary.ddialliance.org/xkos#isPartOf"/>
+    <owl:ObjectProperty rdf:about="http://rdf-vocabulary.ddialliance.org/xkos#isPartOf">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+    </owl:ObjectProperty>
     
 
 
     <!-- http://rdf-vocabulary.ddialliance.org/xkos#next -->
 
     <owl:ObjectProperty rdf:about="http://rdf-vocabulary.ddialliance.org/xkos#next">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
     </owl:ObjectProperty>
@@ -57,6 +64,7 @@
     <!-- http://rdf-vocabulary.ddialliance.org/xkos#previous -->
 
     <owl:ObjectProperty rdf:about="http://rdf-vocabulary.ddialliance.org/xkos#previous">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
     </owl:ObjectProperty>
@@ -65,7 +73,9 @@
 
     <!-- http://rdf-vocabulary.ddialliance.org/xkos#specializes -->
 
-    <owl:ObjectProperty rdf:about="http://rdf-vocabulary.ddialliance.org/xkos#specializes"/>
+    <owl:ObjectProperty rdf:about="http://rdf-vocabulary.ddialliance.org/xkos#specializes">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+    </owl:ObjectProperty>
     
 
 
@@ -137,6 +147,7 @@
     <!-- http://rdf.webofcode.org/woc/hasActualTypeArgument -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasActualTypeArgument">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <owl:inverseOf rdf:resource="http://rdf.webofcode.org/woc/isActualTypeArgumentOf"/>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/ParameterizedType"/>
@@ -150,6 +161,7 @@
     <!-- http://rdf.webofcode.org/woc/hasAnnotation -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasAnnotation">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <owl:inverseOf rdf:resource="http://rdf.webofcode.org/woc/isAnnotationOf"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Annotation"/>
@@ -162,6 +174,7 @@
     <!-- http://rdf.webofcode.org/woc/hasAnnotationDeclaration -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasAnnotationDeclaration">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <owl:inverseOf rdf:resource="http://rdf.webofcode.org/woc/isAnnotationDeclarationOf"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Annotation"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
@@ -174,6 +187,7 @@
     <!-- http://rdf.webofcode.org/woc/hasArgument -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasArgument">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/ExecutableInvocationExpression"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/ExecutableArgument"/>
         <rdfs:comment xml:lang="en">Relates an `Executable Invocation Expression` to each of its `Executable Argument`s.</rdfs:comment>
@@ -292,6 +306,7 @@
     <!-- http://rdf.webofcode.org/woc/hasCatchFormalParameter -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasCatchFormalParameter">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/CatchStatement"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Class"/>
         <rdfs:comment xml:lang="en">Relates the catch clause of a `Catch Block` to its formal parameters, i.e., the throwable objects (`Class`es) it caughts.</rdfs:comment>
@@ -360,6 +375,7 @@
     <!-- http://rdf.webofcode.org/woc/hasDependency -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasDependency">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <owl:inverseOf rdf:resource="http://rdf.webofcode.org/woc/isDependencyOf"/>
         <rdfs:domain>
             <owl:Class>
@@ -466,6 +482,7 @@
     <!-- http://rdf.webofcode.org/woc/hasFormalTypeParameter -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasFormalTypeParameter">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdfs:domain>
             <owl:Class>
                 <owl:unionOf rdf:parseType="Collection">
@@ -486,6 +503,7 @@
     <!-- http://rdf.webofcode.org/woc/hasGenericType -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasGenericType">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/ParameterizedType"/>
         <rdfs:range>
@@ -578,6 +596,7 @@
     <!-- http://rdf.webofcode.org/woc/hasModifier -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasModifier">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <owl:inverseOf rdf:resource="http://rdf.webofcode.org/woc/isModifierOf"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Modifiable"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Modifier"/>
@@ -746,6 +765,7 @@
     <!-- http://rdf.webofcode.org/woc/hasReturnedVariable -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasReturnedVariable">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <owl:inverseOf rdf:resource="http://rdf.webofcode.org/woc/isReturnedVariableOf"/>
         <rdfs:domain>
             <owl:Class>
@@ -932,6 +952,7 @@
     <!-- http://rdf.webofcode.org/woc/hasTargetedBlock -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasTargetedBlock">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain>
             <owl:Class>
@@ -981,6 +1002,7 @@
     <!-- http://rdf.webofcode.org/woc/hasType -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/hasType">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <owl:inverseOf rdf:resource="http://rdf.webofcode.org/woc/isTypeOf"/>
         <rdfs:domain>
             <owl:Class>
@@ -1076,6 +1098,7 @@
     <!-- http://rdf.webofcode.org/woc/isActualTypeArgumentOf -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isActualTypeArgumentOf">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/TypeArgument"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/ParameterizedType"/>
@@ -1102,6 +1125,7 @@
     <!-- http://rdf.webofcode.org/woc/isAnnotationOf -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isAnnotationOf">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Annotation"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
         <rdfs:comment xml:lang="en">Relates an `Annotation` to each of its tagged `Modifiable`s.</rdfs:comment>
@@ -1136,6 +1160,7 @@
     <!-- http://rdf.webofcode.org/woc/isArrayOf -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isArrayOf">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/ArrayType"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Type"/>
@@ -1301,6 +1326,7 @@
     <!-- http://rdf.webofcode.org/woc/isDependencyOf -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isDependencyOf">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Library"/>
         <rdfs:range>
             <owl:Class>
@@ -1419,6 +1445,7 @@
     <!-- http://rdf.webofcode.org/woc/isImportedBy -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isImportedBy">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/ImportStatement"/>
         <rdfs:comment>Relates an entity to the `Import Statement` it is imported by.</rdfs:comment>
@@ -1498,6 +1525,7 @@
     <!-- http://rdf.webofcode.org/woc/isModifierOf -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isModifierOf">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Modifier"/>
         <rdfs:range rdf:resource="http://rdf.webofcode.org/woc/Modifiable"/>
         <rdfs:comment xml:lang="en">Relates a `Modifier` to the corresponding `Modifiable` elements that have been marked with it.</rdfs:comment>
@@ -1578,6 +1606,7 @@
     <!-- http://rdf.webofcode.org/woc/isReferencedBy -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isReferencedBy">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <owl:inverseOf rdf:resource="http://rdf.webofcode.org/woc/references"/>
         <rdfs:domain>
             <owl:Class>
@@ -1653,6 +1682,7 @@
     <!-- http://rdf.webofcode.org/woc/isReturnedVariableOf -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isReturnedVariableOf">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Variable"/>
         <rdfs:range>
             <owl:Class>
@@ -1827,6 +1857,7 @@
     <!-- http://rdf.webofcode.org/woc/isTypeOf -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/isTypeOf">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Type"/>
         <rdfs:range>
             <owl:Class>
@@ -1861,6 +1892,7 @@
     <!-- http://rdf.webofcode.org/woc/references -->
 
     <owl:ObjectProperty rdf:about="http://rdf.webofcode.org/woc/references">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Executable"/>
         <rdfs:range>
             <owl:Class>
@@ -1911,6 +1943,7 @@
     <!-- http://rdf.webofcode.org/woc/hasBuildFile -->
 
     <owl:DatatypeProperty rdf:about="http://rdf.webofcode.org/woc/hasBuildFile">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topDataProperty"/>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Project"/>
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
@@ -1923,6 +1956,7 @@
     <!-- http://rdf.webofcode.org/woc/hasDimensions -->
 
     <owl:DatatypeProperty rdf:about="http://rdf.webofcode.org/woc/hasDimensions">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topDataProperty"/>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/ArrayType"/>
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
@@ -1935,6 +1969,7 @@
     <!-- http://rdf.webofcode.org/woc/hasDocumentation -->
 
     <owl:DatatypeProperty rdf:about="http://rdf.webofcode.org/woc/hasDocumentation">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topDataProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
         <rdfs:comment>Links a `Code Element` to its documentation comments in natural language.</rdfs:comment>
@@ -1946,6 +1981,7 @@
     <!-- http://rdf.webofcode.org/woc/hasEndLine -->
 
     <owl:DatatypeProperty rdf:about="http://rdf.webofcode.org/woc/hasEndLine">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topDataProperty"/>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/BlockStatement"/>
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
@@ -1995,6 +2031,7 @@
     <!-- http://rdf.webofcode.org/woc/hasLine -->
 
     <owl:DatatypeProperty rdf:about="http://rdf.webofcode.org/woc/hasLine">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topDataProperty"/>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain>
             <owl:Class>
@@ -2014,6 +2051,7 @@
     <!-- http://rdf.webofcode.org/woc/hasName -->
 
     <owl:DatatypeProperty rdf:about="http://rdf.webofcode.org/woc/hasName">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topDataProperty"/>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain>
             <owl:Class>
@@ -2046,6 +2084,7 @@
     <!-- http://rdf.webofcode.org/woc/hasPosition -->
 
     <owl:DatatypeProperty rdf:about="http://rdf.webofcode.org/woc/hasPosition">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topDataProperty"/>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
@@ -2082,6 +2121,7 @@
     <!-- http://rdf.webofcode.org/woc/hasSourceCode -->
 
     <owl:DatatypeProperty rdf:about="http://rdf.webofcode.org/woc/hasSourceCode">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topDataProperty"/>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
         <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
@@ -2127,13 +2167,47 @@
     
 
 
+    <!-- http://rdf.webofcode.org/woc/isKeywordOnly -->
+
+    <owl:DatatypeProperty rdf:about="http://rdf.webofcode.org/woc/isKeywordOnly">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topDataProperty"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Parameter"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#boolean"/>
+        <rdfs:comment>Marks with True a `Parameter` that can be passed to the `Executable` only by explicitly naming it (keyword), otherwise False.</rdfs:comment>
+        <rdfs:label>is keyword only</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://rdf.webofcode.org/woc/isPositionalOnly -->
+
+    <owl:DatatypeProperty rdf:about="http://rdf.webofcode.org/woc/isPositionalOnly">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topDataProperty"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Parameter"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#boolean"/>
+        <rdfs:comment>Marks with True a `Parameter` that cannot be passed to the `Executable` by explicitly naming it (keyword), otherwise False.</rdfs:comment>
+        <rdfs:label>is positional only</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
     <!-- http://rdf.webofcode.org/woc/isVarArgs -->
 
     <owl:DatatypeProperty rdf:about="http://rdf.webofcode.org/woc/isVarArgs">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topDataProperty"/>
         <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
-        <rdfs:domain rdf:resource="http://rdf.webofcode.org/woc/Executable"/>
+        <rdfs:domain>
+            <owl:Class>
+                <owl:unionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Executable"/>
+                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Parameter"/>
+                </owl:unionOf>
+            </owl:Class>
+        </rdfs:domain>
         <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#boolean"/>
-        <rdfs:comment xml:lang="en">Marks an `Executable` that accepts a variable number of `Parameter`s with True, False otherwise.</rdfs:comment>
+        <rdfs:comment xml:lang="en">Marks an `Executable` or a `Parameter` that accepts a variable number of values with True, False otherwise.</rdfs:comment>
         <rdfs:label xml:lang="en">is var args</rdfs:label>
     </owl:DatatypeProperty>
     
@@ -3048,6 +3122,21 @@
             </owl:Class>
         </rdfs:subClassOf>
         <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isVarArgs"/>
+                        <owl:allValuesFrom rdf:resource="http://www.w3.org/2001/XMLSchema#boolean"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isVarArgs"/>
+                        <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+                        <owl:onDataRange rdf:resource="http://www.w3.org/2001/XMLSchema#boolean"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
             <owl:Restriction>
                 <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/constructs"/>
                 <owl:allValuesFrom>
@@ -3118,12 +3207,6 @@
                 <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasModifier"/>
                 <owl:maxQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:maxQualifiedCardinality>
                 <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/AccessModifier"/>
-            </owl:Restriction>
-        </rdfs:subClassOf>
-        <rdfs:subClassOf>
-            <owl:Restriction>
-                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isVarArgs"/>
-                <owl:allValuesFrom rdf:resource="http://www.w3.org/2001/XMLSchema#boolean"/>
             </owl:Restriction>
         </rdfs:subClassOf>
         <rdfs:comment xml:lang="en">An executable block of code.</rdfs:comment>
@@ -4499,6 +4582,21 @@
                         <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasParameterPosition"/>
                         <owl:maxQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:maxQualifiedCardinality>
                         <owl:onDataRange rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isVarArgs"/>
+                        <owl:allValuesFrom rdf:resource="http://www.w3.org/2001/XMLSchema#boolean"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isVarArgs"/>
+                        <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+                        <owl:onDataRange rdf:resource="http://www.w3.org/2001/XMLSchema#boolean"/>
                     </owl:Restriction>
                 </owl:intersectionOf>
             </owl:Class>
