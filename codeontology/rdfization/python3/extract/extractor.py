@@ -210,34 +210,25 @@ class Extractor:
     # ------------------------------------------------------------------------------------------------------------------
 
     @staticmethod
-    def extract_function_def(node: astroid.FunctionDef, do_link_stmts: bool):
+    def extract_function_def(node: Union[astroid.FunctionDef, astroid.AsyncFunctionDef], do_link_stmts: bool):
         assert node.is_statement
-
-        pass
 
     @staticmethod
     def extract_async_function_def(node: astroid.AsyncFunctionDef, do_link_stmts: bool):
-        assert node.is_statement
-
-        pass
+        # They practically are the same, so we just redirect the call
+        Extractor.extract_function_def(node, do_link_stmts=do_link_stmts)
 
     @staticmethod
     def extract_arguments(node: astroid.Arguments, do_link_stmts: bool):
         assert not node.is_statement
 
-        pass
-
     @staticmethod
     def extract_decorators(node: astroid.Decorators, do_link_stmts: bool):
         assert not node.is_statement
 
-        pass
-
     @staticmethod
     def extract_return(node: astroid.Return, do_link_stmts: bool):
         assert node.is_statement
-
-        pass
 
     @staticmethod
     def extract_yield(node: astroid.Yield, do_link_stmts: bool):
@@ -249,8 +240,6 @@ class Extractor:
         assert not node.is_statement
         assert node.parent and type(node.parent) is astroid.Expr and node.parent.is_statement
 
-        pass
-
     @staticmethod
     def extract_yield_from(node: astroid.YieldFrom, do_link_stmts: bool):
         # Even though `yield` is considered to be a statement
@@ -261,293 +250,277 @@ class Extractor:
         assert not node.is_statement
         assert node.parent and type(node.parent) is astroid.Expr and node.parent.is_statement
 
-        pass
-
     # ------------------------------------------------------------------------------------------------------------------
 
     @staticmethod
     def extract_assign(node: astroid.Assign, do_link_stmts: bool):
         assert node.is_statement
 
-        pass
-
     @staticmethod
     def extract_aug_assign(node: astroid.AugAssign, do_link_stmts: bool):
         assert node.is_statement
-
-        pass
 
     @staticmethod
     def extract_ann_assign(node: astroid.AnnAssign, do_link_stmts: bool):
         assert node.is_statement
 
-        pass
-
     @staticmethod
     def extract_assign_name(node: astroid.AssignName, do_link_stmts: bool):
         assert not node.is_statement
-
-        pass
 
     @staticmethod
     def extract_assign_attr(node: astroid.AssignAttr, do_link_stmts: bool):
         assert not node.is_statement
 
-        pass
-
     # ------------------------------------------------------------------------------------------------------------------
 
     @staticmethod
     def extract_assert(node: astroid.Assert, do_link_stmts: bool):
-        pass
+        assert node.is_statement
 
     @staticmethod
     def extract_async_for(node: astroid.AsyncFor, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_async_with(node: astroid.AsyncWith, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_attribute(node: astroid.Attribute, do_link_stmts: bool):
         assert not node.is_statement
 
-        pass
-
     @staticmethod
     def extract_await(node: astroid.Await, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_bin_op(node: astroid.BinOp, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_bool_op(node: astroid.BoolOp, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_break(node: astroid.Break, do_link_stmts: bool):
-        pass
+        assert node.is_statement
 
     @staticmethod
     def extract_call(node: astroid.Call, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_compare(node: astroid.Compare, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_comprehension(node: astroid.Comprehension, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_const(node: astroid.Const, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_continue(node: astroid.Continue, do_link_stmts: bool):
-        pass
+        assert node.is_statement
 
     @staticmethod
     def extract_del_attr(node: astroid.DelAttr, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_del_name(node: astroid.DelName, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_delete(node: astroid.Delete, do_link_stmts: bool):
-        pass
+        assert node.is_statement
 
     @staticmethod
     def extract_dict(node: astroid.Dict, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_dict_comp(node: astroid.DictComp, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_dict_unpack(node: astroid.DictUnpack, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_ellipsis(node: astroid.Ellipsis, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_empty_node(node: astroid.EmptyNode, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_except_handler(node: astroid.ExceptHandler, do_link_stmts: bool):
-        pass
+        assert node.is_statement
 
     @staticmethod
     def extract_expr(node: astroid.Expr, do_link_stmts: bool):
-        pass
+        assert node.is_statement
 
     @staticmethod
     def extract_ext_slice(node: astroid.ExtSlice, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_for(node: astroid.For, do_link_stmts: bool):
-        pass
+        assert node.is_statement
 
     @staticmethod
     def extract_formatted_value(node: astroid.FormattedValue, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_generator_exp(node: astroid.GeneratorExp, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_global(node: astroid.Global, do_link_stmts: bool):
-        pass
+        assert node.is_statement
 
     @staticmethod
     def extract_if(node: astroid.If, do_link_stmts: bool):
-        pass
+        assert node.is_statement
 
     @staticmethod
     def extract_if_exp(node: astroid.IfExp, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_index(node: astroid.Index, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_joined_str(node: astroid.JoinedStr, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_keyword(node: astroid.Keyword, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_lambda(node: astroid.Lambda, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_list(node: astroid.List, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_list_comp(node: astroid.ListComp, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_match(node: astroid.Match, do_link_stmts: bool):
-        pass
+        assert node.is_statement
 
     @staticmethod
     def extract_match_as(node: astroid.MatchAs, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_match_case(node: astroid.MatchCase, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_match_class(node: astroid.MatchClass, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_match_mapping(node: astroid.MatchMapping, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_match_or(node: astroid.MatchOr, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_match_sequence(node: astroid.MatchSequence, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_match_singleton(node: astroid.MatchSingleton, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_match_star(node: astroid.MatchStar, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_match_value(node: astroid.MatchValue, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_name(node: astroid.Name, do_link_stmts: bool):
         assert not node.is_statement
 
-        pass
-
     @staticmethod
     def extract_nonlocal(node: astroid.Nonlocal, do_link_stmts: bool):
-        pass
+        assert node.is_statement
 
     @staticmethod
     def extract_pass(node: astroid.Pass, do_link_stmts: bool):
-        pass
+        assert node.is_statement
 
     @staticmethod
     def extract_raise(node: astroid.Raise, do_link_stmts: bool):
-        pass
+        assert node.is_statement
 
     @staticmethod
     def extract_set(node: astroid.Set, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_set_comp(node: astroid.SetComp, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_slice(node: astroid.Slice, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_starred(node: astroid.Starred, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_subscript(node: astroid.Subscript, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_try_except(node: astroid.TryExcept, do_link_stmts: bool):
-        pass
+        assert node.is_statement
 
     @staticmethod
     def extract_try_finally(node: astroid.TryFinally, do_link_stmts: bool):
-        pass
+        assert node.is_statement
 
     @staticmethod
     def extract_tuple(node: astroid.Tuple, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_unary_op(node: astroid.UnaryOp, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_unknown(node: astroid.Unknown, do_link_stmts: bool):
-        pass
+        assert not node.is_statement
 
     @staticmethod
     def extract_while(node: astroid.While, do_link_stmts: bool):
-        pass
+        assert node.is_statement
 
     @staticmethod
     def extract_with(node: astroid.With, do_link_stmts: bool):
-        pass
+        assert node.is_statement
 
 
 def extract_structured_type(
