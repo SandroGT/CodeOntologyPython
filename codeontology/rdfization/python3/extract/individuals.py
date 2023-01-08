@@ -32,11 +32,15 @@ class OntologyIndividuals:
 
     """
 
+    """Other parameters."""
+
+    START_POSITION_COUNT: int = 1
+
     """Static individuals."""
 
-    public_access_modifier = ontology.AccessModifier("PythonPublic")
-    protected_access_modifier = ontology.AccessModifier("PythonProtected")
-    private_access_modifier = ontology.AccessModifier("PythonPrivate")
+    PUBLIC_ACCESS_MODIFIER: ontology.AccessModifier = ontology.AccessModifier("PythonPublic")
+    PROTECTED_ACCESS_MODIFIER: ontology.AccessModifier = ontology.AccessModifier("PythonProtected")
+    PRIVATE_ACCESS_MODIFIER: ontology.AccessModifier = ontology.AccessModifier("PythonPrivate")
 
     """Methods for individual initialization."""
 
@@ -122,8 +126,9 @@ class OntologyIndividuals:
         pass
 
     @staticmethod
-    def init_lambda_expression():
-        pass
+    def init_lambda_expression(lambda_node: astroid.Lambda):
+        if not hasattr(lambda_node, "individual"):
+            lambda_node.individual = ontology.LambdaExpression()
 
     @staticmethod
     def init_lambda_invocation_expression():
@@ -170,7 +175,7 @@ class OntologyIndividuals:
     def init_statement(
             node: astroid.NodeNG,
             ref_node: astroid.NodeNG = None,
-            stmt_store: str = "stmt_individual",
+            stmt_attr: str = "stmt_individual",
             stmt_type: Type[ontology.Statement] = ontology.Statement
     ):
         # The `ref_node` is the real statement, but `node` is where we store the information! We do this because some
@@ -181,24 +186,25 @@ class OntologyIndividuals:
         #  declaration statement individuals in its child of type `astroid.AssignName`, that are behind our `node`.
         # We obviously later link the statements as equivalent (same individual) with `owlready2.set_equivalent_to`, and
         #  we can get them back with `owlready2.get_equivalent_to`.
-        if not hasattr(node, stmt_store):
+        if not hasattr(node, stmt_attr):
             if ref_node is None:
                 ref_node = node
             else:
                 assert not node.is_statement
             assert ref_node.is_statement
 
-            setattr(node, stmt_store, stmt_type())
-            assert isinstance(getattr(node, stmt_store), stmt_type)
-            getattr(node, stmt_store).hasSourceCode = ref_node.as_string()
-            getattr(node, stmt_store).hasLine = ref_node.lineno
+            setattr(node, stmt_attr, stmt_type())
+            assert isinstance(getattr(node, stmt_attr), stmt_type)
+            getattr(node, stmt_attr).hasSourceCode = ref_node.as_string()
+            getattr(node, stmt_attr).hasLine = ref_node.lineno
             if ref_node is not node:
-                if not hasattr(ref_node, stmt_store):
+                if not hasattr(ref_node, "stmt_individual"):
                     OntologyIndividuals.init_statement(ref_node)
-                getattr(node, stmt_store).hasNextStatement = ref_node.stmt_individual.hasNextStatement
-                getattr(node, stmt_store).hasPreviousStatement = ref_node.stmt_individual.hasPreviousStatement
-                ref_node.stmt_individual.set_equivalent_to([getattr(node, stmt_store)])
-                assert ref_node.stmt_individual not in getattr(node, stmt_store).get_equivalent_to()
+                getattr(node, stmt_attr).hasNextStatement = ref_node.stmt_individual.hasNextStatement
+                getattr(node, stmt_attr).hasPreviousStatement = ref_node.stmt_individual.hasPreviousStatement
+                getattr(node, stmt_attr).hasStatementPosition = ref_node.stmt_individual.hasStatementPosition
+                ref_node.stmt_individual.set_equivalent_to([getattr(node, stmt_attr)])
+                assert ref_node.stmt_individual not in getattr(node, stmt_attr).get_equivalent_to()
 
     @staticmethod
     def init_assert_statement():
@@ -239,8 +245,9 @@ class OntologyIndividuals:
         pass
 
     @staticmethod
-    def init_return_statement():
-        pass
+    def init_return_statement(return_node: astroid.Return):
+        if not hasattr(return_node, "stmt_individual"):
+            OntologyIndividuals.init_statement(return_node, stmt_type=ontology.ReturnStatement)
 
     @staticmethod
     def init_decision_making_statement():
@@ -279,10 +286,10 @@ class OntologyIndividuals:
     def init_declaration_statement(
             node: astroid.NodeNG,
             ref_node: astroid.NodeNG = None,
-            stmt_store: str = "stmt_individual",
+            stmt_attr: str = "stmt_individual",
             stmt_type: Type[ontology.DeclarationStatement] = ontology.DeclarationStatement
     ):
-        OntologyIndividuals.init_statement(node, ref_node=ref_node, stmt_store=stmt_store, stmt_type=stmt_type)
+        OntologyIndividuals.init_statement(node, ref_node=ref_node, stmt_attr=stmt_attr, stmt_type=stmt_type)
 
     @staticmethod
     def init_variable_declaration_statement():
@@ -371,7 +378,7 @@ class OntologyIndividuals:
 
             class_node.stmt_individual.declares.append(class_node.individual)
 
-            class_node.individual.hasModifier.append(OntologyIndividuals.public_access_modifier)
+            class_node.individual.hasModifier.append(OntologyIndividuals.PUBLIC_ACCESS_MODIFIER)
 
             class_node.individual.hasSimpleName = class_node.name
 
@@ -495,7 +502,7 @@ class OntologyIndividuals:
         parameter_individual.hasName = param_name
         if param_pos is not None:
             assert not (param_is_vararg or param_is_key_only)
-            parameter_individual.hasParameterPosition = param_pos
+            parameter_individual.hasParameterPosition = OntologyIndividuals.START_POSITION_COUNT + param_pos
         if param_description is not None:
             parameter_individual.hasDocumentation.append(param_description)
         parameter_individual.isVarArgs = param_is_vararg

@@ -10,6 +10,7 @@ from tqdm import tqdm
 from codeontology.ontology import ontology
 from codeontology.rdfization.python3.explore import Project
 from codeontology.rdfization.python3.extract.individuals import OntologyIndividuals
+from codeontology.rdfization.python3.extract.utils import get_parent_node
 
 
 """
@@ -86,17 +87,24 @@ class Extractor:
     @staticmethod
     def _link_stmts(node: astroid.NodeNG):
         assert node.is_statement and hasattr(node, "stmt_individual")
-        if node.previous_sibling():
+        prev = node.previous_sibling()
+        if prev is not None:
             # !!! We are extracting and linking statements only from scopes we are visiting in their entirety: in that
             #  case AST nodes are visited sequentially, so we always pass through the previous node first, for which
             #  the "statement individual" should then exists!
-            prev = node.previous_sibling()
             assert prev.is_statement
             # !!! TODO Convert to assert once all the statements are extracted
             if hasattr(prev, "stmt_individual"):
                 for node_stmt_individual in [node.stmt_individual] + node.stmt_individual.get_equivalent_to():
                     node_stmt_individual.hasPreviousStatement = prev.stmt_individual
                     assert prev.stmt_individual.hasNextStatement is node_stmt_individual
+                    if prev.stmt_individual.hasStatementPosition is None:
+                        node_stmt_individual.hasStatementPosition = get_statement_position(node)
+                    else:
+                        node_stmt_individual.hasStatementPosition = prev.stmt_individual.hasStatementPosition + 1
+        else:
+            for node_stmt_individual in [node.stmt_individual] + node.stmt_individual.get_equivalent_to():
+                node_stmt_individual.hasStatementPosition = OntologyIndividuals.START_POSITION_COUNT
 
     # TODO Add a general comment about the following methods, so you don't put doc inside every method
 
@@ -227,8 +235,8 @@ class Extractor:
             # Constructor
             OntologyIndividuals.init_constructor(function_node)
 
-            function_node.individual.hasModifier.append(OntologyIndividuals.public_access_modifier)
-            assert function_node.individual in OntologyIndividuals.public_access_modifier.isModifierOf
+            function_node.individual.hasModifier.append(OntologyIndividuals.PUBLIC_ACCESS_MODIFIER)
+            assert function_node.individual in OntologyIndividuals.PUBLIC_ACCESS_MODIFIER.isModifierOf
 
             function_node.individual.isConstructorOf = class_node.individual
             assert function_node.individual in class_node.individual.hasConstructor
@@ -238,7 +246,7 @@ class Extractor:
             OntologyIndividuals.init_method(function_node)
             access_modifier_individual = get_access_modifier(function_node.name, function_node)
             if function_node.name.startswith("__") and not function_node.name.endswith("__"):
-                assert access_modifier_individual is OntologyIndividuals.private_access_modifier
+                assert access_modifier_individual is OntologyIndividuals.PRIVATE_ACCESS_MODIFIER
 
             function_node.individual.hasModifier.append(access_modifier_individual)
             assert function_node.individual in access_modifier_individual.isModifierOf
@@ -301,8 +309,26 @@ class Extractor:
         assert not node.is_statement
 
     @staticmethod
-    def extract_return(node: astroid.Return, do_link_stmts: bool):
-        assert node.is_statement
+    def extract_return(return_node: astroid.Return, do_link_stmts: bool):
+        assert return_node.is_statement
+
+        OntologyIndividuals.init_return_statement(return_node)
+        function_node = get_parent_node(return_node, {astroid.FunctionDef, astroid.AsyncFunctionDef})
+        Extractor.extract(function_node, False)
+        # TODO uncomment after implementing astroid.Expr extraction
+        # expression_node = list(return_node.get_children())[0]
+        # assert type(expression_node) is astroid.Expr
+        # Extractor.extract(expression_node, False)
+
+        if do_link_stmts:
+            Extractor._link_stmts(return_node)
+
+        return_node.stmt_individual.isReturnStatementOf = function_node.individual
+        assert return_node.stmt_individual in function_node.individual.hasReturnStatement
+
+        # TODO uncomment after implementing astroid.Expr extraction
+        # return_node.stmt_individual.hasReturnedExpression = expression_node.individual
+        # assert return_node.stmt_individual == expression_node.individual.isReturnedExpressionOf
 
     @staticmethod
     def extract_yield(node: astroid.Yield, do_link_stmts: bool):
@@ -481,8 +507,10 @@ class Extractor:
         assert not node.is_statement
 
     @staticmethod
-    def extract_lambda(node: astroid.Lambda, do_link_stmts: bool):
-        assert not node.is_statement
+    def extract_lambda(lambda_node: astroid.Lambda, do_link_stmts: bool):
+        assert not lambda_node.is_statement
+
+        OntologyIndividuals.init_lambda_expression(lambda_node)
 
     @staticmethod
     def extract_list(node: astroid.List, do_link_stmts: bool):
@@ -659,15 +687,25 @@ def extract_structured_type(
 
 def get_access_modifier(name: str, ref_node: astroid.NodeNG) -> ontology.AccessModifier:
     """TODO"""
-    from codeontology.rdfization.python3.extract.utils import get_parent_node
-
     scope_node = get_parent_node(ref_node)
     if type(scope_node) is astroid.ClassDef:
         if name.startswith("__") and not name.endswith("__"):
-            return OntologyIndividuals.private_access_modifier
+            return OntologyIndividuals.PRIVATE_ACCESS_MODIFIER
         elif not name.startswith("__") and name.startswith("_"):
-            return OntologyIndividuals.protected_access_modifier
-    return OntologyIndividuals.public_access_modifier
+            return OntologyIndividuals.PROTECTED_ACCESS_MODIFIER
+    return OntologyIndividuals.PUBLIC_ACCESS_MODIFIER
+
+
+def get_statement_position(node: astroid.nodes.Statement) -> int:
+    """TODO"""
+    pos = 0
+    iter_node: astroid.nodes.Statement = node.previous_sibling()
+    while iter_node:
+        assert isinstance(iter_node, astroid.nodes.Statement) and iter_node.is_statement
+        pos += 1
+        iter_node = iter_node.previous_sibling()
+
+    return OntologyIndividuals.START_POSITION_COUNT + pos
 
 
 class ExtractionFailingException(Exception):
