@@ -34,7 +34,7 @@ class OntologyIndividuals:
 
     """Other parameters."""
 
-    START_POSITION_COUNT: int = 1
+    START_POSITION_COUNT: int = 0
 
     """Static individuals."""
 
@@ -73,7 +73,7 @@ class OntologyIndividuals:
 
             function_node.individual.hasSourceCode = function_node.as_string()
 
-            if hasattr(function_node, "description"):
+            if hasattr(function_node, "description") and function_node.description is not None:
                 function_node.individual.hasDocumentation.append(function_node.description)
 
     @staticmethod
@@ -102,39 +102,56 @@ class OntologyIndividuals:
     # --- Start Expression related -------------------------------------------------------------------------------------
 
     @staticmethod
-    def init_expression():
-        pass
+    def init_expression(
+            expression_node: astroid.NodeNG,
+            expr_type: Type[ontology.Expression] = ontology.Expression
+    ):
+        if not hasattr(expression_node, "expr_individual"):
+            expression_node.expr_individual = expr_type()
+            assert isinstance(expression_node.expr_individual, expr_type)
+            expression_node.expr_individual.hasSourceCode = expression_node.as_string()
+            expression_node.expr_individual.hasLine = expression_node.lineno
 
     @staticmethod
-    def init_assignment_expression():
-        pass
+    def init_assignment_expression(assign_node: Union[astroid.Assign, astroid.AnnAssign, astroid.AugAssign]):
+        if not hasattr(assign_node, "expr_individual"):
+            OntologyIndividuals.init_expression(assign_node, expr_type=ontology.AssignmentExpression)
 
     @staticmethod
-    def init_executable_invocation_expression():
-        pass
+    def init_executable_invocation_expression(call_node: astroid.Call):
+        if not hasattr(call_node, "expr_individual"):
+            OntologyIndividuals.init_expression(call_node, expr_type=ontology.ExecutableInvocationExpression)
+            # TODO probably need more info
 
     @staticmethod
-    def init_class_instance_creation_expression():
-        pass
+    def init_class_instance_creation_expression(call_node: astroid.Call):
+        if not hasattr(call_node, "expr_individual"):
+            pass
 
     @staticmethod
-    def init_function_invocation_expression():
-        pass
+    def init_function_invocation_expression(call_node: astroid.Call):
+        if not hasattr(call_node, "expr_individual"):
+            pass
 
     @staticmethod
-    def init_method_invocation_expression():
-        pass
+    def init_method_invocation_expression(call_node: astroid.Call):
+        if not hasattr(call_node, "expr_individual"):
+            pass
 
     @staticmethod
-    def init_lambda_expression(lambda_node: astroid.Lambda):
-        if not hasattr(lambda_node, "individual"):
-            lambda_node.individual = ontology.LambdaExpression()
+    def init_lambda_expression(lambda_expression_node: astroid.Lambda):
+        if not hasattr(lambda_expression_node, "expr_individual"):
+            OntologyIndividuals.init_expression(lambda_expression_node, expr_type=ontology.LambdaExpression)
 
     @staticmethod
     def init_lambda_invocation_expression():
         pass
 
     # --- End Expression related ---------------------------------------------------------------------------------------
+
+    @staticmethod
+    def init_left_value():
+        pass
 
     @staticmethod
     def init_modifiable():
@@ -174,9 +191,8 @@ class OntologyIndividuals:
     @staticmethod
     def init_statement(
             node: astroid.NodeNG,
-            ref_node: astroid.NodeNG = None,
-            stmt_attr: str = "stmt_individual",
-            stmt_type: Type[ontology.Statement] = ontology.Statement
+            stmt_type: Type[ontology.Statement] = ontology.Statement,
+            true_stmt_node: astroid.NodeNG = None
     ):
         # The `ref_node` is the real statement, but `node` is where we store the information! We do this because some
         #  statements may simultaneously have multiple meanings, even of different kinds, such as an example:
@@ -186,35 +202,36 @@ class OntologyIndividuals:
         #  declaration statement individuals in its child of type `astroid.AssignName`, that are behind our `node`.
         # We obviously later link the statements as equivalent (same individual) with `owlready2.set_equivalent_to`, and
         #  we can get them back with `owlready2.get_equivalent_to`.
-        if not hasattr(node, stmt_attr):
-            if ref_node is None:
-                ref_node = node
+        if not hasattr(node, "stmt_individual"):
+            if true_stmt_node is None:
+                true_stmt_node = node
             else:
                 assert not node.is_statement
-            assert ref_node.is_statement
+            assert true_stmt_node.is_statement
 
-            setattr(node, stmt_attr, stmt_type())
-            assert isinstance(getattr(node, stmt_attr), stmt_type)
-            getattr(node, stmt_attr).hasSourceCode = ref_node.as_string()
-            getattr(node, stmt_attr).hasLine = ref_node.lineno
-            if ref_node is not node:
-                if not hasattr(ref_node, "stmt_individual"):
-                    OntologyIndividuals.init_statement(ref_node)
-                getattr(node, stmt_attr).hasNextStatement = ref_node.stmt_individual.hasNextStatement
-                getattr(node, stmt_attr).hasPreviousStatement = ref_node.stmt_individual.hasPreviousStatement
-                getattr(node, stmt_attr).hasStatementPosition = ref_node.stmt_individual.hasStatementPosition
-                ref_node.stmt_individual.set_equivalent_to([getattr(node, stmt_attr)])
-                assert ref_node.stmt_individual not in getattr(node, stmt_attr).get_equivalent_to()
+            node.stmt_individual = stmt_type()
+            assert isinstance(node.stmt_individual, stmt_type)
+            node.stmt_individual.hasSourceCode = true_stmt_node.as_string()
+            node.stmt_individual.hasLine = true_stmt_node.lineno
+            if true_stmt_node is not node:
+                if not hasattr(true_stmt_node, "stmt_individual"):
+                    OntologyIndividuals.init_statement(true_stmt_node)
+                true_stmt_node.stmt_individual.set_equivalent_to([node.stmt_individual])
+                assert true_stmt_node.stmt_individual not in node.stmt_individual.get_equivalent_to()
 
     @staticmethod
-    def init_assert_statement():
-        pass
+    def init_assert_statement(assert_node: astroid.Assert):
+        if not hasattr(assert_node, "stmt_individual"):
+            OntologyIndividuals.init_statement(assert_node, stmt_type=ontology.AssertStatement)
 
     @staticmethod
     def init_block_statement(node: astroid.NodeNG):
-        if not hasattr(node, "stmt_individual"):
-            OntologyIndividuals.init_statement(node, stmt_type=ontology.BlockStatement)
-            node.stmt_individual.hasEndLine = node.end_lineno
+        # !!! Not used, since I later realized the `Block Statement` class in the ontology is kinda nonsense. Why it is
+        #  applied to define the body of an `Executable` but not the body of a `Class`? Why it does define the body of a
+        #  `Loop Statement` but not the one of a `If-Then-Else Statement`? I just decided to define the body of
+        #  everything that has a body just by using directly the `has sub-statement` property without passing trough a
+        #  `Block Statement` individual.
+        pass
 
     @staticmethod
     def init_labeled_block():
@@ -286,10 +303,9 @@ class OntologyIndividuals:
     def init_declaration_statement(
             node: astroid.NodeNG,
             ref_node: astroid.NodeNG = None,
-            stmt_attr: str = "stmt_individual",
             stmt_type: Type[ontology.DeclarationStatement] = ontology.DeclarationStatement
     ):
-        OntologyIndividuals.init_statement(node, ref_node=ref_node, stmt_attr=stmt_attr, stmt_type=stmt_type)
+        OntologyIndividuals.init_statement(node, true_stmt_node=ref_node, stmt_type=stmt_type)
 
     @staticmethod
     def init_variable_declaration_statement():
@@ -328,8 +344,9 @@ class OntologyIndividuals:
         pass
 
     @staticmethod
-    def init_expression_statement():
-        pass
+    def init_expression_statement(expr_node: astroid.Expr):
+        if not hasattr(expr_node, "stmt_individual"):
+            OntologyIndividuals.init_statement(expr_node, stmt_type=ontology.ExpressionStatement)
 
     @staticmethod
     def init_import_statement(import_node: Union[astroid.Import, astroid.ImportFrom]):

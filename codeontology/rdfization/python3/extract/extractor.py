@@ -95,13 +95,13 @@ class Extractor:
             assert prev.is_statement
             # !!! TODO Convert to assert once all the statements are extracted
             if hasattr(prev, "stmt_individual"):
-                for node_stmt_individual in [node.stmt_individual] + node.stmt_individual.get_equivalent_to():
-                    node_stmt_individual.hasPreviousStatement = prev.stmt_individual
-                    assert prev.stmt_individual.hasNextStatement is node_stmt_individual
-                    if prev.stmt_individual.hasStatementPosition is None:
-                        node_stmt_individual.hasStatementPosition = get_statement_position(node)
-                    else:
-                        node_stmt_individual.hasStatementPosition = prev.stmt_individual.hasStatementPosition + 1
+                assert prev.stmt_individual is not None
+                node.stmt_individual.hasPreviousStatement = prev.stmt_individual
+                assert node.stmt_individual is prev.stmt_individual.hasNextStatement
+                if prev.stmt_individual.hasStatementPosition is None:
+                    node.stmt_individual.hasStatementPosition = get_statement_position(node)
+                else:
+                    node.stmt_individual.hasStatementPosition = prev.stmt_individual.hasStatementPosition + 1
         else:
             for node_stmt_individual in [node.stmt_individual] + node.stmt_individual.get_equivalent_to():
                 node_stmt_individual.hasStatementPosition = OntologyIndividuals.START_POSITION_COUNT
@@ -232,7 +232,7 @@ class Extractor:
             Extractor.extract(class_node, do_link_stmts=False)
 
         if function_node.is_method() and function_node.name == "__init__":
-            # Constructor
+            # `Constructor`
             OntologyIndividuals.init_constructor(function_node)
 
             function_node.individual.hasModifier.append(OntologyIndividuals.PUBLIC_ACCESS_MODIFIER)
@@ -242,7 +242,7 @@ class Extractor:
             assert function_node.individual in class_node.individual.hasConstructor
 
         elif function_node.is_method():
-            # Method
+            # `Method`
             OntologyIndividuals.init_method(function_node)
             access_modifier_individual = get_access_modifier(function_node.name, function_node)
             if function_node.name.startswith("__") and not function_node.name.endswith("__"):
@@ -261,7 +261,7 @@ class Extractor:
                     assert function_node.individual in function_node.overrides.individual.isOverriddenBy
 
         else:
-            # Function
+            # `Function`
             OntologyIndividuals.init_function(function_node)
 
             scope = function_node.scope()
@@ -353,30 +353,50 @@ class Extractor:
     # ------------------------------------------------------------------------------------------------------------------
 
     @staticmethod
-    def extract_assign(node: astroid.Assign, do_link_stmts: bool):
-        assert node.is_statement
+    def extract_assign(assign_node: Union[astroid.Assign, astroid.AnnAssign, astroid.AugAssign], do_link_stmts: bool):
+        assert assign_node.is_statement
+
+        OntologyIndividuals.init_statement(assign_node)
+        extract_expression(assign_node)
+        extract_left_values(assign_node)  # TODO implement it!
+
+        if do_link_stmts:
+            Extractor._link_stmts(assign_node)
 
     @staticmethod
-    def extract_aug_assign(node: astroid.AugAssign, do_link_stmts: bool):
-        assert node.is_statement
+    def extract_ann_assign(ann_assign_node: astroid.AnnAssign, do_link_stmts: bool):
+        assert ann_assign_node.is_statement
+        # They practically are the same, so we just redirect the call
+        Extractor.extract_assign(ann_assign_node, do_link_stmts=do_link_stmts)
 
     @staticmethod
-    def extract_ann_assign(node: astroid.AnnAssign, do_link_stmts: bool):
-        assert node.is_statement
-
-    @staticmethod
-    def extract_assign_name(node: astroid.AssignName, do_link_stmts: bool):
-        assert not node.is_statement
+    def extract_aug_assign(aug_assign_node: astroid.AugAssign, do_link_stmts: bool):
+        assert aug_assign_node.is_statement
+        # They practically are the same, so we just redirect the call
+        Extractor.extract_assign(aug_assign_node, do_link_stmts=do_link_stmts)
 
     @staticmethod
     def extract_assign_attr(node: astroid.AssignAttr, do_link_stmts: bool):
         assert not node.is_statement
 
+    @staticmethod
+    def extract_assign_name(node: astroid.AssignName, do_link_stmts: bool):
+        assert not node.is_statement
+
     # ------------------------------------------------------------------------------------------------------------------
 
     @staticmethod
-    def extract_assert(node: astroid.Assert, do_link_stmts: bool):
-        assert node.is_statement
+    def extract_assert(assert_node: astroid.Assert, do_link_stmts: bool):
+        assert assert_node.is_statement
+
+        OntologyIndividuals.init_assert_statement(assert_node)
+        assert_children = list(assert_node.get_children())
+        assert len(assert_children) == 1
+        expression_node = assert_children[0]
+        expression_individual = extract_expression(expression_node)
+
+        assert_node.individual.hasAssertExpression = expression_individual
+        assert assert_node.individual == expression_individual.isAssertExpressionOf
 
     @staticmethod
     def extract_async_for(node: astroid.AsyncFor, do_link_stmts: bool):
@@ -463,8 +483,19 @@ class Extractor:
         assert node.is_statement
 
     @staticmethod
-    def extract_expr(node: astroid.Expr, do_link_stmts: bool):
-        assert node.is_statement
+    def extract_expr(expr_stmt_node: astroid.Expr, do_link_stmts: bool):
+        assert expr_stmt_node.is_statement
+
+        # Retrieve the `Expression` from the `Expression Statement` first
+        expr_stmt_children = list(expr_stmt_node.get_children())
+        assert len(expr_stmt_children) == 1
+        expression_node = expr_stmt_children[0]
+
+        extract_expression(expression_node)
+        OntologyIndividuals.init_expression_statement(expr_stmt_node)
+
+        expression_node.expr_individual.isSubExpressionOf = expr_stmt_node.stmt_individual
+        assert expression_node.expr_individual in expr_stmt_node.stmt_individual.hasSubExpression
 
     @staticmethod
     def extract_ext_slice(node: astroid.ExtSlice, do_link_stmts: bool):
@@ -683,6 +714,65 @@ def extract_structured_type(
             individual = [individual]
 
     return individual
+
+
+def extract_expression(expression_node: astroid.NodeNG):
+    """TODO
+    !!! not to be confused with `extract_expr`, that is for `Expression Statement`s (expressions that are not stored or
+     used)
+    """
+    assert type(expression_node) is not astroid.Expr
+
+    def visit_to_extract_sub_expressions(iter_node: astroid.NodeNG, latest_expression_node: astroid.NodeNG = None):
+        """
+        TODO COMMENT use this to extract meaningful sub-expressions recursively, lets say only Call and Lambda (we
+         cannot have assignments as sub-expressions anyway)"""
+        if latest_expression_node is None:
+            latest_expression_node = iter_node
+        assert hasattr(latest_expression_node, "expr_individual")
+
+        if (iter_node is not latest_expression_node) and (type(iter_node) in [astroid.Call, astroid.Lambda]):
+            extract_expression(iter_node)
+            latest_expression_node.expr_individual.hasSubExpression.append(iter_node.expr_individual)
+            assert latest_expression_node.expr_individual == iter_node.expr_individual.isSubExpressionOf
+        else:
+            for iter_child_node in iter_node.get_children():
+                visit_to_extract_sub_expressions(iter_child_node, latest_expression_node)
+
+    if type(expression_node) in [astroid.Assign, astroid.AnnAssign, astroid.AugAssign]:
+        # `Assignment Expression`
+        assignment_node: Union[astroid.Assign, astroid.AnnAssign, astroid.AugAssign] = expression_node
+
+        OntologyIndividuals.init_assignment_expression(assignment_node)
+        if assignment_node.value is not None:
+            extract_expression(assignment_node.value)
+
+            assignment_node.expr_individual.hasSubExpression.append(assignment_node.value.expr_individual)
+            assert assignment_node.expr_individual == assignment_node.value.expr_individual.isSubExpressionOf
+        else:
+            assert type(assignment_node) is astroid.AnnAssign
+
+    elif type(expression_node) is astroid.Call:
+        # `Executable Invocation Expression` or `Lambda Invocation Expression`
+        # TODO Improve with proper expression creation
+        OntologyIndividuals.init_executable_invocation_expression(expression_node)
+        visit_to_extract_sub_expressions(expression_node)
+
+    elif type(expression_node) is astroid.Lambda:
+        # `Lambda Expression`
+        OntologyIndividuals.init_lambda_expression(expression_node)
+        visit_to_extract_sub_expressions(expression_node)
+
+    else:
+        # Generic `Expression`
+        OntologyIndividuals.init_expression(expression_node)
+        visit_to_extract_sub_expressions(expression_node)
+
+
+def extract_left_values(assign_node: Union[astroid.Assign, astroid.AnnAssign, astroid.AugAssign]):
+    """TODO"""
+    # TODO extract left values!
+    pass
 
 
 def get_access_modifier(name: str, ref_node: astroid.NodeNG) -> ontology.AccessModifier:

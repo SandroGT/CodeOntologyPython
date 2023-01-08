@@ -447,7 +447,7 @@ class ProjectHandler:
         versions = []
         if process.returncode == 0:
             out = str(out).split("\\r\\n")[1]
-            assert out.startswith("Available versions: "), f"Wrong parsing of {out}."
+            assert out.startswith("Available versions: ")  # TODO change with raise
             versions = out.split(": ")[1].split(", ")
 
         return versions
@@ -624,10 +624,10 @@ class PySourceHandler:
         # Store only the 'Lib' folder with the standard library packages
         extracted_path = download_dir.joinpath(f"Python-{python_version}")
         assert extracted_path.exists(), \
-            f"Wrong assumption on Python3 source naming, '{extracted_path}' does not exist."
+            f"Wrong assumption on Python3 source naming, '{extracted_path}' does not exist."  # TODO change with raise
         stdlib_path = extracted_path.joinpath("Lib")
         assert stdlib_path.exists(), \
-            f"Wrong assumption on Python3 standard library location, '{stdlib_path}' does not exist."
+            f"Wrong assumption on Python3 standard library location, '{stdlib_path}' does not exist."  # TODO change with raise
         source_path = download_dir.joinpath(f"python-source-{python_version}")
         stdlib_path.rename(source_path)
         shutil.rmtree(extracted_path)
@@ -652,7 +652,7 @@ class PySourceHandler:
                 released_version = regex.search(self.__REGEX_PY3_VERSION + r'(?=<)',
                                                 release_match.group(0)).group(0)
                 assert released_version == self.normalize_python_version(released_version), \
-                    f"Wrong assumption, '{released_version}' is not normalized"
+                    f"Wrong assumption, '{released_version}' is not normalized"  # TODO change with raise
                 self.__norm_python_versions.append(released_version)
         return self.__norm_python_versions
 

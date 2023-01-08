@@ -82,6 +82,7 @@ class Transformer:
         LOGGER.debug(f"Applying `FunctionDef` transform to '{function_node.name}'"
                      f" (from '{function_node.root().file}').")
         add_method_overrides(function_node)
+        Transformer._add_description(function_node)
 
     @staticmethod
     def _transform_async_function_def(function_node: astroid.AsyncFunctionDef):
