@@ -10,9 +10,10 @@ namespace = ontology.load()
 query = """
 prefix woc: <http://rdf.webofcode.org/woc/>
 
-SELECT DISTINCT ?s
+SELECT DISTINCT ?n
 WHERE {
-    ?s a woc:ImportStatement .
+    ?s a woc:Parameter .
+    ?s woc:hasName ?n
 }
 """
 
