@@ -51,20 +51,43 @@ class OntologyIndividuals:
     # --- Start Executable related -------------------------------------------------------------------------------------
 
     @staticmethod
-    def init_executable():
-        pass
+    def init_executable(
+            function_node: Union[astroid.FunctionDef, astroid.AsyncFunctionDef],
+            ontology_type: Union[Type[ontology.Constructor], Type[ontology.Function], Type[ontology.Method]]
+    ):
+        if not hasattr(function_node, "individual"):
+            assert not hasattr(function_node, "stmt_individual")
+            assert not hasattr(function_node, "block_stmt_individual")
+
+            function_node.individual = ontology_type()
+            OntologyIndividuals.init_declaration_statement(function_node)
+
+            function_node.individual.hasDeclaration = function_node.stmt_individual
+
+            if hasattr(function_node, "is_var_args"):
+                function_node.individual.isVarArgs = function_node.is_var_args
+
+            function_node.individual.hasSourceCode = function_node.as_string()
+
+            if hasattr(function_node, "description"):
+                function_node.individual.hasDocumentation.append(function_node.description)
 
     @staticmethod
-    def init_constructor():
-        pass
+    def init_constructor(function_node: Union[astroid.FunctionDef, astroid.AsyncFunctionDef]):
+        if not hasattr(function_node, "individual"):
+            OntologyIndividuals.init_executable(function_node, ontology.Constructor)
 
     @staticmethod
-    def init_function():
-        pass
+    def init_function(function_node: Union[astroid.FunctionDef, astroid.AsyncFunctionDef]):
+        if not hasattr(function_node, "individual"):
+            OntologyIndividuals.init_executable(function_node, ontology.Function)
+            function_node.individual.hasSimpleName = function_node.name
 
     @staticmethod
-    def init_method():
-        pass
+    def init_method(function_node: Union[astroid.FunctionDef, astroid.AsyncFunctionDef]):
+        if not hasattr(function_node, "individual"):
+            OntologyIndividuals.init_executable(function_node, ontology.Method)
+            function_node.individual.hasName = function_node.name
 
     # --- End Executable related ---------------------------------------------------------------------------------------
 
@@ -147,6 +170,7 @@ class OntologyIndividuals:
     def init_statement(
             node: astroid.NodeNG,
             ref_node: astroid.NodeNG = None,
+            stmt_store: str = "stmt_individual",
             stmt_type: Type[ontology.Statement] = ontology.Statement
     ):
         # The `ref_node` is the real statement, but `node` is where we store the information! We do this because some
@@ -157,32 +181,34 @@ class OntologyIndividuals:
         #  declaration statement individuals in its child of type `astroid.AssignName`, that are behind our `node`.
         # We obviously later link the statements as equivalent (same individual) with `owlready2.set_equivalent_to`, and
         #  we can get them back with `owlready2.get_equivalent_to`.
-        if not hasattr(node, "stmt_individual"):
+        if not hasattr(node, stmt_store):
             if ref_node is None:
                 ref_node = node
             else:
                 assert not node.is_statement
             assert ref_node.is_statement
 
-            node.stmt_individual = stmt_type()
-            assert isinstance(node.stmt_individual, stmt_type)
-            node.stmt_individual.hasSourceCode = ref_node.as_string()
-            node.stmt_individual.hasLine = ref_node.lineno
+            setattr(node, stmt_store, stmt_type())
+            assert isinstance(getattr(node, stmt_store), stmt_type)
+            getattr(node, stmt_store).hasSourceCode = ref_node.as_string()
+            getattr(node, stmt_store).hasLine = ref_node.lineno
             if ref_node is not node:
-                if not hasattr(ref_node, "stmt_individual"):
+                if not hasattr(ref_node, stmt_store):
                     OntologyIndividuals.init_statement(ref_node)
-                node.stmt_individual.hasNextStatement = ref_node.stmt_individual.hasNextStatement
-                node.stmt_individual.hasPreviousStatement = ref_node.stmt_individual.hasPreviousStatement
-                ref_node.stmt_individual.set_equivalent_to([node.stmt_individual])
-                assert ref_node.stmt_individual not in node.stmt_individual.get_equivalent_to()
+                getattr(node, stmt_store).hasNextStatement = ref_node.stmt_individual.hasNextStatement
+                getattr(node, stmt_store).hasPreviousStatement = ref_node.stmt_individual.hasPreviousStatement
+                ref_node.stmt_individual.set_equivalent_to([getattr(node, stmt_store)])
+                assert ref_node.stmt_individual not in getattr(node, stmt_store).get_equivalent_to()
 
     @staticmethod
     def init_assert_statement():
         pass
 
     @staticmethod
-    def init_block_statement():
-        pass
+    def init_block_statement(node: astroid.NodeNG):
+        if not hasattr(node, "stmt_individual"):
+            OntologyIndividuals.init_statement(node, stmt_type=ontology.BlockStatement)
+            node.stmt_individual.hasEndLine = node.end_lineno
 
     @staticmethod
     def init_labeled_block():
@@ -253,9 +279,10 @@ class OntologyIndividuals:
     def init_declaration_statement(
             node: astroid.NodeNG,
             ref_node: astroid.NodeNG = None,
-            stmt_type: ontology.DeclarationStatement = ontology.DeclarationStatement
+            stmt_store: str = "stmt_individual",
+            stmt_type: Type[ontology.DeclarationStatement] = ontology.DeclarationStatement
     ):
-        OntologyIndividuals.init_statement(node, ref_node=ref_node, stmt_type=stmt_type)
+        OntologyIndividuals.init_statement(node, ref_node=ref_node, stmt_store=stmt_store, stmt_type=stmt_type)
 
     @staticmethod
     def init_variable_declaration_statement():
@@ -315,29 +342,36 @@ class OntologyIndividuals:
 
     @staticmethod
     def init_type():
-        # With no use, we directly use `Class`es and `Parameterized Type`s
+        # With no use, we directly use `Class`es and `Parameterized Type`s.
         pass
 
     @staticmethod
     def init_array_type():
-        # Not in Python
+        # Not in Python.
         pass
 
     @staticmethod
     def init_complex_type():
-        # With no use, we directly use `Class`es
+        # With no use, we directly use `Class`es.
         pass
 
     @staticmethod
     def init_anonymous_class():
-        # Not in Python
+        # Not in Python.
         pass
 
     @staticmethod
     def init_class(class_node: astroid.ClassDef):
-        # The only Type we use along with `Parameterized Type`
+        # The only Type we use along with `Parameterized Type`.
         if not hasattr(class_node, "individual"):
+            assert not hasattr(class_node, "stmt_individual")
+            assert not hasattr(class_node, "dec_stmt_individual")
             class_node.individual = ontology.Class()
+            OntologyIndividuals.init_declaration_statement(class_node)
+
+            class_node.stmt_individual.declares.append(class_node.individual)
+
+            class_node.individual.hasModifier.append(OntologyIndividuals.public_access_modifier)
 
             class_node.individual.hasSimpleName = class_node.name
 
@@ -352,7 +386,7 @@ class OntologyIndividuals:
 
     @staticmethod
     def init_interface():
-        # Not in Python
+        # Not in Python.
         pass
 
     @staticmethod
@@ -425,7 +459,12 @@ class OntologyIndividuals:
             class_node: astroid.ClassDef
     ):
         if not hasattr(field_declaration_node, "individual"):
+            assert not hasattr(field_declaration_node, "stmt_individual")
+
             field_declaration_node.individual = ontology.Field()
+            OntologyIndividuals.init_field_declaration_statement(field_declaration_node)
+
+            field_declaration_node.individual.hasVariableDeclaration = field_declaration_node.stmt_individual
 
             field_declaration_node.individual.hasName = field_name
 

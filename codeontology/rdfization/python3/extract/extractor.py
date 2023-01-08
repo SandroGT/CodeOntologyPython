@@ -60,16 +60,16 @@ class Extractor:
     @staticmethod
     def extract_recursively(node: astroid.NodeNG, root_node: astroid.Module, do_link_stmts: bool):
         # Extract from the current node
-        Extractor.extract(node, do_link_stmts)
+        Extractor.extract(node, do_link_stmts=do_link_stmts)
         # Check the node upper hierarchy, in case we are visiting an imported node of a referenced module/package,
         #  and we may have not instantiated its package individual.
         current_root: astroid.Module = node.root()
         if node != current_root and root_node != current_root:
-            Extractor.extract(current_root, False)
+            Extractor.extract(current_root, do_link_stmts=False)
             root_node = current_root
         # Check the node lower hierarchy
         for child in node.get_children():
-            Extractor.extract_recursively(child, root_node, True)
+            Extractor.extract_recursively(child, root_node=root_node, do_link_stmts=True)
 
     @staticmethod
     def extract(node: astroid.NodeNG, do_link_stmts: bool):
@@ -81,7 +81,7 @@ class Extractor:
         extract_function_name = get_extract_fun_name(node)
         extract_function = getattr(Extractor, extract_function_name, None)
         assert extract_function is not None
-        extract_function(node, do_link_stmts)
+        extract_function(node, do_link_stmts=do_link_stmts)
 
     @staticmethod
     def _link_stmts(node: astroid.NodeNG):
@@ -121,7 +121,7 @@ class Extractor:
 
         for module in import_node.references:
             if module:
-                Extractor.extract(module, False)
+                Extractor.extract(module, do_link_stmts=False)
                 if hasattr(module, "package_"):
                     import_node.stmt_individual.imports.append(module.package_.individual)
 
@@ -142,15 +142,12 @@ class Extractor:
                     astroid.FunctionDef, astroid.AsyncFunctionDef,
                     astroid.Assign, astroid.AssignName, astroid.AssignAttr, astroid.AnnAssign
                 ], type(referenced_node)
-                Extractor.extract(referenced_node, False)
+                Extractor.extract(referenced_node, do_link_stmts=False)
                 if type(referenced_node) is astroid.Module:
                     if hasattr(referenced_node, "package_"):
                         import_node.stmt_individual.imports.append(referenced_node.package_.individual)
-                elif type(referenced_node) is astroid.ClassDef:
+                elif type(referenced_node) in [astroid.ClassDef, astroid.FunctionDef, astroid.AsyncFunctionDef]:
                     import_node.stmt_individual.imports.append(referenced_node.individual)
-                elif type(referenced_node) in [astroid.FunctionDef, astroid.AsyncFunctionDef]:
-                    # TODO INIT
-                    pass
                 elif type(referenced_node) in \
                         [astroid.Assign, astroid.AssignName, astroid.AssignAttr, astroid.AnnAssign]:
                     # TODO INIT
@@ -179,15 +176,12 @@ class Extractor:
             assert not hasattr(class_node, "stmt_individual")
 
         OntologyIndividuals.init_class(class_node)
-        OntologyIndividuals.init_declaration_statement(class_node)
 
         if do_link_stmts:
             Extractor._link_stmts(class_node)
 
-        class_node.stmt_individual.declares.append(class_node.individual)
-
         module = class_node.root()
-        Extractor.extract(module, False)
+        Extractor.extract(module, do_link_stmts=False)
         if hasattr(module, "package_"):
             class_node.individual.hasPackage = module.package_.individual
             assert class_node.individual in module.package_.individual.isPackageOf
@@ -202,7 +196,6 @@ class Extractor:
                 assert type(field_declaration_node) in [astroid.AssignName, astroid.AssignAttr]
 
                 OntologyIndividuals.init_field(field_name, field_description, field_declaration_node, class_node)
-                OntologyIndividuals.init_field_declaration_statement(field_declaration_node)
                 field_type_individuals = extract_structured_type(field_type)
                 access_modifier_individual = get_access_modifier(field_name, field_declaration_node)
 
@@ -212,8 +205,6 @@ class Extractor:
 
                 field_declaration_node.individual.hasModifier.append(access_modifier_individual)
                 assert field_declaration_node.individual in access_modifier_individual.isModifierOf
-
-                field_declaration_node.individual.hasVariableDeclaration.append(field_declaration_node.stmt_individual)
 
         for super_class_node in class_node.ancestors(recurs=False):
             Extractor.extract(super_class_node, do_link_stmts=False)
@@ -226,7 +217,53 @@ class Extractor:
     def extract_function_def(function_node: Union[astroid.FunctionDef, astroid.AsyncFunctionDef], do_link_stmts: bool):
         assert function_node.is_statement
 
-        # TODO I can also do Lambda somehow
+        class_node = None
+        if function_node.is_method():
+            class_node = function_node.parent
+            assert type(class_node) is astroid.ClassDef
+            Extractor.extract(class_node, do_link_stmts=False)
+
+        if function_node.is_method() and function_node.name == "__init__":
+            # Constructor
+            OntologyIndividuals.init_constructor(function_node)
+
+            function_node.individual.hasModifier.append(OntologyIndividuals.public_access_modifier)
+            assert function_node.individual in OntologyIndividuals.public_access_modifier.isModifierOf
+
+            function_node.individual.isConstructorOf = class_node.individual
+            assert function_node.individual in class_node.individual.hasConstructor
+
+        elif function_node.is_method():
+            # Method
+            OntologyIndividuals.init_method(function_node)
+            access_modifier_individual = get_access_modifier(function_node.name, function_node)
+            if function_node.name.startswith("__") and not function_node.name.endswith("__"):
+                assert access_modifier_individual is OntologyIndividuals.private_access_modifier
+
+            function_node.individual.hasModifier.append(access_modifier_individual)
+            assert function_node.individual in access_modifier_individual.isModifierOf
+
+            function_node.individual.isMethodOf = class_node.individual
+            assert function_node.individual in class_node.individual.hasMethod
+
+            if hasattr(function_node, "overrides"):
+                if function_node.overrides is not None:
+                    Extractor.extract(function_node.overrides, False)
+                    function_node.individual.overrides = function_node.overrides.individual
+                    assert function_node.individual in function_node.overrides.individual.isOverriddenBy
+
+        else:
+            # Function
+            OntologyIndividuals.init_function(function_node)
+
+            scope = function_node.scope()
+            if type(scope) is astroid.Module:
+                if hasattr(scope, "ast") and hasattr(scope.ast, "package_"):
+                    function_node.individual.hasFullyQualifiedName = \
+                        f"{scope.ast.package_.full_name}.{function_node.name}"
+
+        if do_link_stmts:
+            Extractor._link_stmts(function_node)
 
     @staticmethod
     def extract_async_function_def(async_function_node: astroid.AsyncFunctionDef, do_link_stmts: bool):
@@ -239,7 +276,7 @@ class Extractor:
         executable_node = args_node.parent
         assert type(executable_node) in [astroid.FunctionDef, astroid.AsyncFunctionDef, astroid.Lambda]
 
-        Extractor.extract(executable_node, False)
+        Extractor.extract(executable_node, do_link_stmts=False)
 
         if hasattr(args_node, "params") and not hasattr(args_node, "params_individuals"):
             args_node.params_individuals = []
@@ -254,9 +291,10 @@ class Extractor:
                     param_individual.hasType.append(type_individual)
                     assert param_individual in type_individual.isTypeOf
 
-                # TODO uncomment
-                # param_individual.isParameterOf = executable_node.individual
-                # assert param_individual in executable_node.individual
+                # TODO remove to include lambda
+                if type(executable_node) is not astroid.Lambda:
+                    param_individual.isParameterOf = executable_node.individual
+                    assert param_individual in executable_node.individual.hasParameter
 
     @staticmethod
     def extract_decorators(node: astroid.Decorators, do_link_stmts: bool):
@@ -576,7 +614,7 @@ def extract_structured_type(
 
         if type(structured_annotation_) is astroid.ClassDef:
             # A single simple type bringing to a `Class` individual (base case)
-            Extractor.extract(structured_annotation_, False)
+            Extractor.extract(structured_annotation_, do_link_stmts=False)
             type_individual_s = structured_annotation_.individual
             assert type(type_individual_s) is ontology.Class
         elif type(structured_annotation_) is list:
@@ -625,9 +663,9 @@ def get_access_modifier(name: str, ref_node: astroid.NodeNG) -> ontology.AccessM
 
     scope_node = get_parent_node(ref_node)
     if type(scope_node) is astroid.ClassDef:
-        if name.startswith("__"):
+        if name.startswith("__") and not name.endswith("__"):
             return OntologyIndividuals.private_access_modifier
-        elif name.startswith("_"):
+        elif not name.startswith("__") and name.startswith("_"):
             return OntologyIndividuals.protected_access_modifier
     return OntologyIndividuals.public_access_modifier
 

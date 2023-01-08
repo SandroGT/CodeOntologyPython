@@ -194,8 +194,8 @@ class CommentParser:
     def get_param_info(
             param_name: str,
             param_node: astroid.NodeNG,
-            param_scope_type: Type[Union[astroid.ClassDef, astroid.FunctionDef,
-                                         astroid.AsyncFunctionDef, astroid.Lambda]]
+            param_scope_type: Union[Type[astroid.ClassDef], Type[astroid.FunctionDef],
+                                    Type[astroid.AsyncFunctionDef], Type[astroid.Lambda]]
     ) -> Tuple[Union[str, None], Union[str, None]]:
         """TODO"""
         assert param_scope_type in [astroid.ClassDef, astroid.FunctionDef, astroid.AsyncFunctionDef, astroid.Lambda]
