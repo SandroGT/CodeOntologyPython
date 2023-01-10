@@ -134,7 +134,7 @@ class Transformer:
                 if annotation:
                     with pass_on_exception((RecursionError,)):
                         # TODO Investigate `RecursionError`.
-                        structured_annotation = resolve_annotation(annotation)
+                        structured_annotation = resolve_annotation(annotation, context_node=node)
                 if value and not structured_annotation:
                     structured_annotation = resolve_value(value)
                 ftn_dict[field] = (structured_annotation, description, node,)
@@ -204,7 +204,7 @@ class Transformer:
                     if ann:
                         with pass_on_exception((RecursionError,)):
                             # TODO Investigate `RecursionError`.
-                            type_ = resolve_annotation(ann)
+                            type_ = resolve_annotation(ann, context_node=args_node)
                     if not type_:
                         value = None
                         if is_positional and not is_vararg:

@@ -394,7 +394,8 @@ def resolve_value(value_node: astroid.NodeNG) -> astroid.ClassDef:
     return type_
 
 
-def resolve_annotation(annotation: Union[str, astroid.NodeNG]) -> Union[astroid.ClassDef, List, Tuple, None]:
+def resolve_annotation(annotation: Union[str, astroid.NodeNG], context_node: astroid.NodeNG = None) \
+        -> Union[astroid.ClassDef, List, Tuple, None]:
     """Gets a reference to the AST nodes representing the types to which an annotation may be referring to, whenever
      possible.
 
@@ -409,6 +410,7 @@ def resolve_annotation(annotation: Union[str, astroid.NodeNG]) -> Union[astroid.
 
     Args:
         annotation (Union[str, astroid.NodeNG]): the string or node defining the annotation.
+        context_node (astroid.NodeNG): a node from the same scope of the annotation.
 
     Returns:
         The structured representation of the type to which the annotation may be referring to, in the form of structured
@@ -505,7 +507,7 @@ def resolve_annotation(annotation: Union[str, astroid.NodeNG]) -> Union[astroid.
 
         return structured_ann
 
-    def resolve_class_names(ann_node: astroid.NodeNG, structured_ann: Union[str, List, Tuple, Nothing]) \
+    def resolve_class_names(structured_ann: Union[str, List, Tuple, Nothing], _context_node: astroid.NodeNG) \
             -> Union[astroid.ClassDef, List, Tuple, None]:
         """Resolves the names of the classes in a structured annotation, replacing them with the reference to the
          respective AST Class nodes.
@@ -521,31 +523,34 @@ def resolve_annotation(annotation: Union[str, astroid.NodeNG]) -> Union[astroid.
         # A) Single types (base case)
         elif type(structured_ann) is str:
             with pass_on_exception((TrackingFailException,)):
-                match_type = track_type_name_from_scope(structured_ann, get_parent_node(ann_node, TRACKING_SCOPES))
+                match_type = track_type_name_from_scope(structured_ann, get_parent_node(_context_node, TRACKING_SCOPES))
 
         # B) Equivalent types (recursive step)
         elif type(structured_ann) in [list, Union]:
-            match_type = [resolve_class_names(ann_node, a) for a in structured_ann]
+            match_type = [resolve_class_names(a, _context_node) for a in structured_ann]
 
         # C) Parameterized types (recursive step)
         elif type(structured_ann) is tuple:
-            match_type = tuple([resolve_class_names(ann_node, a) for a in structured_ann])
+            match_type = tuple([resolve_class_names(a, _context_node) for a in structured_ann])
 
         return match_type
 
     ann = None
     if type(annotation) is str:
+        if not context_node:
+            raise TrackingFailException
         with pass_on_exception((astroid.AstroidError, ValueError,)):
             ann = astroid.extract_node(annotation.strip('"').strip('"'))
     else:
         assert isinstance(annotation, astroid.NodeNG)
         ann = annotation
+        context_node = annotation
 
     structured_annotation = None
     with pass_on_exception((astroid.AstroidError, TrackingFailException, BadAnnotation)):
         structured_annotation = structure_annotation(ann)
 
-    matched_type = resolve_class_names(ann, structured_annotation)
+    matched_type = resolve_class_names(structured_annotation, context_node)
 
     return matched_type
 
