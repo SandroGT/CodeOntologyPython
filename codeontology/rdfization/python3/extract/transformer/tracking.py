@@ -33,7 +33,7 @@ def track_name_from_local(ref_node: Union[astroid.Name, astroid.AssignName]):
     elif type(scope_modifier) is astroid.Nonlocal:
         matched = track_name_from_nonlocal(ref_node.name, scope_modifier)
     else:
-        assert False
+        assert NotPredictedClauseException
 
     # ??? Redundant
     if matched is None:
@@ -328,7 +328,7 @@ def track_type_name_from_scope(
                 elif type(right_side) is astroid.Attribute:
                     new_matched = track_attr_from_local(right_side)
                 else:
-                    assert False
+                    raise NotPredictedClauseException
                 if matched is new_matched:
                     raise FoundCyclingException
                 else:
@@ -586,7 +586,7 @@ def track_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
             if type(cls_body_node) is astroid.Assign:
                 # Assignment with no annotation, such as: `<target_1> = <target_2> = ... = <expression>`
                 for target in cls_body_node.targets:
-                    if type(target) is astroid.Tuple:
+                    if type(target) in [astroid.Tuple, astroid.List]:
                         # Tuple assignment, so `<target_x>` is something like `<element_1, element_2, ...>`
                         for element in target.elts:
                             assert type(element) in [astroid.AssignName, astroid.AssignAttr]
@@ -601,7 +601,7 @@ def track_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                                 # `name` is not referencing a class attribute
                                 pass
                             else:
-                                assert False
+                                raise NotPredictedClauseException
                     elif type(target) is astroid.AssignName:
                         # Single named target, so `<target_x>` is something like `<element_1>`
                         if target.name not in global_names:
@@ -617,7 +617,7 @@ def track_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                         #  that tells us not much about attributes
                         pass
                     else:
-                        assert False
+                        raise NotPredictedClauseException
             elif type(cls_body_node) is astroid.AnnAssign:
                 # Assignment with annotation, such as: `<target>: <annotation> = <expression>`
                 # Chained assignment (`<t_1> = <t_2> = ... = <expr>`) and tuple assignment (`<n_1, n_2, ...> = <expr>`)
@@ -634,7 +634,7 @@ def track_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                     #  attribute
                     pass
                 else:
-                    assert False
+                    raise NotPredictedClauseException
 
     def get_tavn_list_constructor(cls_node: astroid.ClassDef, ctor_node: astroid.FunctionDef) \
             -> Generator[Tuple, None, None]:
@@ -666,7 +666,7 @@ def track_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                 if type(ctor_body_node) is astroid.Assign:
                     # Assignment with no annotation, such as: `<target_1> = <target_2> = ... = <expression>`
                     for target in ctor_body_node.targets:
-                        if type(target) is astroid.Tuple:
+                        if type(target) in [astroid.Tuple, astroid.List]:
                             # Tuple assignment, so `<target_x>` is something like `<element_1, element_2, ...>`
                             for element in target.elts:
                                 assert type(element) in [astroid.AssignName, astroid.AssignAttr, astroid.Starred,
@@ -700,7 +700,7 @@ def track_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                             #  that tells us not much about attributes
                             pass
                         else:
-                            assert False
+                            raise NotPredictedClauseException
                 elif type(ctor_body_node) is astroid.AnnAssign:
                     # Assignment with annotation, such as: `<target>: <annotation> = <expression>`
                     # Chained assignment (`<t_1> = <t_2> = ... = <expr>`) and tuple assignment
@@ -717,7 +717,7 @@ def track_fields(class_node: astroid.ClassDef) -> Generator[Tuple, None, None]:
                         #  be a class attribute without self-reference
                         pass
                     else:
-                        assert False
+                        raise NotPredictedClauseException
 
                 # - Constructor calls check
                 elif type(ctor_body_node) is astroid.Expr and type(ctor_body_node.value) is astroid.Call:
