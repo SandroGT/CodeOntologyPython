@@ -273,6 +273,15 @@ class Extractor:
         if do_link_stmts:
             Extractor._link_stmts(function_node)
 
+        if hasattr(function_node, "returns_type"):
+            return_type_individuals = extract_structured_type(function_node.returns_type)
+            for type_individual in return_type_individuals:
+                function_node.individual.hasType.append(type_individual)
+                assert function_node.individual in type_individual.isTypeOf
+
+        if hasattr(function_node, "returns_description") and function_node.returns_description is not None:
+            function_node.individual.hasDocumentation.append(function_node.returns_description)
+
     @staticmethod
     def extract_async_function_def(async_function_node: astroid.AsyncFunctionDef, do_link_stmts: bool):
         # They practically are the same, so we just redirect the call
@@ -658,7 +667,7 @@ class Extractor:
 
 def extract_structured_type(
         structured_annotation: Union[astroid.ClassDef, List, Tuple, None]
-) -> List[Union[ontology.Class, ontology.ParameterizedType, List, None]]:
+) -> List[Union[ontology.Class, ontology.ParameterizedType, List]]:
     """TODO"""
     def is_all_none(l: list):
         for e in l:

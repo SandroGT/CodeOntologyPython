@@ -542,7 +542,7 @@ def resolve_annotation(annotation: Union[str, astroid.NodeNG], context_node: ast
         with pass_on_exception((astroid.AstroidError, ValueError,)):
             ann = astroid.extract_node(annotation.strip('"').strip('"'))
     else:
-        assert isinstance(annotation, astroid.NodeNG)
+        assert annotation is None or isinstance(annotation, astroid.NodeNG)
         ann = annotation
         context_node = annotation
 

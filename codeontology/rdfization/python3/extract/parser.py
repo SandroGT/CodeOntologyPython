@@ -1,7 +1,7 @@
 """Python parsing functionalities."""
 
 from pathlib import Path
-from typing import Dict, Set, Tuple, Type, Union
+from typing import Dict, List, Set, Tuple, Type, Union
 
 import astroid
 import docstring_parser
@@ -215,6 +215,19 @@ class CommentParser:
                         break
 
         return param_type, param_description
+
+    @staticmethod
+    def get_return_info(function_node: Union[astroid.FunctionDef, astroid.AsyncFunctionDef]) -> \
+            Tuple[Union[str, None], Union[str, None]]:
+        """TODO"""
+        return_type, return_description = (None, None,)
+        if hasattr(function_node, "doc_node"):
+            if function_node.doc_node is not None:
+                docstring = docstring_parser.parse(function_node.doc_node.value)
+                if docstring.returns:
+                    return_type = docstring.returns.type_name
+                    return_description = CommentParser._clean_description(docstring.returns.description)
+        return return_type, return_description
 
     @staticmethod
     def _clean_description(text: str) -> str:

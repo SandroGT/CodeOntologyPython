@@ -79,9 +79,20 @@ class Transformer:
                             fun_node.overrides = ancestor_method_node
                             return
 
+        def add_return(function_node: Union[astroid.FunctionDef, astroid.AsyncFunctionDef]):
+            """TODO Adds a new `returns_type` and `returns_description` attribute"""
+            from codeontology.rdfization.python3.extract.transformer.tracking import resolve_annotation
+
+            return_type, return_description = CommentParser.get_return_info(function_node)
+            if function_node.returns is not None:
+                return_type = function_node.returns
+            function_node.returns_type = resolve_annotation(return_type, context_node=function_node)
+            function_node.returns_description = return_description
+
         LOGGER.debug(f"Applying `FunctionDef` transform to '{function_node.name}'"
                      f" (from '{function_node.root().file}').")
         add_method_overrides(function_node)
+        add_return(function_node)
         Transformer._add_description(function_node)
 
     @staticmethod
