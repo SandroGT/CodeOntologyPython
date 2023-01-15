@@ -234,7 +234,12 @@ def track_attr_from_local(
         ref_node: Union[astroid.Attribute, astroid.AssignAttr],
         __trace: Dict[str, List[str]] = None
 ):
-    """TODO"""
+    """TODO
+
+    TODO !!! It does not correctly track fields, such as in class_instance.field_1, we should be able to link
+     class_instance to the Class to properly do it. Sometimes possible and easy (such as for self in a method), but not
+     done yet. We should do this in track_attr_list_from_scope!
+    """
     assert type(ref_node) in [astroid.Attribute, astroid.AssignAttr]
 
     # In case of something like `a.b.c` we find a first node of type `Attribute` for `c`. `c` has a child for `b`, and
@@ -258,7 +263,7 @@ def track_attr_from_local(
             #  An example of this clause may be `my_list[0].attribute` or `my_function().attribute`: we cannot link
             #  `attribute` to something without knowing what `my_list[0]` or `my_function()` are, because we don't know
             #  in which contexts to look for `attribute`. Inference is a must!
-            raise NotPredictedClauseException
+            raise TrackingFailException
         children = list(child.get_children())
 
     return track_attr_list_from_scope(attr_list, get_parent_node(ref_node, TRACKING_SCOPES), __trace=__trace)

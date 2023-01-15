@@ -35,6 +35,7 @@ class OntologyIndividuals:
     """Other parameters."""
 
     START_POSITION_COUNT: int = 0
+    START_LINE_COUNT: int = 1
 
     """Static individuals."""
 
@@ -110,7 +111,7 @@ class OntologyIndividuals:
             expression_node.expr_individual = expr_type()
             assert isinstance(expression_node.expr_individual, expr_type)
             expression_node.expr_individual.hasSourceCode = expression_node.as_string()
-            expression_node.expr_individual.hasLine = expression_node.lineno
+            expression_node.expr_individual.hasLine = expression_node.lineno + OntologyIndividuals.START_LINE_COUNT - 1
 
     @staticmethod
     def init_assignment_expression(assign_node: Union[astroid.Assign, astroid.AnnAssign, astroid.AugAssign]):
@@ -212,7 +213,8 @@ class OntologyIndividuals:
             node.stmt_individual = stmt_type()
             assert isinstance(node.stmt_individual, stmt_type)
             node.stmt_individual.hasSourceCode = true_stmt_node.as_string()
-            node.stmt_individual.hasLine = true_stmt_node.lineno
+            if true_stmt_node.lineno:
+                node.stmt_individual.hasLine = true_stmt_node.lineno + OntologyIndividuals.START_LINE_COUNT - 1
             if true_stmt_node is not node:
                 if not hasattr(true_stmt_node, "stmt_individual"):
                     OntologyIndividuals.init_statement(true_stmt_node)
@@ -320,12 +322,20 @@ class OntologyIndividuals:
         )
 
     @staticmethod
-    def init_global_variable_declaration_statement():
-        pass
+    def init_global_variable_declaration_statement(var_node: astroid.AssignName):
+        assign_parent = get_parent_node(var_node, {astroid.Assign, astroid.AnnAssign})
+        assert type(assign_parent) in [astroid.Assign, astroid.AnnAssign]
+        OntologyIndividuals.init_declaration_statement(
+            var_node, ref_node=assign_parent, stmt_type=ontology.GlobalVariableDeclarationStatement
+        )
 
     @staticmethod
-    def init_local_variable_declaration_statement():
-        pass
+    def init_local_variable_declaration_statement(var_node: astroid.AssignName):
+        # ??? What about variables declared by `for loops` or `with statements`
+        ref_node = var_node.scope()
+        OntologyIndividuals.init_declaration_statement(
+            var_node, ref_node=ref_node, stmt_type=ontology.LocalVariableDeclarationStatement
+        )
 
     @staticmethod
     def init_exception_handling_statement():
@@ -502,12 +512,39 @@ class OntologyIndividuals:
                 field_declaration_node.individual.hasDocumentation.append(field_description)
 
     @staticmethod
-    def init_global_variable():
-        pass
+    def init_global_variable(var_node: astroid.AssignName, module_node: astroid.Module):
+        if not hasattr(var_node, "individual"):
+            assert not hasattr(var_node, "stmt_individual")
+
+            var_node.individual = ontology.GlobalVariable()
+            OntologyIndividuals.init_global_variable_declaration_statement(var_node)
+
+            var_node.individual.hasVariableDeclaration = var_node.stmt_individual
+
+            var_node.individual.hasSimpleName = var_node.name
+
+            if hasattr(module_node, "package_"):
+                var_node.individual.hasPackage = module_node.package_.individual
+                assert var_node.individual in module_node.package_.individual.isPackageOf
+
+                var_node.individual.hasFullyQualifiedName = \
+                    f"{module_node.package_.individual.hasFullyQualifiedName}.{var_node.name}"
 
     @staticmethod
-    def init_local_variable():
-        pass
+    def init_local_variable(var_node: astroid.AssignName,
+                            fun_node: Union[astroid.FunctionDef, astroid.AsyncFunctionDef]):
+        if not hasattr(var_node, "individual"):
+            assert not hasattr(var_node, "stmt_individual")
+
+            var_node.individual = ontology.LocalVariable()
+            OntologyIndividuals.init_local_variable_declaration_statement(var_node)
+
+            var_node.individual.hasVariableDeclaration = var_node.stmt_individual
+
+            var_node.individual.hasName = var_node.name
+
+            var_node.individual.isDeclaredBy.append(fun_node.individual)
+            assert var_node.individual in fun_node.individual.declares
 
     @staticmethod
     def init_parameter(

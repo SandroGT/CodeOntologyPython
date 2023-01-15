@@ -295,23 +295,24 @@ class Extractor:
 
         Extractor.extract(executable_node, do_link_stmts=False)
 
-        if hasattr(args_node, "params") and not hasattr(args_node, "params_individuals"):
+        if not hasattr(args_node, "params_individuals"):
             args_node.params_individuals = []
 
-            for param_info in args_node.params:
-                param_individual = OntologyIndividuals.init_parameter(*param_info)
-                args_node.params_individuals.append(param_individual)
-                param_type = param_info[2]
-                param_type_individuals = extract_structured_type(param_type)
+            if hasattr(args_node, "params"):
+                for param_info in args_node.params:
+                    param_individual = OntologyIndividuals.init_parameter(*param_info)
+                    args_node.params_individuals.append(param_individual)
+                    param_type = param_info[2]
+                    param_type_individuals = extract_structured_type(param_type)
 
-                for type_individual in param_type_individuals:
-                    param_individual.hasType.append(type_individual)
-                    assert param_individual in type_individual.isTypeOf
+                    for type_individual in param_type_individuals:
+                        param_individual.hasType.append(type_individual)
+                        assert param_individual in type_individual.isTypeOf
 
-                # TODO remove to include lambda
-                if type(executable_node) is not astroid.Lambda:
-                    param_individual.isParameterOf = executable_node.individual
-                    assert param_individual in executable_node.individual.hasParameter
+                    # TODO remove to include lambda
+                    if type(executable_node) is not astroid.Lambda:
+                        param_individual.isParameterOf = executable_node.individual
+                        assert param_individual in executable_node.individual.hasParameter
 
     @staticmethod
     def extract_decorators(node: astroid.Decorators, do_link_stmts: bool):
@@ -367,7 +368,17 @@ class Extractor:
 
         OntologyIndividuals.init_statement(assign_node)
         extract_expression(assign_node)
-        extract_left_values(assign_node)  # TODO implement it!
+        extract_left_values(assign_node)
+
+        if assign_node.value is not None:
+            assign_node.expr_individual.hasRightHandSide = assign_node.value.expr_individual
+            assert assign_node.expr_individual == assign_node.value.expr_individual.isRightHandSideOf
+        else:
+            assert type(assign_node) is astroid.AnnAssign
+
+        for left_value_individual in assign_node.lv_individuals:
+            assign_node.expr_individual.hasLeftHandSide.append(left_value_individual)
+            assert assign_node.expr_individual == left_value_individual.isLeftHandSideOf
 
         if do_link_stmts:
             Extractor._link_stmts(assign_node)
@@ -729,12 +740,13 @@ def extract_expression(expression_node: astroid.NodeNG):
     """TODO
     !!! not to be confused with `extract_expr`, that is for `Expression Statement`s (expressions that are not stored or
      used)
+     Append the individual to the node as a `individual` attribute
     """
     assert type(expression_node) is not astroid.Expr
 
     def visit_to_extract_sub_expressions(iter_node: astroid.NodeNG, latest_expression_node: astroid.NodeNG = None):
         """
-        TODO COMMENT use this to extract meaningful sub-expressions recursively, lets say only Call and Lambda (we
+        TOCOMMENT use this to extract meaningful sub-expressions recursively, lets say only Call and Lambda (we
          cannot have assignments as sub-expressions anyway)"""
         if latest_expression_node is None:
             latest_expression_node = iter_node
@@ -763,7 +775,8 @@ def extract_expression(expression_node: astroid.NodeNG):
 
     elif type(expression_node) is astroid.Call:
         # `Executable Invocation Expression` or `Lambda Invocation Expression`
-        # TODO Improve with proper expression creation
+        # TODO Improve with proper expression creation, distinguishing between the different types of executable and
+        #  the lambda too
         OntologyIndividuals.init_executable_invocation_expression(expression_node)
         visit_to_extract_sub_expressions(expression_node)
 
@@ -779,9 +792,98 @@ def extract_expression(expression_node: astroid.NodeNG):
 
 
 def extract_left_values(assign_node: Union[astroid.Assign, astroid.AnnAssign, astroid.AugAssign]):
-    """TODO"""
+    """TODO append the individual in `lv_individuals`"""
     # TODO extract left values!
-    pass
+    assert type(assign_node) in [astroid.Assign, astroid.AnnAssign, astroid.AugAssign]
+
+    def extract_left_value_from_targets(
+            position: int,
+            target: Union[astroid.AssignName, astroid.AssignAttr, astroid.Subscript, astroid.List, astroid.Tuple]
+    ) -> ontology.LeftValue:
+        assert type(target) in [astroid.AssignName, astroid.AssignAttr, astroid.Subscript, astroid.List, astroid.Tuple]
+
+        left_value_individual = ontology.LeftValue()
+        left_value_individual.hasLeftValuePosition = position
+
+        if type(target) in [astroid.AssignName, astroid.AssignAttr, astroid.Subscript]:
+            # Base step: we have a variable here
+            var_individual = extract_variable(target)
+            if var_individual is not None:
+                left_value_individual.hasLeftValue.append(var_individual)
+        elif type(target) in [astroid.List, astroid.Tuple]:
+            # Recursive step
+            for j, e in enumerate(target.elts):
+                e_individual = extract_left_value_from_targets(j, e)
+                left_value_individual.hasLeftValue.append(e_individual)
+                assert left_value_individual == e_individual.isLeftValueOf
+
+        return left_value_individual
+
+    if not hasattr(assign_node, "lv_individuals"):
+        assign_node.lv_individuals = []
+
+        if type(assign_node) is astroid.Assign:
+            targets = assign_node.targets
+        else:
+            targets = [assign_node.target]
+
+        for i, t in enumerate(targets):
+            t_individual = extract_left_value_from_targets(i, t)
+            assign_node.lv_individuals.append(t_individual)
+
+
+def extract_variable(target: Union[astroid.AssignName, astroid.AssignAttr, astroid.Subscript]) -> ontology.Variable:
+    """TOCOMMENT resolve a target finding the referenced variable and creating its individual on return"""
+    assert type(target) in [astroid.AssignName, astroid.AssignAttr, astroid.Subscript]
+
+    if type(target) is astroid.Subscript:
+        var_target = target.value
+    else:
+        var_target = target
+
+    type_target = None
+    if type(target) is astroid.AssignName and type(target.parent) is astroid.AnnAssign:
+        if hasattr(target.parent, "structured_annotation"):
+            type_target = target.parent.structured_annotation
+
+    var_individual = None
+    if hasattr(var_target, "reference"):
+        assert type(var_target.reference) is astroid.AssignName
+        if not hasattr(var_target.reference, "var_individual"):
+            # Discover the variable type
+            parent_node = get_parent_node(var_target.reference)
+            Extractor.extract(parent_node, do_link_stmts=False)
+            if type(parent_node) is astroid.Module:
+                # Global variable
+                OntologyIndividuals.init_global_variable(var_target.reference, parent_node)
+                var_individual = var_target.reference.individual
+                if type_target is not None:
+                    var_type_individuals = extract_structured_type(type_target)
+                    for type_individual in var_type_individuals:
+                        var_individual.hasType.append(type_individual)
+                        assert var_individual in type_individual.isTypeOf
+            elif type(parent_node) in [astroid.FunctionDef, astroid.AsyncFunctionDef] and \
+                    parent_node.lineno <= var_target.reference.lineno < parent_node.body[0].lineno:
+                # Function parameter
+                for param_individual in parent_node.args.params_individuals:
+                    if param_individual.hasName == var_target.reference.name:
+                        var_individual = param_individual
+                        break
+                assert var_individual is not None
+            elif type(parent_node) is [astroid.FunctionDef, astroid.AsyncFunctionDef]:
+                # Local variable
+                OntologyIndividuals.init_local_variable(var_target.reference, parent_node)
+                var_individual = var_target.reference.individual
+                if type_target is not None:
+                    var_type_individuals = extract_structured_type(type_target)
+                    for type_individual in var_type_individuals:
+                        var_individual.hasType.append(type_individual)
+                        assert var_individual in type_individual.isTypeOf
+            # TODO Missing `elif type(parent_node) is astroid.ClassDef` for field, that we are not properly tracking yet
+        else:
+            var_individual = var_target.reference.var_individual
+
+    return var_individual
 
 
 def get_access_modifier(name: str, ref_node: astroid.NodeNG) -> ontology.AccessModifier:

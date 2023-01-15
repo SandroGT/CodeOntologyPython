@@ -332,6 +332,18 @@ class Transformer:
         add_imported_objects(import_node)
 
     @staticmethod
+    def _transform_ann_assign(ann_assign_node: astroid.AnnAssign):
+        def add_structured_annotation(_ann_assign_node: astroid.AnnAssign):
+            """TODO"""
+            from codeontology.rdfization.python3.extract.transformer.tracking import resolve_annotation
+            ann_assign_node.structured_annotation = resolve_annotation(ann_assign_node.annotation)
+
+        LOGGER.debug(f"Applying `Name` transform to statement on line '{ann_assign_node.lineno}'"
+                     f" (from '{ann_assign_node.root().file}')")
+        add_structured_annotation(ann_assign_node)
+
+
+    @staticmethod
     def _transform_name(name_node: astroid.Name):
         def add_reference(_name_node: astroid.Name):
             """TODO"""
