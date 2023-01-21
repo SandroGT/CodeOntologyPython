@@ -325,10 +325,9 @@ class Extractor:
         OntologyIndividuals.init_return_statement(return_node)
         function_node = get_parent_node(return_node, {astroid.FunctionDef, astroid.AsyncFunctionDef})
         Extractor.extract(function_node, False)
-        # TODO uncomment after implementing astroid.Expr extraction
-        # expression_node = list(return_node.get_children())[0]
-        # assert type(expression_node) is astroid.Expr
-        # Extractor.extract(expression_node, False)
+
+        expression_node = list(return_node.get_children())[0]
+        extract_expression(expression_node)
 
         if do_link_stmts:
             Extractor._link_stmts(return_node)
@@ -336,9 +335,8 @@ class Extractor:
         return_node.stmt_individual.isReturnStatementOf = function_node.individual
         assert return_node.stmt_individual in function_node.individual.hasReturnStatement
 
-        # TODO uncomment after implementing astroid.Expr extraction
-        # return_node.stmt_individual.hasReturnedExpression = expression_node.individual
-        # assert return_node.stmt_individual == expression_node.individual.isReturnedExpressionOf
+        return_node.stmt_individual.hasReturnedExpression = expression_node.expr_individual
+        assert return_node.stmt_individual == expression_node.expr_individual.isReturnedExpressionOf
 
     @staticmethod
     def extract_yield(node: astroid.Yield, do_link_stmts: bool):
@@ -443,8 +441,18 @@ class Extractor:
         assert not node.is_statement
 
     @staticmethod
-    def extract_break(node: astroid.Break, do_link_stmts: bool):
-        assert node.is_statement
+    def extract_break(break_node: astroid.Break, do_link_stmts: bool):
+        assert break_node.is_statement
+
+        OntologyIndividuals.init_break_statement(break_node)
+
+        if do_link_stmts:
+            Extractor._link_stmts(break_node)
+
+        parent_loop = get_parent_node(break_node, parent_types={astroid.For, astroid.While})
+        Extractor.extract(parent_loop, do_link_stmts=False)
+
+        break_node.stmt_individual.hasTargetedBlock = parent_loop.stmt_individual
 
     @staticmethod
     def extract_call(node: astroid.Call, do_link_stmts: bool):
@@ -463,8 +471,18 @@ class Extractor:
         assert not node.is_statement
 
     @staticmethod
-    def extract_continue(node: astroid.Continue, do_link_stmts: bool):
-        assert node.is_statement
+    def extract_continue(continue_node: astroid.Continue, do_link_stmts: bool):
+        assert continue_node.is_statement
+
+        OntologyIndividuals.init_continue_statement(continue_node)
+
+        if do_link_stmts:
+            Extractor._link_stmts(continue_node)
+
+        parent_loop = get_parent_node(continue_node, parent_types={astroid.For, astroid.While})
+        Extractor.extract(parent_loop, do_link_stmts=False)
+
+        continue_node.stmt_individual.hasTargetedBlock = parent_loop.stmt_individual
 
     @staticmethod
     def extract_del_attr(node: astroid.DelAttr, do_link_stmts: bool):
@@ -522,8 +540,30 @@ class Extractor:
         assert not node.is_statement
 
     @staticmethod
-    def extract_for(node: astroid.For, do_link_stmts: bool):
-        assert node.is_statement
+    def extract_for(for_node: astroid.For, do_link_stmts: bool):
+        assert for_node.is_statement
+
+        OntologyIndividuals.init_for_each_statement(for_node)
+
+        if do_link_stmts:
+            Extractor._link_stmts(for_node)
+
+        if type(for_node.target) in [astroid.List, astroid.Tuple]:
+            variable_nodes = for_node.target.elts
+        else:
+            variable_nodes = [for_node.target]
+        for var_node in variable_nodes:
+            assert type(var_node) is astroid.AssignName
+            var_individual = extract_variable(var_node)
+
+            if var_individual is not None:  # TODO investigate
+                for_node.stmt_individual.hasForEachVariable.append(var_individual)
+                assert for_node.stmt_individual == var_individual.isForEachVariableOf
+
+        extract_expression(for_node.iter)
+
+        for_node.stmt_individual.hasIterable = for_node.iter.expr_individual
+        assert for_node.stmt_individual == for_node.iter.expr_individual.isIterableOf
 
     @staticmethod
     def extract_formatted_value(node: astroid.FormattedValue, do_link_stmts: bool):
@@ -668,8 +708,18 @@ class Extractor:
         assert not node.is_statement
 
     @staticmethod
-    def extract_while(node: astroid.While, do_link_stmts: bool):
-        assert node.is_statement
+    def extract_while(while_node: astroid.While, do_link_stmts: bool):
+        assert while_node.is_statement
+
+        OntologyIndividuals.init_while_statement(while_node)
+
+        if do_link_stmts:
+            Extractor._link_stmts(while_node)
+
+        extract_expression(while_node.test)
+
+        while_node.stmt_individual.hasCondition = while_node.test.expr_individual
+        assert while_node.stmt_individual == while_node.test.expr_individual.isConditionOf
 
     @staticmethod
     def extract_with(node: astroid.With, do_link_stmts: bool):
@@ -785,6 +835,8 @@ def extract_expression(expression_node: astroid.NodeNG):
         OntologyIndividuals.init_lambda_expression(expression_node)
         visit_to_extract_sub_expressions(expression_node)
 
+    # TODO add an elif for astroid.Name so that we can make Variables part of subexpression and try to track their use
+
     else:
         # Generic `Expression`
         OntologyIndividuals.init_expression(expression_node)
@@ -851,8 +903,13 @@ def extract_variable(target: Union[astroid.AssignName, astroid.AssignAttr, astro
         assert type(var_target.reference) is astroid.AssignName
         if not hasattr(var_target.reference, "var_individual"):
             # Discover the variable type
-            parent_node = get_parent_node(var_target.reference)
-            Extractor.extract(parent_node, do_link_stmts=False)
+            parent_node = get_parent_node(
+                var_target.reference,
+                parent_types={astroid.Module, astroid.ClassDef, astroid.FunctionDef, astroid.AsyncFunctionDef,
+                              astroid.For, astroid.With}
+            )
+            if not hasattr(parent_node, "stmt_individual"):
+                Extractor.extract(parent_node, do_link_stmts=False)
             if type(parent_node) is astroid.Module:
                 # Global variable
                 OntologyIndividuals.init_global_variable(var_target.reference, parent_node)
@@ -870,7 +927,7 @@ def extract_variable(target: Union[astroid.AssignName, astroid.AssignAttr, astro
                         var_individual = param_individual
                         break
                 assert var_individual is not None
-            elif type(parent_node) is [astroid.FunctionDef, astroid.AsyncFunctionDef]:
+            elif type(parent_node) is [astroid.FunctionDef, astroid.AsyncFunctionDef, astroid.For, astroid.With]:
                 # Local variable
                 OntologyIndividuals.init_local_variable(var_target.reference, parent_node)
                 var_individual = var_target.reference.individual

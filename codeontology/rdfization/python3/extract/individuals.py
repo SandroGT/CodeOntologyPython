@@ -252,21 +252,27 @@ class OntologyIndividuals:
         pass
 
     @staticmethod
-    def init_branching_statement():
-        pass
+    def init_branching_statement(
+            branching_node: Union[astroid.Break, astroid.Continue, astroid.Return],
+            stmt_type: Type[ontology.BranchingStatement] = ontology.BranchingStatement,
+    ):
+        if not hasattr(branching_node, "stmt_individual"):
+            OntologyIndividuals.init_statement(branching_node, stmt_type=stmt_type)
 
     @staticmethod
-    def init_break_statement():
-        pass
+    def init_break_statement(break_node: astroid.Break):
+        if not hasattr(break_node, "stmt_individual"):
+            OntologyIndividuals.init_branching_statement(break_node, stmt_type=ontology.BreakStatement)
 
     @staticmethod
-    def init_continue_statement():
-        pass
+    def init_continue_statement(continue_node: astroid.Continue):
+        if not hasattr(continue_node, "stmt_individual"):
+            OntologyIndividuals.init_branching_statement(continue_node, stmt_type=ontology.ContinueStatement)
 
     @staticmethod
     def init_return_statement(return_node: astroid.Return):
         if not hasattr(return_node, "stmt_individual"):
-            OntologyIndividuals.init_statement(return_node, stmt_type=ontology.ReturnStatement)
+            OntologyIndividuals.init_branching_statement(return_node, stmt_type=ontology.ReturnStatement)
 
     @staticmethod
     def init_decision_making_statement():
@@ -281,8 +287,11 @@ class OntologyIndividuals:
         pass
 
     @staticmethod
-    def init_loop_statement():
-        pass
+    def init_loop_statement(
+            loop_node: Union[astroid.While, astroid.For],
+            stmt_type: Type[ontology.LoopStatement] = ontology.LoopStatement,
+    ):
+        OntologyIndividuals.init_statement(loop_node, stmt_type=stmt_type)
 
     @staticmethod
     def init_do_while_statement():
@@ -291,15 +300,18 @@ class OntologyIndividuals:
 
     @staticmethod
     def init_for_statement():
+        # Not in Python.
         pass
 
     @staticmethod
-    def init_for_each_statement():
-        pass
+    def init_for_each_statement(for_node: astroid.For):
+        if not hasattr(for_node, "stmt_individual"):
+            OntologyIndividuals.init_loop_statement(for_node, stmt_type=ontology.ForEachStatement)
 
     @staticmethod
-    def init_while_statement():
-        pass
+    def init_while_statement(while_node: astroid.While):
+        if not hasattr(while_node, "stmt_individual"):
+            OntologyIndividuals.init_loop_statement(while_node, stmt_type=ontology.WhileStatement)
 
     @staticmethod
     def init_declaration_statement(

@@ -1,6 +1,6 @@
 """Support generic functions for the extraction."""
 
-from typing import Set, Type
+from typing import Set, Type, Union
 
 import astroid
 
@@ -8,7 +8,7 @@ import astroid
 def get_parent_node(
         node: astroid.NodeNG,
         parent_types: Set[Type[astroid.NodeNG]] = None
-) -> astroid.NodeNG:
+) -> Union[astroid.NodeNG, None]:
     """Gets the first parent node of the specified type that contains the input node.
 
     Args:
@@ -24,8 +24,7 @@ def get_parent_node(
         parent_types = {astroid.Module, astroid.ClassDef, astroid.FunctionDef, astroid.AsyncFunctionDef}
 
     iter_node = node.parent
-    while type(iter_node) not in parent_types:
-        assert iter_node is not None
+    while iter_node is not None and type(iter_node) not in parent_types:
         iter_node = iter_node.parent
 
     return iter_node
