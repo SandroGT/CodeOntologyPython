@@ -8,7 +8,7 @@ import astroid
 
 from codeontology.ontology import ontology
 from codeontology.rdfization.python3.explore import Project, Library, Package
-from codeontology.rdfization.python3.extract.utils import get_parent_node
+from codeontology.rdfization.python3.extract.utils import get_parent_node ,get_parent_block_node
 
 
 class OntologyIndividuals:
@@ -191,7 +191,7 @@ class OntologyIndividuals:
 
     @staticmethod
     def init_statement(
-            node: astroid.NodeNG,
+            stmt_node: astroid.NodeNG,
             stmt_type: Type[ontology.Statement] = ontology.Statement,
             true_stmt_node: astroid.NodeNG = None
     ):
@@ -203,23 +203,28 @@ class OntologyIndividuals:
         #  declaration statement individuals in its child of type `astroid.AssignName`, that are behind our `node`.
         # We obviously later link the statements as equivalent (same individual) with `owlready2.set_equivalent_to`, and
         #  we can get them back with `owlready2.get_equivalent_to`.
-        if not hasattr(node, "stmt_individual"):
+        if not hasattr(stmt_node, "stmt_individual"):
             if true_stmt_node is None:
-                true_stmt_node = node
+                true_stmt_node = stmt_node
             else:
-                assert not node.is_statement
+                assert not stmt_node.is_statement
             assert true_stmt_node.is_statement
 
-            node.stmt_individual = stmt_type()
-            assert isinstance(node.stmt_individual, stmt_type)
-            node.stmt_individual.hasSourceCode = true_stmt_node.as_string()
+            stmt_node.stmt_individual = stmt_type()
+            assert isinstance(stmt_node.stmt_individual, stmt_type)
+            stmt_node.stmt_individual.hasSourceCode = true_stmt_node.as_string()
             if true_stmt_node.lineno:
-                node.stmt_individual.hasLine = true_stmt_node.lineno + OntologyIndividuals.START_LINE_COUNT - 1
-            if true_stmt_node is not node:
+                stmt_node.stmt_individual.hasLine = true_stmt_node.lineno + OntologyIndividuals.START_LINE_COUNT - 1
+            if true_stmt_node is not stmt_node:
                 if not hasattr(true_stmt_node, "stmt_individual"):
                     OntologyIndividuals.init_statement(true_stmt_node)
-                true_stmt_node.stmt_individual.set_equivalent_to([node.stmt_individual])
-                assert true_stmt_node.stmt_individual not in node.stmt_individual.get_equivalent_to()
+                true_stmt_node.stmt_individual.set_equivalent_to([stmt_node.stmt_individual])
+                assert true_stmt_node.stmt_individual not in stmt_node.stmt_individual.get_equivalent_to()
+
+            parent_block_node = get_parent_block_node(stmt_node)
+            if hasattr(parent_block_node, "stmt_individual"):
+                parent_block_node.stmt_individual.hasSubStatement.append(stmt_node.stmt_individual)
+                assert parent_block_node.stmt_individual == stmt_node.stmt_individual.isSubStatementOf
 
     @staticmethod
     def init_assert_statement(assert_node: astroid.Assert):
