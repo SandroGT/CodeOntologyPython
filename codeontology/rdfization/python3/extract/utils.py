@@ -4,6 +4,10 @@ from typing import Set, Type, Union
 
 import astroid
 
+BLOCK_NODES: Set = {astroid.ClassDef, astroid.FunctionDef, astroid.AsyncFunctionDef, astroid.For, astroid.While,
+                    astroid.If, astroid.TryExcept, astroid.TryFinally, astroid.With}
+"""TOCOMMENT there is no module because that has no block (no indentation) and it is not a statement"""
+
 
 def get_parent_node(
         node: astroid.NodeNG,
@@ -32,8 +36,4 @@ def get_parent_node(
 
 def get_parent_block_node(node: astroid.NodeNG):
     """TOCOMMENT find parent node for sub-statement relations"""
-    return get_parent_node(
-        node,
-        {astroid.ClassDef, astroid.FunctionDef, astroid.AsyncFunctionDef, astroid.For, astroid.While, astroid.If,
-         astroid.TryExcept, astroid.TryFinally, astroid.With}
-    )
+    return get_parent_node(node, BLOCK_NODES)

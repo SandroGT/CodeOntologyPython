@@ -903,11 +903,7 @@ def extract_variable(target: Union[astroid.AssignName, astroid.AssignAttr, astro
         assert type(var_target.reference) is astroid.AssignName
         if not hasattr(var_target.reference, "var_individual"):
             # Discover the variable type
-            parent_node = get_parent_node(
-                var_target.reference,
-                parent_types={astroid.Module, astroid.ClassDef, astroid.FunctionDef, astroid.AsyncFunctionDef,
-                              astroid.For, astroid.With}
-            )
+            parent_node = get_parent_node(var_target.reference, parent_types={astroid.Module} | BLOCK_NODES)
             if not hasattr(parent_node, "stmt_individual"):
                 Extractor.extract(parent_node, do_link_stmts=False)
             if type(parent_node) is astroid.Module:
