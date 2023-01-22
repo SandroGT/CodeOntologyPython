@@ -10,7 +10,7 @@
      xmlns:xkos="http://rdf-vocabulary.ddialliance.org/xkos#"
      xmlns:dcterms="http://purl.org/dc/terms/">
     <owl:Ontology rdf:about="http://rdf.webofcode.org/woc/">
-        <rdfs:comment xml:lang="en">An ontology that represents object-oriented programming languages.</rdfs:comment>
+        <rdfs:comment xml:lang="en">An ontology that represents imperative and object-oriented programming languages.</rdfs:comment>
         <rdfs:label xml:lang="en">CodeOntology</rdfs:label>
     </owl:Ontology>
     
@@ -5283,15 +5283,24 @@ synchronized &lt;`Expression`&gt; &lt;`Block Statement`&gt;</rdfs:comment>
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/TryStatement">
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/ExceptionHandlingStatement"/>
         <rdfs:subClassOf>
-            <owl:Restriction>
-                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasCatchClause"/>
-                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/CatchStatement"/>
-            </owl:Restriction>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasFinallyClause"/>
+                        <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/FinallyStatement"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasFinallyClause"/>
+                        <owl:maxQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:maxQualifiedCardinality>
+                        <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/FinallyStatement"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
         </rdfs:subClassOf>
         <rdfs:subClassOf>
             <owl:Restriction>
-                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasFinallyClause"/>
-                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/FinallyStatement"/>
+                <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasCatchClause"/>
+                <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/CatchStatement"/>
             </owl:Restriction>
         </rdfs:subClassOf>
         <rdfs:subClassOf>

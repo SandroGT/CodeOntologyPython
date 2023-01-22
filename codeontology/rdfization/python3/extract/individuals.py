@@ -193,7 +193,8 @@ class OntologyIndividuals:
     def init_statement(
             stmt_node: astroid.NodeNG,
             stmt_type: Type[ontology.Statement] = ontology.Statement,
-            true_stmt_node: astroid.NodeNG = None
+            true_stmt_node: astroid.NodeNG = None,
+            stmt_attr: str = "stmt_individual"
     ):
         # The `ref_node` is the real statement, but `node` is where we store the information! We do this because some
         #  statements may simultaneously have multiple meanings, even of different kinds, such as an example:
@@ -203,28 +204,43 @@ class OntologyIndividuals:
         #  declaration statement individuals in its child of type `astroid.AssignName`, that are behind our `node`.
         # We obviously later link the statements as equivalent (same individual) with `owlready2.set_equivalent_to`, and
         #  we can get them back with `owlready2.get_equivalent_to`.
-        if not hasattr(stmt_node, "stmt_individual"):
+        if not hasattr(stmt_node, stmt_attr):
             if true_stmt_node is None:
                 true_stmt_node = stmt_node
             else:
                 assert not stmt_node.is_statement
             assert true_stmt_node.is_statement
 
-            stmt_node.stmt_individual = stmt_type()
-            assert isinstance(stmt_node.stmt_individual, stmt_type)
-            stmt_node.stmt_individual.hasSourceCode = true_stmt_node.as_string()
+            setattr(stmt_node, stmt_attr, stmt_type())
+            assert isinstance(getattr(stmt_node, stmt_attr), stmt_type)
+            getattr(stmt_node, stmt_attr).hasSourceCode = true_stmt_node.as_string()
             if true_stmt_node.lineno:
-                stmt_node.stmt_individual.hasLine = true_stmt_node.lineno + OntologyIndividuals.START_LINE_COUNT - 1
+                getattr(stmt_node, stmt_attr).hasLine = true_stmt_node.lineno + OntologyIndividuals.START_LINE_COUNT - 1
             if true_stmt_node is not stmt_node:
                 if not hasattr(true_stmt_node, "stmt_individual"):
                     OntologyIndividuals.init_statement(true_stmt_node)
-                true_stmt_node.stmt_individual.set_equivalent_to([stmt_node.stmt_individual])
-                assert true_stmt_node.stmt_individual not in stmt_node.stmt_individual.get_equivalent_to()
+                true_stmt_node.stmt_individual.set_equivalent_to([getattr(stmt_node, stmt_attr)])
+                assert true_stmt_node.stmt_individual not in getattr(stmt_node, stmt_attr).get_equivalent_to()
 
             parent_block_node = get_parent_block_node(stmt_node)
-            if hasattr(parent_block_node, "stmt_individual"):
-                parent_block_node.stmt_individual.hasSubStatement.append(stmt_node.stmt_individual)
-                assert parent_block_node.stmt_individual == stmt_node.stmt_individual.isSubStatementOf
+            parent_block_stmt_individual = None
+            if type(parent_block_node) is astroid.TryFinally:
+                if stmt_node in parent_block_node.finalbody:
+                    if hasattr(parent_block_node, "stmt_finally_individual"):
+                        parent_block_stmt_individual = parent_block_node.stmt_finally_individual
+                else:
+                    assert stmt_node in parent_block_node.body
+                    if hasattr(parent_block_node, "stmt_try_individual"):
+                        parent_block_stmt_individual = parent_block_node.stmt_try_individual
+            elif type(parent_block_node) is astroid.TryExcept and not type(stmt_node) is astroid.ExceptHandler:
+                assert stmt_node in parent_block_node.body
+                parent_block_stmt_individual = parent_block_node.stmt_try_individual
+            else:
+                if hasattr(parent_block_node, "stmt_individual"):
+                    parent_block_stmt_individual = parent_block_node.stmt_individual
+            if parent_block_stmt_individual is not None:
+                parent_block_stmt_individual.hasSubStatement.append(getattr(stmt_node, stmt_attr))
+                assert parent_block_stmt_individual == getattr(stmt_node, stmt_attr).isSubStatementOf
 
     @staticmethod
     def init_assert_statement(assert_node: astroid.Assert):
@@ -348,7 +364,7 @@ class OntologyIndividuals:
 
     @staticmethod
     def init_local_variable_declaration_statement(var_node: astroid.AssignName):
-        # ??? What about variables declared by `for loops` or `with statements`
+        # ??? What about variables declared by `for loops` or `with statements`, or `except`s
         ref_node = var_node.scope()
         OntologyIndividuals.init_declaration_statement(
             var_node, ref_node=ref_node, stmt_type=ontology.LocalVariableDeclarationStatement
@@ -359,16 +375,23 @@ class OntologyIndividuals:
         pass
 
     @staticmethod
-    def init_catch_statement():
-        pass
+    def init_catch_statement(except_node: astroid.ExceptHandler):
+        if not hasattr(except_node, "stmt_individual"):
+            OntologyIndividuals.init_statement(except_node, stmt_type=ontology.CatchStatement)
 
     @staticmethod
-    def init_finally_statement():
-        pass
+    def init_finally_statement(try_finally_node: astroid.TryFinally):
+        if not hasattr(try_finally_node, "stmt_finally_individual"):
+            # !!! Could need to adjust line number, not really distinguishing between the `try` and `finally` blocks
+            OntologyIndividuals.init_statement(
+                try_finally_node, stmt_type=ontology.FinallyStatement, stmt_attr="stmt_finally_individual")
 
     @staticmethod
-    def init_try_statement():
-        pass
+    def init_try_statement(try_except_finally_node: Union[astroid.TryFinally, astroid.TryExcept]):
+        if not hasattr(try_except_finally_node, "stmt_try_individual"):
+            # !!! Could need to adjust line number, not really distinguishing between the `try` and `finally` blocks
+            OntologyIndividuals.init_statement(
+                try_except_finally_node, stmt_type=ontology.TryStatement, stmt_attr="stmt_try_individual")
 
     @staticmethod
     def init_expression_statement(expr_node: astroid.Expr):

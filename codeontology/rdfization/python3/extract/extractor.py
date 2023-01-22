@@ -10,24 +10,7 @@ from tqdm import tqdm
 from codeontology.ontology import ontology
 from codeontology.rdfization.python3.explore import Project
 from codeontology.rdfization.python3.extract.individuals import OntologyIndividuals
-from codeontology.rdfization.python3.extract.utils import get_parent_node
-
-
-"""
-individual:
- - astroid.Module
- 
-stmt_individual:
- - astroid.Import
- - astroid.ImportFrom
-
-multi_individuals:
- - ...
- 
-No individuals:
- - ...
-
-"""
+from codeontology.rdfization.python3.extract.utils import get_parent_node, get_parent_block_node, BLOCK_NODES
 
 
 class Extractor:
@@ -85,25 +68,39 @@ class Extractor:
         extract_function(node, do_link_stmts=do_link_stmts)
 
     @staticmethod
-    def _link_stmts(node: astroid.NodeNG):
-        assert node.is_statement and hasattr(node, "stmt_individual")
-        prev = node.previous_sibling()
+    def _link_prev_stmt(node: astroid.NodeNG, stmt_attr: str = "stmt_individual"):
+        assert node.is_statement and hasattr(node, stmt_attr)
+        if type(node) is astroid.ExceptHandler and node.previous_sibling() is None:
+            prev = node.parent
+            assert type(prev) is astroid.TryExcept
+        else:
+            prev = node.previous_sibling()
         if prev is not None:
             # !!! We are extracting and linking statements only from scopes we are visiting in their entirety: in that
             #  case AST nodes are visited sequentially, so we always pass through the previous node first, for which
             #  the "statement individual" should then exists!
             assert prev.is_statement
             # !!! TODO Convert to assert once all the statements are extracted
-            if hasattr(prev, "stmt_individual"):
-                assert prev.stmt_individual is not None
-                node.stmt_individual.hasPreviousStatement = prev.stmt_individual
-                assert node.stmt_individual is prev.stmt_individual.hasNextStatement
-                if prev.stmt_individual.hasStatementPosition is None:
-                    node.stmt_individual.hasStatementPosition = get_statement_position(node)
+            prev_stmt_individual = None
+            if type(prev) is astroid.TryFinally:
+                if hasattr(prev, "stmt_finally_individual"):
+                    prev_stmt_individual = prev.stmt_finally_individual
+            elif type(prev) is astroid.TryExcept and type(node) is astroid.ExceptHandler:
+                if hasattr(prev, "stmt_try_individual"):
+                    prev_stmt_individual = prev.stmt_try_individual
+            elif type(prev) is astroid.TryExcept:
+                last_handler = prev.handlers[-1]
+                if hasattr(last_handler, "stmt_individual"):
+                    prev_stmt_individual = last_handler.stmt_individual
+            if prev_stmt_individual is not None:
+                getattr(node, stmt_attr).hasPreviousStatement = prev_stmt_individual
+                assert getattr(node, stmt_attr) is prev_stmt_individual.hasNextStatement
+                if prev_stmt_individual.hasStatementPosition is None:
+                    getattr(node, stmt_attr).hasStatementPosition = get_statement_position(node)
                 else:
-                    node.stmt_individual.hasStatementPosition = prev.stmt_individual.hasStatementPosition + 1
+                    getattr(node, stmt_attr).hasStatementPosition = prev_stmt_individual.hasStatementPosition + 1
         else:
-            for node_stmt_individual in [node.stmt_individual] + node.stmt_individual.get_equivalent_to():
+            for node_stmt_individual in [getattr(node, stmt_attr)] + getattr(node, stmt_attr).get_equivalent_to():
                 node_stmt_individual.hasStatementPosition = OntologyIndividuals.START_POSITION_COUNT
 
     # TODO Add a general comment about the following methods, so you don't put doc inside every method
@@ -125,7 +122,7 @@ class Extractor:
         OntologyIndividuals.init_import_statement(import_node)
 
         if do_link_stmts:
-            Extractor._link_stmts(import_node)
+            Extractor._link_prev_stmt(import_node)
 
         for module in import_node.references:
             if module:
@@ -140,7 +137,7 @@ class Extractor:
         OntologyIndividuals.init_import_statement(import_node)
 
         if do_link_stmts:
-            Extractor._link_stmts(import_node)
+            Extractor._link_prev_stmt(import_node)
 
         for referenced_node in import_node.references:
             if referenced_node is not None:
@@ -186,7 +183,7 @@ class Extractor:
         OntologyIndividuals.init_class(class_node)
 
         if do_link_stmts:
-            Extractor._link_stmts(class_node)
+            Extractor._link_prev_stmt(class_node)
 
         module = class_node.root()
         Extractor.extract(module, do_link_stmts=False)
@@ -271,7 +268,7 @@ class Extractor:
                         f"{scope.ast.package_.full_name}.{function_node.name}"
 
         if do_link_stmts:
-            Extractor._link_stmts(function_node)
+            Extractor._link_prev_stmt(function_node)
 
         if hasattr(function_node, "returns_type"):
             return_type_individuals = extract_structured_type(function_node.returns_type)
@@ -330,7 +327,7 @@ class Extractor:
         extract_expression(expression_node)
 
         if do_link_stmts:
-            Extractor._link_stmts(return_node)
+            Extractor._link_prev_stmt(return_node)
 
         return_node.stmt_individual.isReturnStatementOf = function_node.individual
         assert return_node.stmt_individual in function_node.individual.hasReturnStatement
@@ -379,7 +376,7 @@ class Extractor:
             assert assign_node.expr_individual == left_value_individual.isLeftHandSideOf
 
         if do_link_stmts:
-            Extractor._link_stmts(assign_node)
+            Extractor._link_prev_stmt(assign_node)
 
     @staticmethod
     def extract_ann_assign(ann_assign_node: astroid.AnnAssign, do_link_stmts: bool):
@@ -416,6 +413,12 @@ class Extractor:
         assert_node.individual.hasAssertExpression = expression_individual
         assert assert_node.individual == expression_individual.isAssertExpressionOf
 
+    # ------------------------------------------------------------------------------------------------------------------
+
+    # ------------------------------------------------------------------------------------------------------------------
+
+    # ------------------------------------------------------------------------------------------------------------------
+
     @staticmethod
     def extract_async_for(node: astroid.AsyncFor, do_link_stmts: bool):
         assert not node.is_statement
@@ -447,7 +450,7 @@ class Extractor:
         OntologyIndividuals.init_break_statement(break_node)
 
         if do_link_stmts:
-            Extractor._link_stmts(break_node)
+            Extractor._link_prev_stmt(break_node)
 
         parent_loop = get_parent_node(break_node, parent_types={astroid.For, astroid.While})
         Extractor.extract(parent_loop, do_link_stmts=False)
@@ -477,7 +480,7 @@ class Extractor:
         OntologyIndividuals.init_continue_statement(continue_node)
 
         if do_link_stmts:
-            Extractor._link_stmts(continue_node)
+            Extractor._link_prev_stmt(continue_node)
 
         parent_loop = get_parent_node(continue_node, parent_types={astroid.For, astroid.While})
         Extractor.extract(parent_loop, do_link_stmts=False)
@@ -517,10 +520,6 @@ class Extractor:
         assert not node.is_statement
 
     @staticmethod
-    def extract_except_handler(node: astroid.ExceptHandler, do_link_stmts: bool):
-        assert node.is_statement
-
-    @staticmethod
     def extract_expr(expr_stmt_node: astroid.Expr, do_link_stmts: bool):
         assert expr_stmt_node.is_statement
 
@@ -546,7 +545,7 @@ class Extractor:
         OntologyIndividuals.init_for_each_statement(for_node)
 
         if do_link_stmts:
-            Extractor._link_stmts(for_node)
+            Extractor._link_prev_stmt(for_node)
 
         if type(for_node.target) in [astroid.List, astroid.Tuple]:
             variable_nodes = for_node.target.elts
@@ -687,13 +686,73 @@ class Extractor:
     def extract_subscript(node: astroid.Subscript, do_link_stmts: bool):
         assert not node.is_statement
 
-    @staticmethod
-    def extract_try_except(node: astroid.TryExcept, do_link_stmts: bool):
-        assert node.is_statement
+    # During parsing a try-except-finally is converted into a try-finally whose try body contains a try-except. This
+    #  means that the code:
+    #   >>> try:
+    #   >>>     pass
+    #   >>> except:
+    #   >>>     pass
+    #   >>> finally:
+    #   >>>     pass
+    #  Will become:
+    #   >>> try:
+    #   >>>     try:
+    #   >>>         pass
+    #   >>>     except:
+    #   >>>         pass
+    #   >>> finally:
+    #   >>>     pass
+    # Because of `astroid` the two states are equivalent, and the first one will always become the second one.
 
     @staticmethod
-    def extract_try_finally(node: astroid.TryFinally, do_link_stmts: bool):
-        assert node.is_statement
+    def extract_try_except(try_except_node: astroid.TryExcept, do_link_stmts: bool):
+        assert try_except_node.is_statement
+        OntologyIndividuals.init_try_statement(try_except_node)
+
+        if do_link_stmts:
+            Extractor._link_prev_stmt(try_except_node, stmt_attr="stmt_try_individual")
+
+    @staticmethod
+    def extract_except_handler(except_handler_node: astroid.ExceptHandler, do_link_stmts: bool):
+        assert except_handler_node.is_statement
+        OntologyIndividuals.init_catch_statement(except_handler_node)
+        try_except_node = except_handler_node.parent
+        assert type(try_except_node) is astroid.TryExcept
+        Extractor.extract(try_except_node, do_link_stmts=False)
+
+        except_handler_node.stmt_individual.isCatchClauseOf = try_except_node.stmt_try_individual
+        assert except_handler_node.stmt_individual in try_except_node.stmt_try_individual.hasCatchClause
+
+        if except_handler_node.type is not None:
+            if type(except_handler_node.type) is astroid.Tuple:
+                _types = except_handler_node.type.elts
+            else:
+                _types = [except_handler_node.type]
+            for _type in _types:
+                assert type(_type) is astroid.Name
+                if hasattr(_type, "references") and _type.references is not None:
+                    _class = _type.references
+                    assert type(_class) is astroid.ClassDef
+                    Extractor.extract(_type, do_link_stmts=False)
+                    except_handler_node.stmt_individual.hasCatchFormalParameter.append(_type.individual)
+
+        if do_link_stmts:
+            Extractor._link_prev_stmt(except_handler_node)
+
+    @staticmethod
+    def extract_try_finally(try_finally_node: astroid.TryFinally, do_link_stmts: bool):
+        assert try_finally_node.is_statement
+
+        OntologyIndividuals.init_try_statement(try_finally_node)
+        OntologyIndividuals.init_finally_statement(try_finally_node)
+
+        try_finally_node.stmt_try_individual.hasNextStatement = try_finally_node.stmt_finally_individual
+        assert try_finally_node.stmt_try_individual == try_finally_node.stmt_finally_individual.hasPreviousStatement
+        try_finally_node.stmt_try_individual.hasFinallyClause = try_finally_node.stmt_finally_individual
+        assert try_finally_node.stmt_try_individual == try_finally_node.stmt_finally_individual.isFinallyClauseOf
+
+        if do_link_stmts:
+            Extractor._link_prev_stmt(try_finally_node, stmt_attr="stmt_try_individual")
 
     @staticmethod
     def extract_tuple(node: astroid.Tuple, do_link_stmts: bool):
@@ -714,7 +773,7 @@ class Extractor:
         OntologyIndividuals.init_while_statement(while_node)
 
         if do_link_stmts:
-            Extractor._link_stmts(while_node)
+            Extractor._link_prev_stmt(while_node)
 
         extract_expression(while_node.test)
 
@@ -923,7 +982,8 @@ def extract_variable(target: Union[astroid.AssignName, astroid.AssignAttr, astro
                         var_individual = param_individual
                         break
                 assert var_individual is not None
-            elif type(parent_node) is [astroid.FunctionDef, astroid.AsyncFunctionDef, astroid.For, astroid.With]:
+            elif type(parent_node) is [astroid.FunctionDef, astroid.AsyncFunctionDef,
+                                       astroid.For, astroid.With, astroid.ExceptHandler]:
                 # Local variable
                 OntologyIndividuals.init_local_variable(var_target.reference, parent_node)
                 var_individual = var_target.reference.individual
