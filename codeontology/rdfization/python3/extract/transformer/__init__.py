@@ -334,7 +334,7 @@ class Transformer:
     @staticmethod
     def _transform_ann_assign(ann_assign_node: astroid.AnnAssign):
         def add_structured_annotation(_ann_assign_node: astroid.AnnAssign):
-            """TODO"""
+            """TOCOMMENT"""
             from codeontology.rdfization.python3.extract.transformer.tracking import resolve_annotation
             ann_assign_node.structured_annotation = resolve_annotation(ann_assign_node.annotation)
 
@@ -346,7 +346,7 @@ class Transformer:
     @staticmethod
     def _transform_name(name_node: astroid.Name):
         def add_reference(_name_node: astroid.Name):
-            """TODO"""
+            """TOCOMMENT"""
             from codeontology.rdfization.python3.extract.transformer.tracking import \
                 track_name_from_local, TrackingFailException
             with pass_on_exception((TrackingFailException,)):
@@ -359,7 +359,7 @@ class Transformer:
     @staticmethod
     def _transform_assign_name(assign_name_node: astroid.AssignName):
         def add_reference(_assign_name_node: astroid.AssignName):
-            """TODO"""
+            """TOCOMMENT"""
             from codeontology.rdfization.python3.extract.transformer.tracking import \
                 track_name_from_local, TrackingFailException
             with pass_on_exception((TrackingFailException,)):
@@ -372,7 +372,7 @@ class Transformer:
     @staticmethod
     def _transform_attribute(attribute_node: astroid.Attribute):
         def add_reference(_attribute_node: astroid.Attribute):
-            """TODO"""
+            """TOCOMMENT"""
             from codeontology.rdfization.python3.extract.transformer.tracking import \
                 track_attr_from_local, TrackingFailException
             with pass_on_exception((TrackingFailException,)):
@@ -385,7 +385,7 @@ class Transformer:
     @staticmethod
     def _transform_assign_attr(assign_attr_node: astroid.AssignAttr):
         def add_reference(_assign_attr_node: astroid.AssignAttr):
-            """TODO"""
+            """TOCOMMENT"""
             from codeontology.rdfization.python3.extract.transformer.tracking import \
                 track_attr_from_local, TrackingFailException
             with pass_on_exception((TrackingFailException,)):
@@ -397,6 +397,6 @@ class Transformer:
 
     @staticmethod
     def _add_description(node: astroid.NodeNG):
-        """TODO"""
+        """TOCOMMENT"""
         if hasattr(node, "doc_node"):
             node.description = CommentParser.get_description(node)

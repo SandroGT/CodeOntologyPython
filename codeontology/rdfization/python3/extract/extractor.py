@@ -80,7 +80,6 @@ class Extractor:
             #  case AST nodes are visited sequentially, so we always pass through the previous node first, for which
             #  the "statement individual" should then exists!
             assert prev.is_statement
-            # !!! TODO Convert to assert once all the statements are extracted
             prev_stmt_individual = None
             if type(prev) is astroid.TryFinally:
                 if hasattr(prev, "stmt_finally_individual"):
@@ -496,8 +495,13 @@ class Extractor:
         assert not node.is_statement
 
     @staticmethod
-    def extract_delete(node: astroid.Delete, do_link_stmts: bool):
-        assert node.is_statement
+    def extract_delete(del_node: astroid.Delete, do_link_stmts: bool):
+        assert del_node.is_statement
+
+        OntologyIndividuals.init_statement(del_node, stmt_type=ontology.Statement)
+
+        if do_link_stmts:
+            Extractor._link_prev_stmt(del_node)
 
     @staticmethod
     def extract_dict(node: astroid.Dict, do_link_stmts: bool):
@@ -573,8 +577,13 @@ class Extractor:
         assert not node.is_statement
 
     @staticmethod
-    def extract_global(node: astroid.Global, do_link_stmts: bool):
-        assert node.is_statement
+    def extract_global(global_node: astroid.Global, do_link_stmts: bool):
+        assert global_node.is_statement
+
+        OntologyIndividuals.init_statement(global_node, stmt_type=ontology.Statement)
+
+        if do_link_stmts:
+            Extractor._link_prev_stmt(global_node)
 
     @staticmethod
     def extract_if(if_node: astroid.If, do_link_stmts: bool):
@@ -627,8 +636,13 @@ class Extractor:
         assert not node.is_statement
 
     @staticmethod
-    def extract_match(node: astroid.Match, do_link_stmts: bool):
-        assert node.is_statement
+    def extract_match(match_node: astroid.Match, do_link_stmts: bool):
+        assert match_node.is_statement
+
+        OntologyIndividuals.init_statement(match_node, stmt_type=ontology.Statement)
+
+        if do_link_stmts:
+            Extractor._link_prev_stmt(match_node)
 
     @staticmethod
     def extract_match_as(node: astroid.MatchAs, do_link_stmts: bool):
@@ -671,16 +685,35 @@ class Extractor:
         assert not node.is_statement
 
     @staticmethod
-    def extract_nonlocal(node: astroid.Nonlocal, do_link_stmts: bool):
-        assert node.is_statement
+    def extract_nonlocal(nonlocal_node: astroid.Nonlocal, do_link_stmts: bool):
+        assert nonlocal_node.is_statement
+
+        OntologyIndividuals.init_statement(nonlocal_node, stmt_type=ontology.Statement)
+
+        if do_link_stmts:
+            Extractor._link_prev_stmt(nonlocal_node)
 
     @staticmethod
-    def extract_pass(node: astroid.Pass, do_link_stmts: bool):
-        assert node.is_statement
+    def extract_pass(pass_node: astroid.Pass, do_link_stmts: bool):
+        assert pass_node.is_statement
+
+        OntologyIndividuals.init_statement(pass_node, stmt_type=ontology.Statement)
+
+        if do_link_stmts:
+            Extractor._link_prev_stmt(pass_node)
 
     @staticmethod
-    def extract_raise(node: astroid.Raise, do_link_stmts: bool):
-        assert node.is_statement
+    def extract_raise(raise_node: astroid.Raise, do_link_stmts: bool):
+        assert raise_node.is_statement
+
+        OntologyIndividuals.init_statement(raise_node, stmt_type=ontology.ThrowStatement)
+        extract_expression(raise_node.exc)
+
+        raise_node.stmt_individual.hasThrownExpression = raise_node.exc.expr_individual
+        assert raise_node.stmt_individual == raise_node.exc.expr_individual.isThrownExpressionOf
+
+        if do_link_stmts:
+            Extractor._link_prev_stmt(raise_node)
 
     @staticmethod
     def extract_set(node: astroid.Set, do_link_stmts: bool):
@@ -797,8 +830,13 @@ class Extractor:
         assert while_node.stmt_individual == while_node.test.expr_individual.isConditionOf
 
     @staticmethod
-    def extract_with(node: astroid.With, do_link_stmts: bool):
-        assert node.is_statement
+    def extract_with(with_node: astroid.With, do_link_stmts: bool):
+        assert with_node.is_statement
+
+        OntologyIndividuals.init_statement(with_node, stmt_type=ontology.Statement)
+
+        if do_link_stmts:
+            Extractor._link_prev_stmt(with_node)
 
 
 def extract_structured_type(
@@ -1032,8 +1070,13 @@ def get_statement_position(node: astroid.nodes.Statement) -> int:
     iter_node: astroid.nodes.Statement = node.previous_sibling()
     while iter_node:
         assert isinstance(iter_node, astroid.nodes.Statement) and iter_node.is_statement
-        pos += 1
         iter_node = iter_node.previous_sibling()
+        if type(iter_node) is astroid.TryFinally:
+            pos += 2  # Try + Finally
+        elif type(iter_node) is astroid.TryExcept:
+            pos += 1 + len(iter_node.handlers)  # Try + Excepts
+        else:
+            pos += 1
 
     return OntologyIndividuals.START_POSITION_COUNT + pos
 
