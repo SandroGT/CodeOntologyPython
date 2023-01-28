@@ -32,8 +32,3 @@ def get_parent_node(
         iter_node = iter_node.parent
 
     return iter_node
-
-
-def get_parent_block_node(node: astroid.NodeNG):
-    """TOCOMMENT find parent node for sub-statement relations"""
-    return get_parent_node(node, BLOCK_NODES)

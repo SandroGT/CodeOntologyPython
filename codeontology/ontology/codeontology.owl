@@ -249,6 +249,7 @@
         <rdfs:domain>
             <owl:Class>
                 <owl:unionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/ComplexType"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/ExceptionHandlingStatement"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Executable"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/LambdaExpression"/>
@@ -1234,6 +1235,7 @@
         <rdfs:range>
             <owl:Class>
                 <owl:unionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/ComplexType"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/ExceptionHandlingStatement"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Executable"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/LambdaExpression"/>
@@ -2899,6 +2901,21 @@
             <owl:Class>
                 <owl:intersectionOf rdf:parseType="Collection">
                     <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasBody"/>
+                        <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/BlockStatement"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasBody"/>
+                        <owl:maxQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:maxQualifiedCardinality>
+                        <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/BlockStatement"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Restriction>
                         <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasPackage"/>
                         <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Package"/>
                     </owl:Restriction>
@@ -4078,12 +4095,26 @@
                 <owl:intersectionOf rdf:parseType="Collection">
                     <owl:Restriction>
                         <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasElseBranch"/>
-                        <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Statement"/>
+                        <owl:allValuesFrom>
+                            <owl:Class>
+                                <owl:unionOf rdf:parseType="Collection">
+                                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/BlockStatement"/>
+                                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/IfThenElseStatement"/>
+                                </owl:unionOf>
+                            </owl:Class>
+                        </owl:allValuesFrom>
                     </owl:Restriction>
                     <owl:Restriction>
                         <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasElseBranch"/>
                         <owl:maxQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:maxQualifiedCardinality>
-                        <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/Statement"/>
+                        <owl:onClass>
+                            <owl:Class>
+                                <owl:unionOf rdf:parseType="Collection">
+                                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/BlockStatement"/>
+                                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/IfThenElseStatement"/>
+                                </owl:unionOf>
+                            </owl:Class>
+                        </owl:onClass>
                     </owl:Restriction>
                 </owl:intersectionOf>
             </owl:Class>
@@ -4093,12 +4124,12 @@
                 <owl:intersectionOf rdf:parseType="Collection">
                     <owl:Restriction>
                         <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasThenBranch"/>
-                        <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/Statement"/>
+                        <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/BlockStatement"/>
                     </owl:Restriction>
                     <owl:Restriction>
                         <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasThenBranch"/>
                         <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
-                        <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/Statement"/>
+                        <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/BlockStatement"/>
                     </owl:Restriction>
                 </owl:intersectionOf>
             </owl:Class>

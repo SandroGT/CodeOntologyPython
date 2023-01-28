@@ -8,7 +8,7 @@ import astroid
 
 from codeontology.ontology import ontology
 from codeontology.rdfization.python3.explore import Project, Library, Package
-from codeontology.rdfization.python3.extract.utils import get_parent_node ,get_parent_block_node
+from codeontology.rdfization.python3.extract.utils import get_parent_node, BLOCK_NODES
 
 
 class OntologyIndividuals:
@@ -62,10 +62,14 @@ class OntologyIndividuals:
     ):
         if not hasattr(function_node, "individual"):
             assert not hasattr(function_node, "stmt_individual")
-            assert not hasattr(function_node, "block_stmt_individual")
+            assert not hasattr(function_node, "stmt_block_individual")
 
             function_node.individual = ontology_type()
             OntologyIndividuals.init_declaration_statement(function_node)
+            OntologyIndividuals.init_block_statement(function_node)
+
+            function_node.stmt_individual.hasBody = function_node.stmt_block_individual
+            assert function_node.stmt_individual == function_node.stmt_block_individual.isBodyOf
 
             function_node.individual.hasDeclaration = function_node.stmt_individual
 
@@ -222,22 +226,7 @@ class OntologyIndividuals:
                 true_stmt_node.stmt_individual.set_equivalent_to([getattr(stmt_node, stmt_attr)])
                 assert true_stmt_node.stmt_individual not in getattr(stmt_node, stmt_attr).get_equivalent_to()
 
-            parent_block_node = get_parent_block_node(stmt_node)
-            parent_block_stmt_individual = None
-            if type(parent_block_node) is astroid.TryFinally:
-                if stmt_node in parent_block_node.finalbody:
-                    if hasattr(parent_block_node, "stmt_finally_individual"):
-                        parent_block_stmt_individual = parent_block_node.stmt_finally_individual
-                else:
-                    assert stmt_node in parent_block_node.body
-                    if hasattr(parent_block_node, "stmt_try_individual"):
-                        parent_block_stmt_individual = parent_block_node.stmt_try_individual
-            elif type(parent_block_node) is astroid.TryExcept and not type(stmt_node) is astroid.ExceptHandler:
-                assert stmt_node in parent_block_node.body
-                parent_block_stmt_individual = parent_block_node.stmt_try_individual
-            else:
-                if hasattr(parent_block_node, "stmt_individual"):
-                    parent_block_stmt_individual = parent_block_node.stmt_individual
+            parent_block_stmt_individual = get_parent_block_individual(stmt_node)
             if parent_block_stmt_individual is not None:
                 parent_block_stmt_individual.hasSubStatement.append(getattr(stmt_node, stmt_attr))
                 assert parent_block_stmt_individual == getattr(stmt_node, stmt_attr).isSubStatementOf
@@ -248,13 +237,21 @@ class OntologyIndividuals:
             OntologyIndividuals.init_statement(assert_node, stmt_type=ontology.AssertStatement)
 
     @staticmethod
-    def init_block_statement(node: astroid.NodeNG):
-        # !!! Not used, since I later realized the `Block Statement` class in the ontology is kinda nonsense. Why it is
-        #  applied to define the body of an `Executable` but not the body of a `Class`? Why it does define the body of a
-        #  `Loop Statement` but not the one of a `If-Then-Else Statement`? I just decided to define the body of
-        #  everything that has a body just by using directly the `has sub-statement` property without passing trough a
-        #  `Block Statement` individual.
-        pass
+    def init_block_statement(node: astroid.NodeNG, stmt_attr: str = "stmt_block_individual"):
+        if not hasattr(node, stmt_attr):
+            OntologyIndividuals.init_statement(node, stmt_type=ontology.BlockStatement, stmt_attr=stmt_attr)
+            stmt_individual = getattr(node, stmt_attr)
+            if type(node) is astroid.If:
+                if stmt_attr == "stmt_block_then_individual":
+                    if node.body[-1].end_lineno is not None:
+                        stmt_individual.hasEndLine = node.body[-1].end_lineno
+                else:
+                    assert stmt_attr == "stmt_block_else_individual"
+                    if node.orelse[-1].end_lineno is not None:
+                        stmt_individual.hasEndLine = node.orelse[-1].end_lineno
+            else:
+                if node.end_lineno is not None:
+                    stmt_individual.hasEndLine = node.end_lineno
 
     @staticmethod
     def init_labeled_block():
@@ -300,8 +297,19 @@ class OntologyIndividuals:
         pass
 
     @staticmethod
-    def init_if_then_else_statement():
-        pass
+    def init_if_then_else_statement(if_node: astroid.If):
+        if not hasattr(if_node, "stmt_individual"):
+            OntologyIndividuals.init_statement(if_node, stmt_type=ontology.IfThenElseStatement)
+            OntologyIndividuals.init_block_statement(if_node, stmt_attr="stmt_block_then_individual")
+
+            if_node.stmt_individual.hasThenBranch = if_node.stmt_block_then_individual
+            assert if_node.stmt_individual == if_node.stmt_block_then_individual.isThenBranchOf
+
+            if not if_node.has_elif_block() and if_node.orelse:
+                OntologyIndividuals.init_block_statement(if_node, stmt_attr="stmt_block_else_individual")
+
+                if_node.stmt_individual.hasElseBranch = if_node.stmt_block_else_individual
+                assert if_node.stmt_individual == if_node.stmt_block_else_individual.isElseBranchOf
 
     @staticmethod
     def init_switch_statement():
@@ -327,12 +335,22 @@ class OntologyIndividuals:
     @staticmethod
     def init_for_each_statement(for_node: astroid.For):
         if not hasattr(for_node, "stmt_individual"):
+            assert not hasattr(for_node, "stmt_block_individual")
             OntologyIndividuals.init_loop_statement(for_node, stmt_type=ontology.ForEachStatement)
+            OntologyIndividuals.init_block_statement(for_node)
+
+            for_node.stmt_individual.hasBody = for_node.stmt_block_individual
+            assert for_node.stmt_individual == for_node.stmt_block_individual.isBodyOf
 
     @staticmethod
     def init_while_statement(while_node: astroid.While):
         if not hasattr(while_node, "stmt_individual"):
+            assert not hasattr(while_node, "stmt_block_individual")
             OntologyIndividuals.init_loop_statement(while_node, stmt_type=ontology.WhileStatement)
+            OntologyIndividuals.init_block_statement(while_node)
+
+            while_node.stmt_individual.hasBody = while_node.stmt_block_individual
+            assert while_node.stmt_individual == while_node.stmt_block_individual.isBodyOf
 
     @staticmethod
     def init_declaration_statement(
@@ -377,21 +395,36 @@ class OntologyIndividuals:
     @staticmethod
     def init_catch_statement(except_node: astroid.ExceptHandler):
         if not hasattr(except_node, "stmt_individual"):
+            assert not hasattr(except_node, "stmt_block_individual")
             OntologyIndividuals.init_statement(except_node, stmt_type=ontology.CatchStatement)
+            OntologyIndividuals.init_block_statement(except_node)
+
+            except_node.stmt_individual.hasBody = except_node.stmt_block_individual
+            assert except_node.stmt_individual == except_node.stmt_block_individual.isBodyOf
 
     @staticmethod
     def init_finally_statement(try_finally_node: astroid.TryFinally):
         if not hasattr(try_finally_node, "stmt_finally_individual"):
+            assert not hasattr(try_finally_node, "stmt_block_individual")
             # !!! Could need to adjust line number, not really distinguishing between the `try` and `finally` blocks
             OntologyIndividuals.init_statement(
                 try_finally_node, stmt_type=ontology.FinallyStatement, stmt_attr="stmt_finally_individual")
+            OntologyIndividuals.init_block_statement(try_finally_node)
+
+            try_finally_node.stmt_finally_individual.hasBody = try_finally_node.stmt_block_individual
+            assert try_finally_node.stmt_finally_individual == try_finally_node.stmt_block_individual.isBodyOf
 
     @staticmethod
     def init_try_statement(try_except_finally_node: Union[astroid.TryFinally, astroid.TryExcept]):
         if not hasattr(try_except_finally_node, "stmt_try_individual"):
+            assert not hasattr(try_except_finally_node, "stmt_block_individual")
             # !!! Could need to adjust line number, not really distinguishing between the `try` and `finally` blocks
             OntologyIndividuals.init_statement(
                 try_except_finally_node, stmt_type=ontology.TryStatement, stmt_attr="stmt_try_individual")
+            OntologyIndividuals.init_block_statement(try_except_finally_node)
+
+            try_except_finally_node.stmt_try_individual.hasBody = try_except_finally_node.stmt_block_individual
+            assert try_except_finally_node.stmt_try_individual == try_except_finally_node.stmt_block_individual.isBodyOf
 
     @staticmethod
     def init_expression_statement(expr_node: astroid.Expr):
@@ -439,9 +472,11 @@ class OntologyIndividuals:
         # The only Type we use along with `Parameterized Type`.
         if not hasattr(class_node, "individual"):
             assert not hasattr(class_node, "stmt_individual")
-            assert not hasattr(class_node, "dec_stmt_individual")
+            assert not hasattr(class_node, "stmt_block_individual")
+
             class_node.individual = ontology.Class()
             OntologyIndividuals.init_declaration_statement(class_node)
+            OntologyIndividuals.init_block_statement(class_node)
 
             class_node.stmt_individual.declares.append(class_node.individual)
 
@@ -626,3 +661,20 @@ class OntologyIndividuals:
         project.individual.hasName = project.name
         # TODO `project.individual.hasBuildFile`, retrieving the content of the setup file
         # TODO `project.individual.hasComment`, retrieving the description from the setup file
+
+
+def get_parent_block_individual(node: astroid.NodeNG) -> Union[ontology.BlockStatement, None]:
+    """TOCOMMENT find parent node for block-statement relations"""
+    parent_block_node = get_parent_node(node, BLOCK_NODES)
+    parent_block_individual = None
+
+    if type(parent_block_node) is astroid.If:
+        if node in parent_block_node.body:
+            parent_block_individual = getattr(parent_block_node, "stmt_block_then_individual", None)
+        else:
+            assert node in parent_block_node.orelse
+            parent_block_individual = getattr(parent_block_node, "stmt_block_else_individual", None)
+    elif parent_block_node is not None:
+        parent_block_individual = getattr(parent_block_node, "stmt_block_individual", None)
+
+    return parent_block_individual

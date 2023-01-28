@@ -10,7 +10,7 @@ from tqdm import tqdm
 from codeontology.ontology import ontology
 from codeontology.rdfization.python3.explore import Project
 from codeontology.rdfization.python3.extract.individuals import OntologyIndividuals
-from codeontology.rdfization.python3.extract.utils import get_parent_node, get_parent_block_node, BLOCK_NODES
+from codeontology.rdfization.python3.extract.utils import get_parent_node, BLOCK_NODES
 
 
 class Extractor:
@@ -577,8 +577,24 @@ class Extractor:
         assert node.is_statement
 
     @staticmethod
-    def extract_if(node: astroid.If, do_link_stmts: bool):
-        assert node.is_statement
+    def extract_if(if_node: astroid.If, do_link_stmts: bool):
+        assert if_node.is_statement
+
+        OntologyIndividuals.init_if_then_else_statement(if_node)
+
+        if if_node.has_elif_block():
+            assert len(if_node.orelse) == 1
+            Extractor.extract(if_node.orelse[0], do_link_stmts=True)
+
+            if_node.stmt_individual.hasElseBranch = if_node.orelse[0].stmt_individual
+            assert if_node.stmt_individual == if_node.orelse[0].stmt_individual.isElseBranchOf
+
+        extract_expression(if_node.test)
+        if_node.stmt_individual.hasCondition = if_node.test.expr_individual
+        assert if_node.stmt_individual == if_node.test.expr_individual.isConditionOf
+
+        if do_link_stmts:
+            Extractor._link_prev_stmt(if_node)
 
     @staticmethod
     def extract_if_exp(node: astroid.IfExp, do_link_stmts: bool):
