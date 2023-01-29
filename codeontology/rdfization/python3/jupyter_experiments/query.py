@@ -6,6 +6,7 @@ def do_query_and_show_res(query: str, max_res=20) -> list:
 
     n = len(str(max_res))
     results = [tuple(r) for r in owl.default_world.sparql(query)]
+    results.sort(key=lambda x:x[0])
     shown_res = []
     if results:
         print(f"Results:\n")

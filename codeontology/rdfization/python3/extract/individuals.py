@@ -674,6 +674,9 @@ def get_parent_block_individual(node: astroid.NodeNG) -> Union[ontology.BlockSta
         else:
             assert node in parent_block_node.orelse
             parent_block_individual = getattr(parent_block_node, "stmt_block_else_individual", None)
+    elif type(parent_block_node) is astroid.Module:
+        if hasattr(parent_block_node, "ast"):
+            parent_block_individual = getattr(parent_block_node.ast, "package_", None)
     elif parent_block_node is not None:
         parent_block_individual = getattr(parent_block_node, "stmt_block_individual", None)
 

@@ -87,7 +87,8 @@ class Transformer:
             if function_node.returns is not None:
                 return_type = function_node.returns
             function_node.returns_type = resolve_annotation(return_type, context_node=function_node)
-            function_node.returns_description = return_description
+            function_node.returns_description = \
+                "Returns: " + return_description.strip() if return_description is not None else return_description
 
         LOGGER.debug(f"Applying `FunctionDef` transform to '{function_node.name}'"
                      f" (from '{function_node.root().file}').")
@@ -173,6 +174,10 @@ class Transformer:
             assert type(args_node) is astroid.Arguments
             from codeontology.rdfization.python3.extract.transformer.tracking import resolve_annotation, resolve_value
 
+            if args_node.parent.name == "relation_expansion":
+                a = 0
+                pass
+
             executable_node = args_node.parent
             assert type(executable_node) in [astroid.FunctionDef, astroid.AsyncFunctionDef, astroid.Lambda]
 
@@ -188,8 +193,11 @@ class Transformer:
 
             # Read all the parameters and accumulate them
             parameters = []
-            i = 0
             is_var_args = False
+            if type(executable_node) in [astroid.FunctionDef, astroid.AsyncFunctionDef] and executable_node.is_method():
+                is_self_reference = True
+            else:
+                is_self_reference = False
             for arg_field_name, ann_field_name, is_positional, is_vararg in args_fields:
                 arg_field = getattr(args_node, arg_field_name)
                 ann_field = getattr(args_node, ann_field_name)
@@ -199,7 +207,7 @@ class Transformer:
                 if is_vararg and arg_field:
                     is_var_args = True
 
-                for arg, ann in zip(arg_field, ann_field):
+                for i, (arg, ann) in enumerate(zip(arg_field, ann_field)):
                     if is_vararg:
                         assert type(arg) is str
                         arg_name = arg
@@ -211,21 +219,27 @@ class Transformer:
                         CommentParser.get_param_info(arg_name, executable_node, type(executable_node))
                     ann = comment_ann if not ann else ann
 
-                    type_ = None
-                    if ann:
-                        with pass_on_exception((RecursionError,)):
-                            # TODO Investigate `RecursionError`.
-                            type_ = resolve_annotation(ann, context_node=args_node)
-                    if not type_:
-                        value = None
-                        if is_positional and not is_vararg:
-                            if i < len(args_node.defaults):
-                                value = args_node.defaults[i]
-                        elif not is_positional and not is_vararg:
-                            if i < len(args_node.kw_defaults):
+                    if is_self_reference:
+                        type_ = executable_node.parent
+                        is_self_reference = False
+                    else:
+                        type_ = None
+                        if ann:
+                            with pass_on_exception((RecursionError,)):
+                                # TODO Investigate `RecursionError`.
+                                type_ = resolve_annotation(ann, context_node=args_node)
+                        if not type_:
+                            value = None
+                            if arg_field_name == "args":
+                                i_first_default = len(args_node.args) - len(args_node.defaults)
+                                if i >= i_first_default:
+                                    assert i < len(args_node.args)
+                                    value = args_node.defaults[i - i_first_default]
+                            elif arg_field_name == "kwonlyargs":
+                                assert 0 <= i < len(args_node.kw_defaults)
                                 value = args_node.kw_defaults[i]
-                        if value:
-                            type_ = resolve_value(value)
+                            if value:
+                                type_ = resolve_value(value)
 
                     parameters.append((
                         arg_name,
@@ -237,10 +251,6 @@ class Transformer:
                         arg_field_name == "kwonlyargs",
                     ))
                     assert type(parameters[-1]) is tuple
-                    i += 1
-
-                if arg_field_name == "vararg":
-                    i = 0
 
             args_node.params = parameters
             executable_node.is_var_args = is_var_args

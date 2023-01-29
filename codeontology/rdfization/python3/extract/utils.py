@@ -4,8 +4,9 @@ from typing import Set, Type, Union
 
 import astroid
 
-BLOCK_NODES: Set = {astroid.ClassDef, astroid.FunctionDef, astroid.AsyncFunctionDef, astroid.For, astroid.While,
-                    astroid.If, astroid.TryExcept, astroid.TryFinally, astroid.ExceptHandler, astroid.With}
+BLOCK_NODES: Set = {astroid.Module, astroid.ClassDef, astroid.FunctionDef, astroid.AsyncFunctionDef, astroid.For,
+                    astroid.While, astroid.If, astroid.TryExcept, astroid.TryFinally, astroid.ExceptHandler,
+                    astroid.With}
 """TOCOMMENT there is no module because that has no block (no indentation) and it is not a statement"""
 
 

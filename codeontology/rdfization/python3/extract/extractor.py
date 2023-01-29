@@ -221,7 +221,6 @@ class Extractor:
     def extract_function_def(function_node: Union[astroid.FunctionDef, astroid.AsyncFunctionDef], do_link_stmts: bool):
         assert function_node.is_statement
 
-        class_node = None
         if function_node.is_method():
             class_node = function_node.parent
             assert type(class_node) is astroid.ClassDef
@@ -260,11 +259,16 @@ class Extractor:
             # `Function`
             OntologyIndividuals.init_function(function_node)
 
-            scope = function_node.scope()
+            scope = get_parent_node(function_node)
             if type(scope) is astroid.Module:
-                if hasattr(scope, "ast") and hasattr(scope.ast, "package_"):
+                module = scope
+                if hasattr(module, "package_"):
                     function_node.individual.hasFullyQualifiedName = \
-                        f"{scope.ast.package_.full_name}.{function_node.name}"
+                        f"{module.package_.full_name}.{function_node.name}"
+
+                    Extractor.extract(module, do_link_stmts=False)
+                    function_node.individual.hasPackage = module.package_.individual
+                    assert function_node.individual in module.package_.individual.isPackageOf
 
         if do_link_stmts:
             Extractor._link_prev_stmt(function_node)
@@ -1016,7 +1020,7 @@ def extract_variable(target: Union[astroid.AssignName, astroid.AssignAttr, astro
         assert type(var_target.reference) is astroid.AssignName
         if not hasattr(var_target.reference, "var_individual"):
             # Discover the variable type
-            parent_node = get_parent_node(var_target.reference, parent_types={astroid.Module} | BLOCK_NODES)
+            parent_node = get_parent_node(var_target.reference, parent_types=BLOCK_NODES)
             if not hasattr(parent_node, "stmt_individual"):
                 Extractor.extract(parent_node, do_link_stmts=False)
             if type(parent_node) is astroid.Module:
