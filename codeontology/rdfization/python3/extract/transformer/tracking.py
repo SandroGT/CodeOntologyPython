@@ -487,6 +487,7 @@ def resolve_annotation(annotation: Union[str, astroid.NodeNG], context_node: ast
                 bin_op_node = bin_op_node.left
             equivalent_types.insert(0, bin_op_node)
             structured_ann = Union([structure_annotation(ann_node) for ann_node in equivalent_types])
+
         # TODO should also look for uses of `typing.Union`
 
         # C) Parameterized types (recursive step)
@@ -504,7 +505,7 @@ def resolve_annotation(annotation: Union[str, astroid.NodeNG], context_node: ast
 
                 structured_ann = tuple([base_type] + base_type_param) if base_type_param is not Nothing else base_type
             else:
-                structured_ann = None
+                structured_ann = Nothing
         elif type(ann_node) in [astroid.List, astroid.Tuple]:
             # Definition of the parameterization of a type with possible multiple values, such as '...[int, float]'
             assert type(ann_node.elts) is list
@@ -533,10 +534,15 @@ def resolve_annotation(annotation: Union[str, astroid.NodeNG], context_node: ast
         # B) Equivalent types (recursive step)
         elif type(structured_ann) in [list, Union]:
             match_type = [resolve_class_names(a, _context_node) for a in structured_ann]
+            match_type = [t for t in match_type if t is not None]
+            if not match_type:
+                match_type = None
 
         # C) Parameterized types (recursive step)
         elif type(structured_ann) is tuple:
             match_type = tuple([resolve_class_names(a, _context_node) for a in structured_ann])
+            if match_type[0] is None:
+                match_type = None
 
         return match_type
 
@@ -556,7 +562,8 @@ def resolve_annotation(annotation: Union[str, astroid.NodeNG], context_node: ast
         structured_annotation = structure_annotation(ann)
 
     matched_type = resolve_class_names(structured_annotation, context_node)
-
+    if type(matched_type) is tuple:
+        assert matched_type[0] is not None
     return matched_type
 
 
