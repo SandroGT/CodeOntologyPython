@@ -359,7 +359,7 @@ class Transformer:
             """TOCOMMENT"""
             from codeontology.rdfization.python3.extract.transformer.tracking import \
                 track_name_from_local, TrackingFailException
-            with pass_on_exception((TrackingFailException,)):
+            with pass_on_exception((TrackingFailException, astroid.AstroidError, RecursionError,)):
                 _name_node.reference = track_name_from_local(_name_node)
 
         LOGGER.debug(f"Applying `Name` transform to statement on line '{name_node.lineno}'"
@@ -372,7 +372,7 @@ class Transformer:
             """TOCOMMENT"""
             from codeontology.rdfization.python3.extract.transformer.tracking import \
                 track_name_from_local, TrackingFailException
-            with pass_on_exception((TrackingFailException,)):
+            with pass_on_exception((TrackingFailException, astroid.AstroidError, RecursionError,)):
                 _assign_name_node.reference = track_name_from_local(_assign_name_node)
 
         LOGGER.debug(f"Applying `AssignName` transform to statement on line '{assign_name_node.lineno}'"
@@ -385,7 +385,7 @@ class Transformer:
             """TOCOMMENT"""
             from codeontology.rdfization.python3.extract.transformer.tracking import \
                 track_attr_from_local, TrackingFailException
-            with pass_on_exception((TrackingFailException,)):
+            with pass_on_exception((TrackingFailException, astroid.AstroidError, RecursionError,)):
                 _attribute_node.reference = track_attr_from_local(_attribute_node)
 
         LOGGER.debug(f"Applying `Attribute` transform to statement on line '{attribute_node.lineno}'"
@@ -398,7 +398,7 @@ class Transformer:
             """TOCOMMENT"""
             from codeontology.rdfization.python3.extract.transformer.tracking import \
                 track_attr_from_local, TrackingFailException
-            with pass_on_exception((TrackingFailException,)):
+            with pass_on_exception((TrackingFailException, astroid.AstroidError, RecursionError,)):
                 _assign_attr_node.reference = track_attr_from_local(_assign_attr_node)
 
         LOGGER.debug(f"Applying `AssignAttr` transform to statement on line '{assign_attr_node.lineno}'"

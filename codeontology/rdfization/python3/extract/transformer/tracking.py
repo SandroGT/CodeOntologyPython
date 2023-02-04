@@ -66,7 +66,7 @@ def track_name_from_nonlocal(name: str, ref_node: astroid.Nonlocal):
 
     matched = None
     while type(upper_scope) in [astroid.FunctionDef, astroid.AsyncFunctionDef] and matched is None:
-        with pass_on_exception((TrackingFailException,)):
+        with pass_on_exception((TrackingFailException, astroid.AstroidError, RecursionError,)):
             matched = track_name_from_scope(name, upper_scope, __extend_search=False)
         upper_scope = get_parent_node(upper_scope, TRACKING_SCOPES)
 
@@ -131,12 +131,12 @@ def track_name_from_scope(
             matched = matches[0]
     elif __extend_search and type(scope_node) is not astroid.Module:
         # If match failed locally, try upward scopes
-        with pass_on_exception((TrackingFailException,)):
+        with pass_on_exception((TrackingFailException, astroid.AstroidError, RecursionError,)):
             matched = track_name_from_scope(name, get_parent_node(scope_node, TRACKING_SCOPES), __trace=__trace)
     elif __extend_search:
         # If there are no more upwards scopes, try global wildcard imports
         assert type(scope_node) is astroid.Module
-        with pass_on_exception((TrackingFailException,)):
+        with pass_on_exception((TrackingFailException, astroid.AstroidError, RecursionError,)):
             matched = track_name_from_wildcards(name, scope_node, __trace=__trace)
 
     if matched is None or \
@@ -286,7 +286,7 @@ def track_attr_list_from_scope(
             # When tracking for `c`, you may not find it alone, so search for `c`, then `b.c`, then `a.b.c` on its whole
             name = '.'.join(attr_list[j:i + 1])
             matched = None
-            with pass_on_exception((TrackingFailException,)):
+            with pass_on_exception((TrackingFailException, astroid.AstroidError, RecursionError,)):
                 matched = track_name_from_scope(name, scope)
             if matched is not None:
                 break
@@ -390,7 +390,7 @@ def resolve_value(value_node: astroid.NodeNG) -> astroid.ClassDef:
                 else:
                     # Keep everything, since the module is in an outside scope and we need it for tracking
                     str_type = ".".join(str_type_list)
-                with pass_on_exception((TrackingFailException,)):
+                with pass_on_exception((TrackingFailException, astroid.AstroidError, RecursionError,)):
                     type_ = track_type_name_from_scope(str_type, get_parent_node(value_node))
 
     if type(type_) is not astroid.ClassDef:
@@ -527,7 +527,7 @@ def resolve_annotation(annotation: Union[str, astroid.NodeNG], context_node: ast
 
         # A) Single types (base case)
         elif type(structured_ann) is str:
-            with pass_on_exception((TrackingFailException,)):
+            with pass_on_exception((TrackingFailException, astroid.AstroidError, RecursionError,)):
                 match_type = track_type_name_from_scope(structured_ann, get_parent_node(_context_node, TRACKING_SCOPES))
 
         # B) Equivalent types (recursive step)
