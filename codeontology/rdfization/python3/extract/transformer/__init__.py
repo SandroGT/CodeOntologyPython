@@ -277,7 +277,7 @@ class Transformer:
                 try:
                     module = import_node.do_import_module(name)
                     references.append(module)
-                except astroid.AstroidImportError:
+                except (astroid.AstroidImportError, ImportError,):
                     references.append(None)
             assert len(references) == len(_import_node.names)
             _import_node.references = references
@@ -327,7 +327,7 @@ class Transformer:
                         module: astroid.Module = _import_node.do_import_module(f"{_import_node.modname}.{name}")
                         # It is a module/package
                         references.append(module)
-                    except astroid.AstroidImportError:
+                    except (astroid.AstroidImportError, ImportError,):
                         # It is not a module/package
                         try:
                             module: astroid.Module = _import_node.do_import_module(f"{_import_node.modname}")
