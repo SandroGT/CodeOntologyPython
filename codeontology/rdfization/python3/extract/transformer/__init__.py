@@ -1,6 +1,7 @@
 """Class and methods to visit the AST nodes and apply transform functions to increase their expressiveness."""
 
 from typing import Set, Union
+from threading import Thread
 
 import astroid
 from tqdm import tqdm
@@ -21,9 +22,10 @@ class Transformer:
             packages (Set[Package]): the set of packages on which to apply the transformations.
 
         """
-
         for package in tqdm(list(packages)):
-            self.visit_to_transform(package.ast)
+            t = Thread(target=self.visit_to_transform, args=[package.ast])
+            t.start()
+            t.join()
 
     @staticmethod
     def visit_to_transform(node: astroid.NodeNG) -> None:

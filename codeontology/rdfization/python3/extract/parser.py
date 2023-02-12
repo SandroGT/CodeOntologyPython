@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from typing import Dict, List, Set, Tuple, Type, Union
+from threading import Thread
 
 import astroid
 import docstring_parser
@@ -41,9 +42,10 @@ class Parser:
         self.project = project
         self.parsed_packages = dict()
         self.__failed_imports = set()
-
         for package in tqdm(list(project.get_packages())):
-            self.__parse_package_recursively(package, self.parsed_packages)
+            t = Thread(target=self.__parse_package_recursively, args=[package, self.parsed_packages])
+            t.start()
+            t.join()
 
     def __parse_package_recursively(self, package: Package, parsed_packages: Dict[Path, Package]):
         """Accesses and parses the source code related to a `package, storing the AST in the `Package` object itself

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import List, Tuple, Union
+from threading import Thread
 
 import astroid
 from tqdm import tqdm
@@ -39,7 +40,9 @@ class Extractor:
     def __init__(self, project: Project):
         OntologyIndividuals.init_project(project)
         for package in tqdm(list(project.get_packages())):
-            Extractor.extract_recursively(package.ast, package.ast, True)
+            t = Thread(target=Extractor.extract_recursively, args=[package.ast, package.ast, True])
+            t.start()
+            t.join()
 
     @staticmethod
     def extract_recursively(node: astroid.NodeNG, root_node: astroid.Module, do_link_stmts: bool):
