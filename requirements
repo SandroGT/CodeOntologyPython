@@ -1,4 +1,4 @@
-astroid
+astroid<=2.12.14
 docstring_parser
 notebook
 owlready2
