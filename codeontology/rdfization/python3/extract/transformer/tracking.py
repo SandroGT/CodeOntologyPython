@@ -158,7 +158,7 @@ def track_name_from_import(name: str, ref_node: astroid.Import):
             try:
                 matched = ref_node.do_import_module(name_)
                 break
-            except astroid.AstroidImportError:
+            except (astroid.AstroidImportError, ImportError,):
                 raise TrackingFailException
 
     if matched is None:
@@ -178,7 +178,7 @@ def track_name_from_import_from(
 
     try:
         module = ref_node.do_import_module(ref_node.modname)
-    except astroid.AstroidImportError:
+    except (astroid.AstroidImportError, ImportError,):
         raise TrackingFailException
     assert module
 
@@ -186,7 +186,7 @@ def track_name_from_import_from(
     if ref_node.names[0][0] == "*":
         try:
             matched = ref_node.do_import_module(f"{ref_node.modname}.{name}")
-        except astroid.AstroidImportError:
+        except (astroid.AstroidImportError, ImportError,):
             matched = track_name_from_scope(name, module, __trace=__trace)
     else:
         for name_, alias_ in ref_node.names:
@@ -194,7 +194,7 @@ def track_name_from_import_from(
             if to_cmp.startswith(name):
                 try:
                     matched = ref_node.do_import_module(f"{ref_node.modname}.{name_}")
-                except astroid.AstroidImportError:
+                except (astroid.AstroidImportError, ImportError,):
                     matched = track_name_from_scope(name_, module, __trace=__trace)
                 break
 
@@ -377,6 +377,8 @@ def resolve_value(value_node: astroid.NodeNG) -> astroid.ClassDef:
             except RecursionError:
                 i += 1
             except StopIteration:
+                break
+            except ImportError:
                 break
         if inferred_value not in [astroid.Uninferable, astroid.Instance]:
             if type(inferred_value) is astroid.ClassDef:
