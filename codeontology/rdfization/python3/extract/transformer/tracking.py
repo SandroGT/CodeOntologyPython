@@ -433,6 +433,20 @@ def resolve_annotation(annotation: Union[str, astroid.NodeNG], context_node: ast
          name resolution."""
         pass
 
+    def flatten_list(lst):
+        """Used to avoid nested parameterization.
+        Examples:
+            Something like `Callable[[DataFrame | Series, DataFrame | Series], DataFrame | Series]` should become:
+                ('Callable', ['DataFrame', 'Series'], ['DataFrame', 'Series'], ['DataFrame', 'Series'])
+            And not be:
+                ('Callable', [['DataFrame', 'Series'], ['DataFrame', 'Series']], ['DataFrame', 'Series'])
+        """
+        for item in lst:
+            if type(item) is list:
+                yield from flatten_list(item)
+            else:
+                yield item
+
     def structure_annotation(ann_node: astroid.NodeNG) -> Union[str, List, Tuple, Nothing]:
         """Structures the information about types as described in the parent function, but uses 'Class' names instead of
          the references to the AST nodes in which the respective classes are declared.
@@ -511,7 +525,7 @@ def resolve_annotation(annotation: Union[str, astroid.NodeNG], context_node: ast
         elif type(ann_node) in [astroid.List, astroid.Tuple]:
             # Definition of the parameterization of a type with possible multiple values, such as '...[int, float]'
             assert type(ann_node.elts) is list
-            structured_ann = [structure_annotation(e) for e in ann_node.elts]
+            structured_ann = list(flatten_list([structure_annotation(e) for e in ann_node.elts]))
 
         return structured_ann
 
