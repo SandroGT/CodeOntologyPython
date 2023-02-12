@@ -57,29 +57,29 @@ class OntologyIndividuals:
 
     @staticmethod
     def init_executable(
-            function_node: Union[astroid.FunctionDef, astroid.AsyncFunctionDef],
+            executable_node: Union[astroid.FunctionDef, astroid.AsyncFunctionDef],
             ontology_type: Union[Type[ontology.Constructor], Type[ontology.Function], Type[ontology.Method]]
     ):
-        if not hasattr(function_node, "individual"):
-            assert not hasattr(function_node, "stmt_individual")
-            assert not hasattr(function_node, "stmt_block_individual")
+        if not hasattr(executable_node, "individual"):
+            assert not hasattr(executable_node, "stmt_individual")
+            assert not hasattr(executable_node, "stmt_block_individual")
 
-            function_node.individual = ontology_type()
-            OntologyIndividuals.init_declaration_statement(function_node)
-            OntologyIndividuals.init_block_statement(function_node)
+            executable_node.individual = ontology_type()
+            OntologyIndividuals.init_declaration_statement(executable_node)
+            OntologyIndividuals.init_block_statement(executable_node)
 
-            function_node.stmt_individual.hasBody = function_node.stmt_block_individual
-            assert function_node.stmt_individual == function_node.stmt_block_individual.isBodyOf
+            executable_node.stmt_individual.hasBody = executable_node.stmt_block_individual
+            assert executable_node.stmt_individual == executable_node.stmt_block_individual.isBodyOf
 
-            function_node.individual.hasDeclaration = function_node.stmt_individual
+            executable_node.individual.hasDeclaration = executable_node.stmt_individual
 
-            if hasattr(function_node, "is_var_args"):
-                function_node.individual.isVarArgs = function_node.is_var_args
+            if hasattr(executable_node, "is_var_args"):
+                executable_node.individual.isVarArgs = executable_node.is_var_args
 
-            function_node.individual.hasSourceCode = function_node.as_string()
+            executable_node.individual.hasSourceCode = executable_node.as_string()
 
-            if hasattr(function_node, "description") and function_node.description is not None:
-                function_node.individual.hasDocumentation.append(function_node.description)
+            if hasattr(executable_node, "description") and executable_node.description is not None:
+                executable_node.individual.hasDocumentation.append(executable_node.description)
 
     @staticmethod
     def init_constructor(function_node: Union[astroid.FunctionDef, astroid.AsyncFunctionDef]):
@@ -395,24 +395,24 @@ class OntologyIndividuals:
     @staticmethod
     def init_catch_statement(except_node: astroid.ExceptHandler):
         if not hasattr(except_node, "stmt_individual"):
-            assert not hasattr(except_node, "stmt_block_individual")
+            assert not hasattr(except_node, "stmt_block_try_individual")
             OntologyIndividuals.init_statement(except_node, stmt_type=ontology.CatchStatement)
-            OntologyIndividuals.init_block_statement(except_node)
+            OntologyIndividuals.init_block_statement(except_node, stmt_attr="stmt_block_try_individual")
 
-            except_node.stmt_individual.hasBody = except_node.stmt_block_individual
-            assert except_node.stmt_individual == except_node.stmt_block_individual.isBodyOf
+            except_node.stmt_individual.hasBody = except_node.stmt_block_try_individual
+            assert except_node.stmt_individual == except_node.stmt_block_try_individual.isBodyOf
 
     @staticmethod
     def init_finally_statement(try_finally_node: astroid.TryFinally):
         if not hasattr(try_finally_node, "stmt_finally_individual"):
-            assert not hasattr(try_finally_node, "stmt_block_individual")
+            assert not hasattr(try_finally_node, "stmt_block_finally_individual")
             # !!! Could need to adjust line number, not really distinguishing between the `try` and `finally` blocks
             OntologyIndividuals.init_statement(
                 try_finally_node, stmt_type=ontology.FinallyStatement, stmt_attr="stmt_finally_individual")
-            OntologyIndividuals.init_block_statement(try_finally_node)
+            OntologyIndividuals.init_block_statement(try_finally_node, stmt_attr="stmt_block_finally_individual")
 
-            try_finally_node.stmt_finally_individual.hasBody = try_finally_node.stmt_block_individual
-            assert try_finally_node.stmt_finally_individual == try_finally_node.stmt_block_individual.isBodyOf
+            try_finally_node.stmt_finally_individual.hasBody = try_finally_node.stmt_block_finally_individual
+            assert try_finally_node.stmt_finally_individual == try_finally_node.stmt_block_finally_individual.isBodyOf
 
     @staticmethod
     def init_try_statement(try_except_finally_node: Union[astroid.TryFinally, astroid.TryExcept]):
@@ -674,6 +674,12 @@ def get_parent_block_individual(node: astroid.NodeNG) -> Union[ontology.BlockSta
         else:
             assert node in parent_block_node.orelse
             parent_block_individual = getattr(parent_block_node, "stmt_block_else_individual", None)
+    elif type(parent_block_node) is astroid.TryFinally:
+        if node in parent_block_node.body:
+            parent_block_individual = getattr(parent_block_node, "stmt_block_try_individual", None)
+        else:
+            assert node in parent_block_node.finalbody
+            parent_block_individual = getattr(parent_block_node, "stmt_block_finally_individual", None)
     elif type(parent_block_node) is astroid.Module:
         if hasattr(parent_block_node, "ast"):
             parent_block_individual = getattr(parent_block_node.ast, "package_", None)
