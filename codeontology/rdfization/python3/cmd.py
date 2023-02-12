@@ -161,31 +161,31 @@ def process_args(args: dict) -> int:
     output_dir: Path = args.get("output_dir")
     if output_dir:
         if not output_dir.exists():
-            output_dir.mkdir()
+            output_dir.mkdir(parents=True)
         elif not output_dir.is_dir():
             print("argument 'OUTPUT' is not a valid existent folder", file=sys.stderr)
             return False
     else:
         if not codeontology_folder.exists():
-            codeontology_folder.mkdir()
+            codeontology_folder.mkdir(parents=True)
         output_dir = codeontology_folder.joinpath("output")
         if not output_dir.exists():
-            output_dir.mkdir()
+            output_dir.mkdir(parents=True)
         args["output_dir"] = output_dir
 
     download_dir: Path = args.get("download_dir")
     if download_dir:
         if not download_dir.exists():
-            download_dir.mkdir()
+            download_dir.mkdir(parents=True)
         elif not download_dir.is_dir():
             print("argument 'DOWNLOAD' is not a valid existent folder", file=sys.stderr)
             return False
     else:
         if not codeontology_folder.exists():
-            codeontology_folder.mkdir()
+            codeontology_folder.mkdir(parents=True)
         download_dir = codeontology_folder.joinpath("download")
         if not download_dir.exists():
-             download_dir.mkdir()
+             download_dir.mkdir(parents=True)
         args["download_dir"] = download_dir
 
     python3_exec: Path = args.get("python3_exec")
