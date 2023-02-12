@@ -9,6 +9,7 @@ from tqdm import tqdm
 from codeontology import LOGGER
 from codeontology.rdfization.python3.explore import Package
 from codeontology.rdfization.python3.extract.parser import CommentParser
+from codeontology.rdfization.python3.extract.utils import get_parent_node
 from codeontology.utils import pass_on_exception
 
 
@@ -222,7 +223,7 @@ class Transformer:
                     ann = comment_ann if not ann else ann
 
                     if is_self_reference:
-                        type_ = executable_node.parent
+                        type_ = get_parent_node(executable_node, {astroid.ClassDef})
                         is_self_reference = False
                     else:
                         type_ = None
@@ -375,7 +376,13 @@ class Transformer:
             from codeontology.rdfization.python3.extract.transformer.tracking import \
                 track_name_from_local, TrackingFailException
             with pass_on_exception((TrackingFailException, astroid.AstroidError, RecursionError,)):
-                _assign_name_node.reference = track_name_from_local(_assign_name_node)
+                ref = track_name_from_local(_assign_name_node)
+                if type(ref) in [astroid.AssignName, astroid.AssignAttr]:
+                    ref_parent = get_parent_node(ref, {astroid.Assign, astroid.AnnAssign, astroid.AugAssign})
+                    if type(ref_parent) is astroid.AugAssign:
+                        ref = None
+                if ref is not None:
+                    assign_name_node.reference = ref
 
         LOGGER.debug(f"Applying `AssignName` transform to statement on line '{assign_name_node.lineno}'"
                      f" (from '{assign_name_node.root().file}')")
@@ -401,7 +408,13 @@ class Transformer:
             from codeontology.rdfization.python3.extract.transformer.tracking import \
                 track_attr_from_local, TrackingFailException
             with pass_on_exception((TrackingFailException, astroid.AstroidError, RecursionError,)):
-                _assign_attr_node.reference = track_attr_from_local(_assign_attr_node)
+                ref = track_attr_from_local(_assign_attr_node)
+                if type(ref) in [astroid.AssignName, astroid.AssignAttr]:
+                    ref_parent = get_parent_node(ref, {astroid.Assign, astroid.AnnAssign, astroid.AugAssign})
+                    if type(ref_parent) is astroid.AugAssign:
+                        ref = None
+                if ref is not None:
+                    _assign_attr_node.reference = ref
 
         LOGGER.debug(f"Applying `AssignAttr` transform to statement on line '{assign_attr_node.lineno}'"
                      f" (from '{assign_attr_node.root().file}')")
