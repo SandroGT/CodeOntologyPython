@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from typing import List, Tuple, Union
+from typing import Dict, List, Set, Tuple, Union
 from threading import Thread
 
 import astroid
 from tqdm import tqdm
 
+from codeontology import LOGGER
 from codeontology.ontology import ontology
 from codeontology.rdfization.python3.explore import Project
 from codeontology.rdfization.python3.extract.individuals import OntologyIndividuals
@@ -37,7 +38,10 @@ class Extractor:
          because this way we don't have to check or remember if we previously extracted with linking statements or not.
 
     """
+    to_extract: Dict = dict()
+
     def __init__(self, project: Project):
+        self.to_extract = dict()
         OntologyIndividuals.init_project(project)
         for package in tqdm(list(project.get_packages())):
             t = Thread(target=Extractor.extract_recursively, args=[package.ast, package.ast, True])
@@ -65,10 +69,17 @@ class Extractor:
             return "extract_" + \
                 _type_name[0].lower() + "".join([ch if ch.islower() else "_" + ch.lower() for ch in _type_name[1:]])
 
-        extract_function_name = get_extract_fun_name(node)
-        extract_function = getattr(Extractor, extract_function_name, None)
-        assert extract_function is not None
-        extract_function(node, do_link_stmts=do_link_stmts)
+        if Extractor.to_extract.get(id(node), None) is None:
+            Extractor.to_extract[id(node)] = [True, True]
+        to_extract_list = Extractor.to_extract.get(id(node))
+        if to_extract_list[int(do_link_stmts)]:
+            extract_function_name = get_extract_fun_name(node)
+            extract_function = getattr(Extractor, extract_function_name, None)
+            if extract_function is not None:
+                to_extract_list[int(do_link_stmts)] = False
+                extract_function(node, do_link_stmts=do_link_stmts)
+            else:
+                LOGGER.debug(f"No extraction function available for nodes of type {type(node).__name__}")
 
     @staticmethod
     def _link_prev_stmt(node: astroid.NodeNG, stmt_attr: str = "stmt_individual"):
