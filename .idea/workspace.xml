@@ -1,0 +1,410 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="562b9d40-a488-41c9-9362-cea7c516e360" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/CodeOntologyPython.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/CodeOntologyPython.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/codeStyles/codeStyleConfig.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/codeontology/rdfization/python3/extract/extractor.py" beforeDir="false" afterPath="$PROJECT_DIR$/codeontology/rdfization/python3/extract/extractor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/codeontology/rdfization/python3/extract/individuals.py" beforeDir="false" afterPath="$PROJECT_DIR$/codeontology/rdfization/python3/extract/individuals.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/codeontology/rdfization/python3/extract/transformer/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/codeontology/rdfization/python3/extract/transformer/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/codeontology/rdfization/python3/extract/transformer/tracking.py" beforeDir="false" afterPath="$PROJECT_DIR$/codeontology/rdfization/python3/extract/transformer/tracking.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/codeontology/rdfization/python3/jupyter_experiments/Querying okgraph.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/codeontology/rdfization/python3/jupyter_experiments/Querying okgraph.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/codeontology/rdfization/python3/jupyter_experiments/query.py" beforeDir="false" afterPath="$PROJECT_DIR$/codeontology/rdfization/python3/jupyter_experiments/query.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectId" id="2LK0MaHSYdDC5Yv8ssTXJbdqsDG" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/Coding/PyCharm/CodeOntologyPython/codeontology&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;reference.idesettings.debugger.python&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="PyDebuggerOptionsProvider">
+    <option name="mySupportQtDebugging" value="false" />
+  </component>
+  <component name="RunManager" selected="Python.local pandas from download">
+    <configuration name="local keras from download" type="PythonConfigurationType" factoryName="Python">
+      <module name="CodeOntologyPython" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="D:\Coding\PyCharm\CodeOntologyPython\venv\Scripts\python.exe" />
+      <option name="SDK_NAME" value="Python 3.9 (CodeOntologyPython)" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/codeontology" />
+      <option name="PARAMETERS" value="python3 local ..\keras --pkgs &quot;D:\Users\sandr\CodeOntologyOut\keras\download\install\project&quot; --deps &quot;D:\Users\sandr\CodeOntologyOut\keras\download\install\dependencies&quot; --py-src &quot;D:\Users\sandr\CodeOntologyOut\keras\download\python-source-3.9.13&quot;" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="local keras from scratch" type="PythonConfigurationType" factoryName="Python">
+      <module name="CodeOntologyPython" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="D:\Coding\PyCharm\CodeOntologyPython\venv\Scripts\python.exe" />
+      <option name="SDK_NAME" value="Python 3.9 (CodeOntologyPython)" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/codeontology" />
+      <option name="PARAMETERS" value="python3 local ..\keras -d &quot;D:\Users\sandr\CodeOntologyOut\keras\download&quot; -o &quot;D:\Users\sandr\CodeOntologyOut\keras\output&quot;" />
+      <option name="SHOW_COMMAND_LINE" value="true" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="local numpy from download" type="PythonConfigurationType" factoryName="Python">
+      <module name="CodeOntologyPython" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="D:\Coding\PyCharm\CodeOntologyPython\venv\Scripts\python.exe" />
+      <option name="SDK_NAME" value="Python 3.9 (CodeOntologyPython)" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/codeontology" />
+      <option name="PARAMETERS" value="python3 local ..\numpy --pkgs &quot;D:\Users\sandr\CodeOntologyOut\numpy\download\install\project&quot; --deps &quot;D:\Users\sandr\CodeOntologyOut\numpy\download\install\dependencies&quot; --py-src &quot;D:\Users\sandr\CodeOntologyOut\numpy\download\python-source-3.9.13&quot;" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="local numpy from scratch" type="PythonConfigurationType" factoryName="Python">
+      <module name="CodeOntologyPython" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="D:\Coding\PyCharm\CodeOntologyPython\venv\Scripts\python.exe" />
+      <option name="SDK_NAME" value="Python 3.9 (CodeOntologyPython)" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/codeontology" />
+      <option name="PARAMETERS" value="python3 local ..\numpy -d &quot;D:\Users\sandr\CodeOntologyOut\numpy\download&quot; -o &quot;D:\Users\sandr\CodeOntologyOut\numpy\output&quot;" />
+      <option name="SHOW_COMMAND_LINE" value="true" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="local okgraph from download" type="PythonConfigurationType" factoryName="Python">
+      <module name="CodeOntologyPython" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="D:\Coding\PyCharm\CodeOntologyPython\venv\Scripts\python.exe" />
+      <option name="SDK_NAME" value="Python 3.9 (CodeOntologyPython)" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/codeontology" />
+      <option name="PARAMETERS" value="python3 local ..\okgraph --pkgs &quot;D:\Users\sandr\CodeOntologyOut\okgraph\download\install\project&quot; --deps &quot;D:\Users\sandr\CodeOntologyOut\okgraph\download\install\dependencies&quot; --py-src &quot;D:\Users\sandr\CodeOntologyOut\okgraph\download\python-source-3.9.7&quot;" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="local okgraph from scratch" type="PythonConfigurationType" factoryName="Python">
+      <module name="CodeOntologyPython" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="D:\Coding\PyCharm\CodeOntologyPython\venv\Scripts\python.exe" />
+      <option name="SDK_NAME" value="Python 3.9 (CodeOntologyPython)" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/codeontology" />
+      <option name="PARAMETERS" value="python3 local ..\okgraph -d &quot;D:\Users\sandr\CodeOntologyOut\okgraph\download&quot; -o &quot;D:\Users\sandr\CodeOntologyOut\okgraph\output&quot;" />
+      <option name="SHOW_COMMAND_LINE" value="true" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="local pandas from download" type="PythonConfigurationType" factoryName="Python">
+      <module name="CodeOntologyPython" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="D:\Coding\PyCharm\CodeOntologyPython\venv\Scripts\python.exe" />
+      <option name="SDK_NAME" value="Python 3.9 (CodeOntologyPython)" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/codeontology" />
+      <option name="PARAMETERS" value="python3 local ..\pandas --pkgs &quot;D:\Users\sandr\CodeOntologyOut\pandas\download\install\project&quot; --deps &quot;D:\Users\sandr\CodeOntologyOut\pandas\download\install\dependencies&quot; --py-src &quot;D:\Users\sandr\CodeOntologyOut\pandas\download\python-source-3.9.7&quot;" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="local pandas from scratch" type="PythonConfigurationType" factoryName="Python">
+      <module name="CodeOntologyPython" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="D:\Coding\PyCharm\CodeOntologyPython\venv\Scripts\python.exe" />
+      <option name="SDK_NAME" value="Python 3.9 (CodeOntologyPython)" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/codeontology" />
+      <option name="PARAMETERS" value="python3 local ..\pandas -d &quot;D:\Users\sandr\CodeOntologyOut\pandas\download&quot; -o &quot;D:\Users\sandr\CodeOntologyOut\pandas\output&quot;" />
+      <option name="SHOW_COMMAND_LINE" value="true" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="local pytorch from download" type="PythonConfigurationType" factoryName="Python">
+      <module name="CodeOntologyPython" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="D:\Coding\PyCharm\CodeOntologyPython\venv\Scripts\python.exe" />
+      <option name="SDK_NAME" value="Python 3.9 (CodeOntologyPython)" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/codeontology" />
+      <option name="PARAMETERS" value="python3 local ..\pytorch --pkgs &quot;D:\Users\sandr\CodeOntologyOut\pytorch\download\install\project&quot; --deps &quot;D:\Users\sandr\CodeOntologyOut\pytorch\download\install\dependencies&quot; --py-src &quot;D:\Users\sandr\CodeOntologyOut\pytorch\download\python-source-3.9.13&quot;" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="local pytorch from scratch" type="PythonConfigurationType" factoryName="Python">
+      <module name="CodeOntologyPython" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="D:\Coding\PyCharm\CodeOntologyPython\venv\Scripts\python.exe" />
+      <option name="SDK_NAME" value="Python 3.9 (CodeOntologyPython)" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/codeontology" />
+      <option name="PARAMETERS" value="python3 local ..\pytorch -d &quot;D:\Users\sandr\CodeOntologyOut\pytorch\download&quot; -o &quot;D:\Users\sandr\CodeOntologyOut\pytorch\output&quot;" />
+      <option name="SHOW_COMMAND_LINE" value="true" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="local transformers from download" type="PythonConfigurationType" factoryName="Python">
+      <module name="CodeOntologyPython" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="D:\Coding\PyCharm\CodeOntologyPython\venv\Scripts\python.exe" />
+      <option name="SDK_NAME" value="Python 3.9 (CodeOntologyPython)" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/codeontology" />
+      <option name="PARAMETERS" value="python3 local ..\transformers --pkgs &quot;D:\Users\sandr\CodeOntologyOut\transformers\download\install\project&quot; --deps &quot;D:\Users\sandr\CodeOntologyOut\transformers\download\install\dependencies&quot; --py-src &quot;D:\Users\sandr\CodeOntologyOut\transformers\download\python-source-3.9.13&quot;" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="local transformers from scratch" type="PythonConfigurationType" factoryName="Python">
+      <module name="CodeOntologyPython" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="D:\Coding\PyCharm\CodeOntologyPython\venv\Scripts\python.exe" />
+      <option name="SDK_NAME" value="Python 3.9 (CodeOntologyPython)" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/codeontology" />
+      <option name="PARAMETERS" value="python3 local ..\transformers -d &quot;D:\Users\sandr\CodeOntologyOut\transformers\download&quot; -o &quot;D:\Users\sandr\CodeOntologyOut\transformers\output&quot;" />
+      <option name="SHOW_COMMAND_LINE" value="true" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="try_thread" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="CodeOntologyPython" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/try_thread.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="Python.local keras from scratch" />
+      <item itemvalue="Python.local keras from download" />
+      <item itemvalue="Python.local numpy from scratch" />
+      <item itemvalue="Python.local numpy from download" />
+      <item itemvalue="Python.local okgraph from scratch" />
+      <item itemvalue="Python.local okgraph from download" />
+      <item itemvalue="Python.local pandas from scratch" />
+      <item itemvalue="Python.local pandas from download" />
+      <item itemvalue="Python.local pytorch from scratch" />
+      <item itemvalue="Python.local pytorch from download" />
+      <item itemvalue="Python.local transformers from scratch" />
+      <item itemvalue="Python.local transformers from download" />
+      <item itemvalue="Python.try_thread" />
+    </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.try_thread" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="562b9d40-a488-41c9-9362-cea7c516e360" name="Changes" comment="" />
+      <created>1675604420113</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1675604420113</updated>
+      <workItem from="1675604421472" duration="18331000" />
+      <workItem from="1676110343002" duration="7543000" />
+      <workItem from="1676127264037" duration="8187000" />
+      <workItem from="1676139396905" duration="21384000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints-defaults>
+        <breakpoint type="python-line" />
+      </breakpoints-defaults>
+    </breakpoint-manager>
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/CodeOntologyPython$local_pandas_from_scratch.coverage" NAME="local pandas from scratch Coverage Results" MODIFIED="1676202565074" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/CodeOntologyPython$try_thread.coverage" NAME="try_thread Coverage Results" MODIFIED="1676142549148" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/CodeOntologyPython$local_pandas_from_download.coverage" NAME="local pandas from download Coverage Results" MODIFIED="1676208547021" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/CodeOntologyPython$local_transformers_from_download.coverage" NAME="local transformers from download Coverage Results" MODIFIED="1676202535324" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+  </component>
+</project>
