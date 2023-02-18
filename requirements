@@ -2,5 +2,6 @@ astroid<=2.12.14
 docstring_parser
 notebook
 owlready2
+pyvis<0.3
 requests
 tqdm
