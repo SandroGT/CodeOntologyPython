@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import sys
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Iterator, Set, Tuple, Union
+from typing import Any, Dict, Iterator, List, Set, Tuple, Union
 
 import astroid
 
@@ -28,6 +29,7 @@ class Project:
         libraries (Set[Library]): the set of libraries (top level packages) of the project distribution.
         dependencies (Set[Library]): the set of libraries (top level packages) of the project dependencies.
         stdlibs (Set[Library]): the set of standard libraries in the Python3 specified source.
+        original_sys_path (List[Path]): a copy of the original search paths of the Python executable we are running on.
 
     """
     name: str
@@ -41,6 +43,8 @@ class Project:
     libraries: Set[Library]
     dependencies: Set[Library]
     stdlibs: Set[Library]
+
+    original_sys_path: List[Path]
 
     def __init__(self, project_name: str, project_path: Path, packages_path: Path, dependencies_path: Path,
                  python3_path: Path):
@@ -99,6 +103,8 @@ class Project:
         for stdlib_path in python3_path.iterdir():
             if Library.is_library(stdlib_path):
                 self.stdlibs.add(Library(stdlib_path, self, False))
+
+        self.original_sys_path = [Path(p) for p in sys.path]
 
         # !!! Thinking about removing this! Many created packages are not actually referenced by the project source
         #  code, and they won't have related triples: so these are not interesting numbers.

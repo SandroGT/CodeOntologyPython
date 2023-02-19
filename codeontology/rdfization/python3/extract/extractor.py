@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Dict, List, Set, Tuple, Union
 from threading import Thread
 
@@ -38,10 +39,11 @@ class Extractor:
          because this way we don't have to check or remember if we previously extracted with linking statements or not.
 
     """
+    project: Project = None
     to_extract: Dict = dict()
 
     def __init__(self, project: Project):
-        self.to_extract = dict()
+        Extractor.project = project
         OntologyIndividuals.init_project(project)
         for package in tqdm(list(project.get_packages())):
             t = Thread(target=Extractor.extract_recursively, args=[package.ast, package.ast, True])
@@ -123,6 +125,18 @@ class Extractor:
     @staticmethod
     def extract_module(node: astroid.Module, do_link_stmts: bool):
         assert not node.is_statement
+        if not hasattr(node, "package_"):
+            # Seems that `astroid` doesn't really search for `os.path`, but has its location hardcoded into its code (
+            #  function `file_info_from_modpath` from module `modutils.py`), not finding so the `os.path` we downloaded
+            #  as Python source code, but the one we have in our python executable that is running this code. We try
+            #  here to recover the one we downloaded, and for which we probably have the `package_`. Who knows, maybe
+            #  this is useful also for other modules and not only `os.path`.
+            for p in Extractor.project.original_sys_path:
+                if str(p) in node.file:
+                    converted_p = Path(node.file.replace(str(p), str(Extractor.project.python3_path)))
+                    if converted_p in Extractor.project.packages:
+                        node.package_ = Extractor.project.packages[converted_p]
+                        break
         if hasattr(node, "package_"):
             OntologyIndividuals.init_package(node.package_)
 
@@ -142,6 +156,7 @@ class Extractor:
                 Extractor.extract(module, do_link_stmts=False)
                 if hasattr(module, "package_"):
                     import_node.stmt_individual.imports.append(module.package_.individual)
+                    assert import_node.stmt_individual in module.package_.individual.isImportedBy
 
     @staticmethod
     def extract_import_from(import_node: astroid.ImportFrom, do_link_stmts: bool):
@@ -164,11 +179,13 @@ class Extractor:
                 if type(referenced_node) is astroid.Module:
                     if hasattr(referenced_node, "package_"):
                         import_node.stmt_individual.imports.append(referenced_node.package_.individual)
+                        assert import_node.stmt_individual in referenced_node.package_.individual.isImportedBy
                 elif type(referenced_node) in [astroid.ClassDef, astroid.FunctionDef, astroid.AsyncFunctionDef]:
                     import_node.stmt_individual.imports.append(referenced_node.individual)
+                    assert import_node.stmt_individual in referenced_node.individual.isImportedBy
                 elif type(referenced_node) in \
                         [astroid.Assign, astroid.AssignName, astroid.AssignAttr, astroid.AnnAssign]:
-                    # TODO INIT
+                    # TODO missing import of variables
                     pass
                 else:
                     raise NotPredictedClauseException
