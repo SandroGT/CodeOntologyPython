@@ -29,26 +29,36 @@ def list_query_results(query: str, max_res=20):
 
 
 def show_subgraph_from_entity(iri: str, ontology, w, h, max_deep=2, max_str_len=30):
-    def get_repr(e):
+    def get_id(e_):
+        return e_.iri if hasattr(e_, "iri") else str(e_)
+
+    def get_label(e_, role):
         maps = [("http://rdf.webofcode.org/woc/", "woc")]
-        if getattr(e, "label", []):
-            str_e = e.label[0]
-        elif getattr(e, "iri", ""):
-            str_e = e.iri
+
+        if getattr(e_, "label", []):
+            str_e = e_.label[0]
+        elif getattr(e_, "iri", ""):
+            str_e = e_.iri
         else:
-            str_e = str(e)
+            str_e = str(e_)
+
         for m, mc in maps:
             str_e = str_e.replace(m, f"{mc}:")
-        if len(str_e) <= max_str_len:
+        if len(str_e) > max_str_len:
+            str_e = str_e[:max_str_len-3]+" ..."
+
+        if role == 0:
+            return f"{str_e}\n{type(e_).__name__}"
+        elif role == 1:
             return str_e
         else:
-            return str_e[:max_str_len-2]+"..."
+            assert False
 
     def get_entities_and_triples(start_iri, deep):
         assert deep >= 0
         start_entity = list(ontology.search(iri=start_iri))[0]
 
-        cumulated_entities = {start_entity}
+        cumulated_entities = {(start_entity, type(start_entity),)}
         cumulated_triples = set()
         iris_complete = {start_iri}
         iris_by_deep = [{start_iri}]
@@ -76,23 +86,24 @@ def show_subgraph_from_entity(iri: str, ontology, w, h, max_deep=2, max_str_len=
                         if hasattr(triple[k], "iri") and not triple[k].iri in iris_complete:
                             iris_complete.add(triple[k].iri)
                             iris_by_deep[j].add(triple[k].iri)
-                        cumulated_entities.add(triple[k])
-                    cumulated_triples.add(tuple(triple))
+                        cumulated_entities.add(
+                            (triple[k], type(triple[k]),)
+                        )
+                    cumulated_triples.add((
+                        (triple[0], type(triple[0]),),
+                        triple[1],
+                        (triple[2], type(triple[2]),),
+                    ))
 
         return cumulated_entities, cumulated_triples
 
     entities, triples = get_entities_and_triples(iri, max_deep)
 
     net = Network(directed=True, width=f"{w}px", height=f"{h}px")
-    nodes = {f"{get_repr(e)}\n({type(e).__name__})" for e in entities}
-    for n in nodes:
-        net.add_node(n, shape='circle')
-    for triple in triples:
-        net.add_edge(
-            f"{get_repr(triple[0])}\n({type(triple[0]).__name__})",
-            f"{get_repr(triple[2])}\n({type(triple[2]).__name__})",
-            label=get_repr(triple[1]),
-        )
+    for e, t_e in entities:
+        net.add_node(get_id(e), label=get_label(e, 0), shape='circle')
+    for ((subj, t_subj,), pred, (obj, t_obj,)) in triples:
+        net.add_edge(get_id(subj), get_id(obj), label=get_label(pred, 1))
     net.repulsion(
         node_distance=200,
         central_gravity=0.2,
