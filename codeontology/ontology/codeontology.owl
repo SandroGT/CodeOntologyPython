@@ -254,6 +254,7 @@
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Executable"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/LambdaExpression"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/LoopStatement"/>
+                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Package"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/SynchronizedStatement"/>
                 </owl:unionOf>
             </owl:Class>
@@ -1240,6 +1241,7 @@
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Executable"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/LambdaExpression"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/LoopStatement"/>
+                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Package"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/SynchronizedStatement"/>
                 </owl:unionOf>
             </owl:Class>
@@ -2510,10 +2512,12 @@
                         <owl:allValuesFrom>
                             <owl:Class>
                                 <owl:unionOf rdf:parseType="Collection">
-                                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/DecisionMakingStatement"/>
+                                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/ComplexType"/>
                                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/ExceptionHandlingStatement"/>
                                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Executable"/>
+                                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/LambdaExpression"/>
                                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/LoopStatement"/>
+                                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Package"/>
                                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/SynchronizedStatement"/>
                                 </owl:unionOf>
                             </owl:Class>
@@ -2525,10 +2529,12 @@
                         <owl:onClass>
                             <owl:Class>
                                 <owl:unionOf rdf:parseType="Collection">
-                                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/DecisionMakingStatement"/>
+                                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/ComplexType"/>
                                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/ExceptionHandlingStatement"/>
                                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Executable"/>
+                                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/LambdaExpression"/>
                                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/LoopStatement"/>
+                                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Package"/>
                                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/SynchronizedStatement"/>
                                 </owl:unionOf>
                             </owl:Class>
@@ -4700,6 +4706,21 @@
 
     <owl:Class rdf:about="http://rdf.webofcode.org/woc/Package">
         <rdfs:subClassOf rdf:resource="http://rdf.webofcode.org/woc/CodeElement"/>
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasBody"/>
+                        <owl:allValuesFrom rdf:resource="http://rdf.webofcode.org/woc/BlockStatement"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasBody"/>
+                        <owl:maxQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:maxQualifiedCardinality>
+                        <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/BlockStatement"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
         <rdfs:subClassOf>
             <owl:Class>
                 <owl:intersectionOf rdf:parseType="Collection">

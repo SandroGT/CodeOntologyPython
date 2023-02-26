@@ -213,7 +213,8 @@ class OntologyIndividuals:
                 true_stmt_node = stmt_node
             else:
                 assert not stmt_node.is_statement
-            assert true_stmt_node.is_statement
+            if type(true_stmt_node) is not astroid.Module:
+                assert true_stmt_node.is_statement
 
             setattr(stmt_node, stmt_attr, stmt_type())
             assert isinstance(getattr(stmt_node, stmt_attr), stmt_type)
@@ -680,9 +681,6 @@ def get_parent_block_individual(node: astroid.NodeNG) -> Union[ontology.BlockSta
         else:
             assert node in parent_block_node.finalbody
             parent_block_individual = getattr(parent_block_node, "stmt_block_finally_individual", None)
-    elif type(parent_block_node) is astroid.Module:
-        if hasattr(parent_block_node, "ast"):
-            parent_block_individual = getattr(parent_block_node.ast, "package_", None)
     elif parent_block_node is not None:
         parent_block_individual = getattr(parent_block_node, "stmt_block_individual", None)
 

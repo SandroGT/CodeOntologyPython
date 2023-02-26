@@ -75,6 +75,9 @@ class Extractor:
             Extractor.to_extract[id(node)] = [True, True]
         to_extract_list = Extractor.to_extract.get(id(node))
         if to_extract_list[int(do_link_stmts)]:
+            block_parent_node = get_parent_node(node, BLOCK_NODES)
+            if block_parent_node is not None:
+                Extractor.extract(block_parent_node, do_link_stmts=do_link_stmts)
             extract_function_name = get_extract_fun_name(node)
             extract_function = getattr(Extractor, extract_function_name, None)
             if extract_function is not None:
@@ -139,6 +142,7 @@ class Extractor:
                         break
         if hasattr(node, "package_"):
             OntologyIndividuals.init_package(node.package_)
+        OntologyIndividuals.init_block_statement(node)
 
     # ------------------------------------------------------------------------------------------------------------------
 
