@@ -8,7 +8,7 @@ import astroid
 
 from codeontology.ontology import ontology
 from codeontology.rdfization.python3.explore import Project, Library, Package
-from codeontology.rdfization.python3.extract.utils import get_parent_node, BLOCK_NODES
+from codeontology.rdfization.python3.extract.utils import BLOCK_NODES, get_parent_node, get_stmt
 
 
 class OntologyIndividuals:
@@ -216,6 +216,9 @@ class OntologyIndividuals:
             if type(true_stmt_node) is not astroid.Module:
                 assert true_stmt_node.is_statement
 
+            if not type(true_stmt_node) is astroid.Module:
+                assert true_stmt_node.is_statement
+
             setattr(stmt_node, stmt_attr, stmt_type())
             assert isinstance(getattr(stmt_node, stmt_attr), stmt_type)
             getattr(stmt_node, stmt_attr).hasSourceCode = true_stmt_node.as_string()
@@ -227,10 +230,11 @@ class OntologyIndividuals:
                 true_stmt_node.stmt_individual.set_equivalent_to([getattr(stmt_node, stmt_attr)])
                 assert true_stmt_node.stmt_individual not in getattr(stmt_node, stmt_attr).get_equivalent_to()
 
-            parent_block_stmt_individual = get_parent_block_individual(stmt_node)
-            if parent_block_stmt_individual is not None:
-                parent_block_stmt_individual.hasSubStatement.append(getattr(stmt_node, stmt_attr))
-                assert parent_block_stmt_individual == getattr(stmt_node, stmt_attr).isSubStatementOf
+            if not type(true_stmt_node) is astroid.Module:
+                parent_block_stmt_individual = get_parent_block_individual(true_stmt_node)
+                if parent_block_stmt_individual is not None:
+                    parent_block_stmt_individual.hasSubStatement.append(getattr(true_stmt_node, stmt_attr))
+                    assert parent_block_stmt_individual == getattr(true_stmt_node, stmt_attr).isSubStatementOf
 
     @staticmethod
     def init_assert_statement(assert_node: astroid.Assert):
@@ -384,7 +388,7 @@ class OntologyIndividuals:
     @staticmethod
     def init_local_variable_declaration_statement(var_node: astroid.AssignName):
         # ??? What about variables declared by `for loops` or `with statements`, or `except`s
-        ref_node = var_node.scope()
+        ref_node = get_stmt(var_node)
         OntologyIndividuals.init_declaration_statement(
             var_node, ref_node=ref_node, stmt_type=ontology.LocalVariableDeclarationStatement
         )
@@ -589,38 +593,43 @@ class OntologyIndividuals:
 
     @staticmethod
     def init_global_variable(var_node: astroid.AssignName, module_node: astroid.Module):
-        if not hasattr(var_node, "individual"):
+        if not hasattr(var_node, "var_individual"):
             assert not hasattr(var_node, "stmt_individual")
 
-            var_node.individual = ontology.GlobalVariable()
+            var_node.var_individual = ontology.GlobalVariable()
             OntologyIndividuals.init_global_variable_declaration_statement(var_node)
 
-            var_node.individual.hasVariableDeclaration = var_node.stmt_individual
+            var_node.var_individual.hasVariableDeclaration = var_node.stmt_individual
 
-            var_node.individual.hasSimpleName = var_node.name
+            var_node.var_individual.hasSimpleName = var_node.name
 
             if hasattr(module_node, "package_"):
-                var_node.individual.hasPackage = module_node.package_.individual
-                assert var_node.individual in module_node.package_.individual.isPackageOf
+                var_node.var_individual.hasPackage = module_node.package_.individual
+                assert var_node.var_individual in module_node.package_.individual.isPackageOf
 
-                var_node.individual.hasFullyQualifiedName = \
+                var_node.var_individual.hasFullyQualifiedName = \
                     f"{module_node.package_.individual.hasFullyQualifiedName}.{var_node.name}"
 
     @staticmethod
     def init_local_variable(var_node: astroid.AssignName,
-                            fun_node: Union[astroid.FunctionDef, astroid.AsyncFunctionDef]):
-        if not hasattr(var_node, "individual"):
+                            parent_node: Union[astroid.FunctionDef, astroid.AsyncFunctionDef,
+                                               astroid.For, astroid.With, astroid.ExceptHandler]):
+        if not hasattr(var_node, "var_individual"):
             assert not hasattr(var_node, "stmt_individual")
 
-            var_node.individual = ontology.LocalVariable()
+            var_node.var_individual = ontology.LocalVariable()
             OntologyIndividuals.init_local_variable_declaration_statement(var_node)
 
-            var_node.individual.hasVariableDeclaration = var_node.stmt_individual
+            var_node.var_individual.hasVariableDeclaration = var_node.stmt_individual
 
-            var_node.individual.hasName = var_node.name
+            var_node.var_individual.hasName = var_node.name
 
-            var_node.individual.isDeclaredBy.append(fun_node.individual)
-            assert var_node.individual in fun_node.individual.declares
+            if type(parent_node) in [astroid.FunctionDef, astroid.AsyncFunctionDef]:
+                parent_individual = parent_node.individual
+            else:
+                parent_individual = parent_node.stmt_individual
+            var_node.var_individual.isDeclaredBy.append(parent_individual)
+            assert var_node.var_individual in parent_individual.declares
 
     @staticmethod
     def init_parameter(
@@ -666,6 +675,7 @@ class OntologyIndividuals:
 
 def get_parent_block_individual(node: astroid.NodeNG) -> Union[ontology.BlockStatement, None]:
     """TOCOMMENT find parent node for block-statement relations"""
+    assert node.is_statement
     parent_block_node = get_parent_node(node, BLOCK_NODES)
     parent_block_individual = None
 

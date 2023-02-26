@@ -189,8 +189,9 @@ class Extractor:
                     assert import_node.stmt_individual in referenced_node.individual.isImportedBy
                 elif type(referenced_node) in \
                         [astroid.Assign, astroid.AssignName, astroid.AssignAttr, astroid.AnnAssign]:
-                    # TODO missing import of variables
-                    pass
+                    if hasattr(referenced_node, "var_individual"):
+                        import_node.stmt_individual.imports.append(referenced_node.var_individual)
+                        assert import_node.stmt_individual in referenced_node.var_individual.isImportedBy
                 else:
                     raise NotPredictedClauseException
 
@@ -437,8 +438,12 @@ class Extractor:
         assert not node.is_statement
 
     @staticmethod
-    def extract_assign_name(node: astroid.AssignName, do_link_stmts: bool):
-        assert not node.is_statement
+    def extract_assign_name(assign_name_node: astroid.AssignName, do_link_stmts: bool):
+        assert not assign_name_node.is_statement
+
+        assign_parent_node = get_parent_node(assign_name_node, parent_types={astroid.Assign, astroid.AnnAssign})
+        if assign_parent_node is not None:
+            Extractor.extract(assign_parent_node, do_link_stmts=do_link_stmts)
 
     # ------------------------------------------------------------------------------------------------------------------
 
@@ -600,6 +605,7 @@ class Extractor:
             variable_nodes = [for_node.target]
         for var_node in variable_nodes:
             if type(var_node) is astroid.AssignName:
+                # TODO CONTINUE FROM HERE
                 var_individual = extract_variable(var_node)
 
                 if var_individual is not None:  # TODO investigate
@@ -1063,13 +1069,14 @@ def extract_variable(target: Union[astroid.AssignName, astroid.AssignAttr, astro
         if type(var_target.reference) is astroid.AssignName:
             if not hasattr(var_target.reference, "var_individual"):
                 # Discover the variable type
-                parent_node = get_parent_node(var_target.reference, parent_types=BLOCK_NODES)
-                if not hasattr(parent_node, "stmt_individual"):
-                    Extractor.extract(parent_node, do_link_stmts=False)
+                var_parent_types = {astroid.Module, astroid.ClassDef, astroid.FunctionDef, astroid.AsyncFunctionDef,
+                                    astroid.For, astroid.With, astroid.ExceptHandler}
+                parent_node = get_parent_node(var_target.reference, parent_types=var_parent_types)
+                Extractor.extract(parent_node, do_link_stmts=False)
                 if type(parent_node) is astroid.Module:
                     # Global variable
                     OntologyIndividuals.init_global_variable(var_target.reference, parent_node)
-                    var_individual = var_target.reference.individual
+                    var_individual = var_target.reference.var_individual
                     if type_target is not None:
                         var_type_individuals = extract_structured_type(type_target)
                         for type_individual in var_type_individuals:
@@ -1083,11 +1090,11 @@ def extract_variable(target: Union[astroid.AssignName, astroid.AssignAttr, astro
                             var_individual = param_individual
                             break
                     assert var_individual is not None
-                elif type(parent_node) is [astroid.FunctionDef, astroid.AsyncFunctionDef,
+                elif type(parent_node) in [astroid.FunctionDef, astroid.AsyncFunctionDef,
                                            astroid.For, astroid.With, astroid.ExceptHandler]:
                     # Local variable
                     OntologyIndividuals.init_local_variable(var_target.reference, parent_node)
-                    var_individual = var_target.reference.individual
+                    var_individual = var_target.reference.var_individual
                     if type_target is not None:
                         var_type_individuals = extract_structured_type(type_target)
                         for type_individual in var_type_individuals:

@@ -32,3 +32,10 @@ def get_parent_node(
         iter_node = iter_node.parent
 
     return iter_node
+
+
+def get_stmt(node: astroid.NodeNG):
+    iter_node = node
+    while not iter_node.is_statement:
+        iter_node = iter_node.parent
+    return iter_node
