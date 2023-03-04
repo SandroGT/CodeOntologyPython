@@ -317,7 +317,7 @@ class Transformer:
                 with pass_on_exception((astroid.AstroidError,)):
                     module: astroid.Module = _import_node.do_import_module(f"{_import_node.modname}")
                     for imported_name in module.wildcard_import_names():
-                        tracked = track_name_from_scope(imported_name, module)
+                        tracked = track_name_from_scope(imported_name, _import_node, module)
                         references.append(tracked if tracked else None)
                     assert len(references) == len(module.wildcard_import_names())
             else:
@@ -332,7 +332,7 @@ class Transformer:
                         # It is not a module/package
                         try:
                             module: astroid.Module = _import_node.do_import_module(f"{_import_node.modname}")
-                            tracked = track_name_from_scope(name, module)
+                            tracked = track_name_from_scope(name, _import_node, module)
                             references.append(tracked if tracked else None)
                         except (astroid.AstroidError, TrackingFailException):
                             references.append(None)

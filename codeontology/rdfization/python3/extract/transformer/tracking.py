@@ -11,6 +11,7 @@ from codeontology.rdfization.python3.extract.transformer.utils import is_static_
 from codeontology.utils import pass_on_exception
 
 TRACKING_SCOPES = {astroid.Module, astroid.ClassDef, astroid.FunctionDef, astroid.AsyncFunctionDef}
+NAME_DEFINING_BLOCKS = TRACKING_SCOPES | {astroid.For, astroid.ExceptHandler, astroid.With}
 
 
 def track_name_from_local(ref_node: Union[astroid.Name, astroid.AssignName]):
@@ -27,11 +28,11 @@ def track_name_from_local(ref_node: Union[astroid.Name, astroid.AssignName]):
 
     matched = None
     if not scope_modifier:
-        matched = track_name_from_scope(ref_node.name, get_parent_node(ref_node, TRACKING_SCOPES))
+        matched = track_name_from_scope(ref_node.name, ref_node, get_parent_node(ref_node, TRACKING_SCOPES))
     elif type(scope_modifier) is astroid.Global:
-        matched = track_name_from_global(ref_node.name, scope_modifier)
+        matched = track_name_from_global(ref_node.name, ref_node, scope_modifier)
     elif type(scope_modifier) is astroid.Nonlocal:
-        matched = track_name_from_nonlocal(ref_node.name, scope_modifier)
+        matched = track_name_from_nonlocal(ref_node.name, ref_node, scope_modifier)
     else:
         assert NotPredictedClauseException
 
@@ -42,11 +43,11 @@ def track_name_from_local(ref_node: Union[astroid.Name, astroid.AssignName]):
     return matched
 
 
-def track_name_from_global(name: str, ref_node: astroid.Global):
+def track_name_from_global(name: str, name_node: astroid.nodes.NodeNG, ref_node: astroid.Global):
     """TODO"""
     assert type(ref_node) is astroid.Global
 
-    matched = track_name_from_scope(name, ref_node.root())
+    matched = track_name_from_scope(name, name_node, ref_node.root())
 
     # ??? Redundant
     if matched is None:
@@ -55,7 +56,7 @@ def track_name_from_global(name: str, ref_node: astroid.Global):
     return matched
 
 
-def track_name_from_nonlocal(name: str, ref_node: astroid.Nonlocal):
+def track_name_from_nonlocal(name: str, name_node: astroid.nodes.NodeNG, ref_node: astroid.Nonlocal):
     """TODO"""
     assert type(ref_node) is astroid.Nonlocal
 
@@ -67,7 +68,7 @@ def track_name_from_nonlocal(name: str, ref_node: astroid.Nonlocal):
     matched = None
     while type(upper_scope) in [astroid.FunctionDef, astroid.AsyncFunctionDef] and matched is None:
         with pass_on_exception((TrackingFailException, astroid.AstroidError, RecursionError,)):
-            matched = track_name_from_scope(name, upper_scope, __extend_search=False)
+            matched = track_name_from_scope(name, name_node, upper_scope, __extend_search=False)
         upper_scope = get_parent_node(upper_scope, TRACKING_SCOPES)
 
     # Redundant
@@ -79,6 +80,7 @@ def track_name_from_nonlocal(name: str, ref_node: astroid.Nonlocal):
 
 def track_name_from_scope(
         name: str,
+        name_node: astroid.nodes.NodeNG,
         scope_node: astroid.nodes.LocalsDictNodeNG,
         __extend_search: bool = True,
         __trace: Dict[str, List[str]] = None
@@ -121,18 +123,27 @@ def track_name_from_scope(
     except astroid.AstroidError:
         raise TrackingFailException
 
-    matched = None
-    if matches:
-        if type(matches[0]) is astroid.Import:
-            matched = track_name_from_import(name, matches[0])
-        elif type(matches[0]) is astroid.ImportFrom:
-            matched = track_name_from_import_from(name, matches[0], __trace=__trace)
+    match = matched = None
+    for m in matches:
+        name_node_parent = get_parent_node(name_node, NAME_DEFINING_BLOCKS, include_node=True)
+        m_parent = get_parent_node(m, NAME_DEFINING_BLOCKS, include_node=True)
+        if name_node_parent is m_parent:
+            # The node defining the name we are searching for (m) is in the parent hierarchy of the node where that name
+            #  is used (name_node)
+            match = m
+            break
+    if match:
+        if type(match) is astroid.Import:
+            matched = track_name_from_import(name, match)
+        elif type(match) is astroid.ImportFrom:
+            matched = track_name_from_import_from(name, match, __trace=__trace)
         else:
-            matched = matches[0]
+            matched = match
     elif __extend_search and type(scope_node) is not astroid.Module:
         # If match failed locally, try upward scopes
         with pass_on_exception((TrackingFailException, astroid.AstroidError, RecursionError,)):
-            matched = track_name_from_scope(name, get_parent_node(scope_node, TRACKING_SCOPES), __trace=__trace)
+            matched = track_name_from_scope(name, name_node, get_parent_node(scope_node, TRACKING_SCOPES),
+                                            __trace=__trace)
     elif __extend_search:
         # If there are no more upwards scopes, try global wildcard imports
         assert type(scope_node) is astroid.Module
@@ -187,7 +198,7 @@ def track_name_from_import_from(
         try:
             matched = ref_node.do_import_module(f"{ref_node.modname}.{name}")
         except (astroid.AstroidImportError, ImportError,):
-            matched = track_name_from_scope(name, module, __trace=__trace)
+            matched = track_name_from_scope(name, ref_node, module, __trace=__trace)
     else:
         for name_, alias_ in ref_node.names:
             to_cmp = alias_ if alias_ else name_
@@ -195,7 +206,7 @@ def track_name_from_import_from(
                 try:
                     matched = ref_node.do_import_module(f"{ref_node.modname}.{name_}")
                 except (astroid.AstroidImportError, ImportError,):
-                    matched = track_name_from_scope(name_, module, __trace=__trace)
+                    matched = track_name_from_scope(name_, ref_node, module, __trace=__trace)
                 break
 
     if matched is None or \
@@ -266,11 +277,12 @@ def track_attr_from_local(
             raise TrackingFailException
         children = list(child.get_children())
 
-    return track_attr_list_from_scope(attr_list, get_parent_node(ref_node, TRACKING_SCOPES), __trace=__trace)
+    return track_attr_list_from_scope(attr_list, ref_node, get_parent_node(ref_node, TRACKING_SCOPES), __trace=__trace)
 
 
 def track_attr_list_from_scope(
-        attr_list:List[str],
+        attr_list: List[str],
+        attr_node: astroid.NodeNG,
         scope_node: astroid.nodes.LocalsDictNodeNG,
         __trace: Dict[str, List[str]] = None
 ):
@@ -287,7 +299,7 @@ def track_attr_list_from_scope(
             name = '.'.join(attr_list[j:i + 1])
             matched = None
             with pass_on_exception((TrackingFailException, astroid.AstroidError, RecursionError,)):
-                matched = track_name_from_scope(name, scope)
+                matched = track_name_from_scope(name, attr_node, scope)
             if matched is not None:
                 break
         if matched is None:
@@ -303,6 +315,7 @@ def track_attr_list_from_scope(
 
 def track_type_name_from_scope(
         name: str,
+        name_node: astroid.NodeNG,
         scope_node: astroid.nodes.LocalsDictNodeNG,
         __trace: Dict[str, List[str]] = None
 ):
@@ -311,7 +324,7 @@ def track_type_name_from_scope(
 
     if __trace is None:
         __trace = dict()
-    matched = track_attr_list_from_scope(name.split("."), scope_node, __trace=__trace)
+    matched = track_attr_list_from_scope(name.split("."), name_node, scope_node, __trace=__trace)
 
     max_iterations = 10
     iterations = 0
@@ -393,7 +406,7 @@ def resolve_value(value_node: astroid.NodeNG) -> astroid.ClassDef:
                     # Keep everything, since the module is in an outside scope and we need it for tracking
                     str_type = ".".join(str_type_list)
                 with pass_on_exception((TrackingFailException, astroid.AstroidError, RecursionError,)):
-                    type_ = track_type_name_from_scope(str_type, get_parent_node(value_node))
+                    type_ = track_type_name_from_scope(str_type, inferred_value, get_parent_node(value_node))
 
     if type(type_) is not astroid.ClassDef:
         type_ = None
@@ -545,7 +558,7 @@ def resolve_annotation(annotation: Union[str, astroid.NodeNG], context_node: ast
         # A) Single types (base case)
         elif type(structured_ann) is str:
             with pass_on_exception((TrackingFailException, astroid.AstroidError, RecursionError,)):
-                match_type = track_type_name_from_scope(structured_ann, get_parent_node(_context_node, TRACKING_SCOPES))
+                match_type = track_type_name_from_scope(structured_ann, _context_node, get_parent_node(_context_node, TRACKING_SCOPES))
 
         # B) Equivalent types (recursive step)
         elif type(structured_ann) in [list, Union]:

@@ -11,14 +11,17 @@ BLOCK_NODES: Set = {astroid.Module, astroid.ClassDef, astroid.FunctionDef, astro
 
 def get_parent_node(
         node: astroid.NodeNG,
-        parent_types: Set[Type[astroid.NodeNG]] = None
+        parent_types: Set[Type[astroid.NodeNG]] = None,
+        include_node: bool = False
 ) -> Union[astroid.NodeNG, None]:
     """Gets the first parent node of the specified type that contains the input node.
 
     Args:
         node (astroid.NodeNG): the input node.
-        parent_types(Set[astroid.nodes.LocalsDictNodeNG]): the types of parent nodes to search for; by default it will
+        parent_types (Set[astroid.nodes.LocalsDictNodeNG]): the types of parent nodes to search for; by default it will
          be the set `{astroid.Module, astroid.ClassDef, astroid.FunctionDef, astroid.AsyncFunctionDef}`.
+        include_node (bool): whether to include or not the node itself as a possible result if it already is of a
+         compatible type.
 
     Returns:
         astroid.NodeNG: a scope node containing the input node in its descendants.
@@ -27,7 +30,7 @@ def get_parent_node(
     if parent_types is None:
         parent_types = {astroid.Module, astroid.ClassDef, astroid.FunctionDef, astroid.AsyncFunctionDef}
 
-    iter_node = node.parent
+    iter_node = node if include_node else node.parent
     while iter_node is not None and type(iter_node) not in parent_types:
         iter_node = iter_node.parent
 

@@ -605,7 +605,6 @@ class Extractor:
             variable_nodes = [for_node.target]
         for var_node in variable_nodes:
             if type(var_node) is astroid.AssignName:
-                # TODO CONTINUE FROM HERE
                 var_individual = extract_variable(var_node)
 
                 if var_individual is not None:  # TODO investigate
