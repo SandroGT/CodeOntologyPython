@@ -13,6 +13,7 @@ from codeontology.rdfization.python3.explore import Project, Package
 from codeontology.rdfization.python3.extract.parser import Parser
 from codeontology.rdfization.python3.extract.transformer import Transformer
 from codeontology.rdfization.python3.extract.extractor import Extractor
+from codeontology.rdfization.python3.extract.individuals import OntologyIndividuals
 
 
 class Serializer:
@@ -111,3 +112,6 @@ class Serializer:
         """Extract the RDF triples."""
         LOGGER.info(f"Extracting RDF triples from '{self.project.name}' (project and actual referenced dependencies).")
         Extractor(self.project)
+        LOGGER.info(f"Generating hashed IRIs for the created individuals from '{self.project.name}'")
+        OntologyIndividuals.set_hashed_iris()
+

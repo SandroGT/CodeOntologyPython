@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 from typing import List, Tuple, Type, Union
 
 import astroid
+import owlready2
+from tqdm import tqdm
 
 from codeontology.ontology import ontology
 from codeontology.rdfization.python3.explore import Project, Library, Package
@@ -39,9 +42,53 @@ class OntologyIndividuals:
 
     """Static individuals."""
 
-    PUBLIC_ACCESS_MODIFIER: ontology.AccessModifier = ontology.AccessModifier("PythonPublic")
-    PROTECTED_ACCESS_MODIFIER: ontology.AccessModifier = ontology.AccessModifier("PythonProtected")
-    PRIVATE_ACCESS_MODIFIER: ontology.AccessModifier = ontology.AccessModifier("PythonPrivate")
+    PUBLIC_ACCESS_MODIFIER: ontology.AccessModifier = ontology.AccessModifier("PythonPublicAccessModifier")
+    PUBLIC_ACCESS_MODIFIER.hasLabel = "Python Public Access Modifier"
+
+    PROTECTED_ACCESS_MODIFIER: ontology.AccessModifier = ontology.AccessModifier("PythonProtectedAccessModifier")
+    PROTECTED_ACCESS_MODIFIER.hasLabel = "Python Protected Access Modifier"
+
+    PRIVATE_ACCESS_MODIFIER: ontology.AccessModifier = ontology.AccessModifier("PythonPrivateAccessModifier")
+    PRIVATE_ACCESS_MODIFIER.hasLabel = "Python Private Access Modifier"
+
+    @staticmethod
+    def set_hashed_iris():
+        """TOCOMMENT"""
+        for individual in tqdm(list(ontology.individuals())):
+            OntologyIndividuals._generate_and_set_hashed_iri(individual)
+
+    @staticmethod
+    def _generate_and_set_hashed_iri(individual: owlready2.Thing):
+        """TOCOMMENT"""
+        ["hasPart", "declares", "hasConstructor", "hasField", "hasForEachVariable", "hasMethod", "hasParameter",
+         "hasResource", "isPackageOf", "hasLeftValue", "hasSubExpression", "hasAssertExpression", "hasCaseExpression",
+         "hasCondition", "hasForInit", "hasForUpdate", "hasInitializer", "hasIterable", "hasLeftHandSide",
+         "hasReturnedExpression", "hasRightHandSide", "hasSwitchExpression", "hasTarget", "hasThrownExpression",
+         "hasSubProject", "hasSubStatement", "hasBlockStatement", "hasBody", "hasCatchClause", "hasElseBranch",
+         "hasFinallyClause", "hasReturnStatement", "hasSwitchLabel", "hasThenBranch", "isLibraryOf", "isProjectOf"]
+        related_strings = []
+        attributes = {a for a in dir(individual) if not a.startswith("_") and not callable(getattr(individual, a))} - \
+                     {"iri", "namespace", "storid"}
+        for attr in attributes:
+            attr_value = getattr(individual, attr)
+            if type(attr_value) is str:
+                related_strings.append(attr_value)
+            elif type(attr_value) is int:
+                related_strings.append(str(attr_value))
+            elif isinstance(attr_value, list):
+                for attr_value_e in attr_value:
+                    if hasattr(attr_value_e, "hasFullyQualifiedName") and isinstance(getattr(attr_value_e, "hasFullyQualifiedName"), str):
+                        related_strings.append(getattr(attr_value_e, "hasFullyQualifiedName"))
+                    elif hasattr(attr_value_e, "hasSimpleName") and isinstance(getattr(attr_value_e, "hasSimpleName"), str):
+                        related_strings.append(getattr(attr_value_e, "hasSimpleName"))
+                    elif hasattr(attr_value_e, "hasName") and isinstance(getattr(attr_value_e, "hasName"), str):
+                        related_strings.append(getattr(attr_value_e, "hasName"))
+                    elif hasattr(attr_value_e, "hasLabel") and isinstance(getattr(attr_value_e, "hasLabel"), str):
+                        related_strings.append(getattr(attr_value_e, "hasLabel"))
+        related_strings.sort()
+        hash_iri = hashlib.sha256("|".join(related_strings).encode("utf-8")).hexdigest()
+        assert not ontology.search(iri=hash_iri)
+        individual.set_iri(f"{ontology.get_base_iri()}{hash_iri}")
 
     """Methods for individual initialization."""
 
