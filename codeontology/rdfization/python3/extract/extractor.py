@@ -140,9 +140,11 @@ class Extractor:
                     if converted_p in Extractor.project.packages:
                         node.package_ = Extractor.project.packages[converted_p]
                         break
+        OntologyIndividuals.init_block_statement(node)
         if hasattr(node, "package_"):
             OntologyIndividuals.init_package(node.package_)
-        OntologyIndividuals.init_block_statement(node)
+            node.package_.individual.hasBody = node.stmt_block_individual
+            assert node.package_.individual == node.stmt_block_individual.isBodyOf
 
     # ------------------------------------------------------------------------------------------------------------------
 
