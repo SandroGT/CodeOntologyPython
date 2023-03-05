@@ -2058,6 +2058,7 @@
                 <owl:unionOf rdf:parseType="Collection">
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Class"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Enum"/>
+                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Field"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Function"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/GlobalVariable"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Interface"/>
@@ -2175,6 +2176,7 @@
                 <owl:unionOf rdf:parseType="Collection">
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Class"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Enum"/>
+                    <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Field"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Function"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/GlobalVariable"/>
                     <rdf:Description rdf:about="http://rdf.webofcode.org/woc/Interface"/>
@@ -3754,6 +3756,36 @@
                         <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/isFieldOf"/>
                         <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
                         <owl:onClass rdf:resource="http://rdf.webofcode.org/woc/ComplexType"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasFullyQualifiedName"/>
+                        <owl:allValuesFrom rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasFullyQualifiedName"/>
+                        <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+                        <owl:onDataRange rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasSimpleName"/>
+                        <owl:allValuesFrom rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://rdf.webofcode.org/woc/hasSimpleName"/>
+                        <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+                        <owl:onDataRange rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
                     </owl:Restriction>
                 </owl:intersectionOf>
             </owl:Class>

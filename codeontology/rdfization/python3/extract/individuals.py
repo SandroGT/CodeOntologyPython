@@ -580,7 +580,10 @@ class OntologyIndividuals:
 
             field_declaration_node.individual.hasVariableDeclaration = field_declaration_node.stmt_individual
 
-            field_declaration_node.individual.hasName = field_name
+            field_declaration_node.individual.hasSimpleName = field_name
+            if hasattr(class_node.individual, "hasFullyQualifiedName") and class_node.individual.hasFullyQualifiedName:
+                field_declaration_node.individual.hasFullyQualifiedName = \
+                    f"{class_node.individual.hasFullyQualifiedName}.{field_name}"
 
             field_declaration_node.individual.isDeclaredBy.append(class_node.individual)
             assert field_declaration_node.individual in class_node.individual.declares
