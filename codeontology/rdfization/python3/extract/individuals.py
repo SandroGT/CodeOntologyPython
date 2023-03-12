@@ -60,12 +60,6 @@ class OntologyIndividuals:
     @staticmethod
     def _generate_and_set_hashed_iri(individual: owlready2.Thing):
         """TOCOMMENT"""
-        ["hasPart", "declares", "hasConstructor", "hasField", "hasForEachVariable", "hasMethod", "hasParameter",
-         "hasResource", "isPackageOf", "hasLeftValue", "hasSubExpression", "hasAssertExpression", "hasCaseExpression",
-         "hasCondition", "hasForInit", "hasForUpdate", "hasInitializer", "hasIterable", "hasLeftHandSide",
-         "hasReturnedExpression", "hasRightHandSide", "hasSwitchExpression", "hasTarget", "hasThrownExpression",
-         "hasSubProject", "hasSubStatement", "hasBlockStatement", "hasBody", "hasCatchClause", "hasElseBranch",
-         "hasFinallyClause", "hasReturnStatement", "hasSwitchLabel", "hasThenBranch", "isLibraryOf", "isProjectOf"]
         related_strings = []
         attributes = {a for a in dir(individual) if not a.startswith("_") and not callable(getattr(individual, a))} - \
                      {"iri", "namespace", "storid"}
