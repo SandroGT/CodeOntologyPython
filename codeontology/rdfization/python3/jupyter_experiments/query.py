@@ -28,7 +28,7 @@ def list_query_results(query: str, max_res=20):
         print(f"No results!")
 
 
-def show_subgraph_from_entity(iri: str, ontology, w, h, max_deep=2, max_str_len=30):
+def show_subgraph_from_entity(iri: str, ontology, w, h, max_deep=2, direction="both", max_str_len=30):
     colors = ["#F0A3FF", "#0075DC", "#993F00", "#2BCE48", "#FFCC99", "#94FFB5", "#8F7C00", "#9DCC00", "#C20088",
               "#FFA405", "#FFA8BB", "#FF0010", "#5EF1F2", "#00998F", "#E0FF66", "#740AFF", "#FFFF80", "#FF5005"]
 
@@ -57,7 +57,8 @@ def show_subgraph_from_entity(iri: str, ontology, w, h, max_deep=2, max_str_len=
         else:
             assert False
 
-    def get_entities_and_triples(start_iri, deep):
+    def get_entities_and_triples(start_iri, deep, direction):
+        # direction can be 'in' (entering edges), 'out' (exiting edges), 'both' (entering and exiting edges)
         assert deep >= 0
         start_entity = list(ontology.search(iri=start_iri))[0]
 
@@ -70,16 +71,36 @@ def show_subgraph_from_entity(iri: str, ontology, w, h, max_deep=2, max_str_len=
             iris_by_deep.append(set())
             for iri in list(iris_by_deep[i]):
                 entity = list(ontology.search(iri=iri))[0]
+                in_string = f"?s ?p <{iri}>"
+                out_string = f"<{iri}> ?p ?o"
+                if direction == "both":
+                    select_string = "?s ?p ?o"
+                    query_string = f"{{{in_string}}} UNION {{{out_string}}}"
+                elif direction == "in":
+                    select_string = "?s ?p"
+                    query_string = in_string
+                elif direction == "out":
+                    select_string = "?p ?o"
+                    query_string = out_string
+                else:
+                    raise Exception(f"Wrong parameter 'direction': '{direction}' is not an acceptable value")
                 query = f"""
                 prefix woc: <http://rdf.webofcode.org/woc/>
 
-                SELECT DISTINCT ?s ?p ?o
+                SELECT DISTINCT {select_string}
                 WHERE {{
-                    {{<{iri}> ?p ?o}} UNION {{?s ?p <{iri}>}}
+                    {query_string}
                 }}
                 """
                 for triple in list(owl.default_world.sparql(query)):
-                    assert len(triple) == 3
+                    if direction == "both":
+                        assert len(triple) == 3
+                    elif direction == "in":
+                        assert len(triple) == 2
+                        triple.insert(3, None)
+                    elif direction == "out":
+                        assert len(triple) == 2
+                        triple.insert(0, None)
 
                     if isinstance(triple[1], int):
                         continue
@@ -105,7 +126,7 @@ def show_subgraph_from_entity(iri: str, ontology, w, h, max_deep=2, max_str_len=
 
         return cumulated_entities, cumulated_triples
 
-    entities, triples = get_entities_and_triples(iri, max_deep)
+    entities, triples = get_entities_and_triples(iri, max_deep, direction)
 
     net = Network(directed=True, width=f"{w}px", height=f"{h}px")
     for e, t_e, c_e in entities:
