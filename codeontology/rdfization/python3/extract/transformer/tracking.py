@@ -80,7 +80,7 @@ def track_name_from_nonlocal(name: str, name_node: astroid.nodes.NodeNG, ref_nod
 
 def track_name_from_scope(
         name: str,
-        name_node: astroid.nodes.NodeNG,
+        name_node: astroid.nodes.NodeNG,  # node from which 'name' comes
         scope_node: astroid.nodes.LocalsDictNodeNG,
         __extend_search: bool = True,
         __trace: Dict[str, List[str]] = None
@@ -123,15 +123,29 @@ def track_name_from_scope(
     except astroid.AstroidError:
         raise TrackingFailException
 
-    match = matched = None
+    match = None
     for m in matches:
-        name_node_parent = get_parent_node(name_node, NAME_DEFINING_BLOCKS, include_node=True)
-        m_parent = get_parent_node(m, NAME_DEFINING_BLOCKS, include_node=True)
-        if name_node_parent is m_parent:
-            # The node defining the name we are searching for (m) is in the parent hierarchy of the node where that name
-            #  is used (name_node)
+        if name_node.root() is scope_node.root():
+            # If the node that originated the search is in the same module of the scope node, search for the match that
+            #  shares a common ancestor with name_node. This is needed in case of names that are masking other names,
+            #  since we could match the masked name and not the masking one. Example:
+            #  >>> for name in iterator:  # 'name' is defined for the first time, and is masked by the next 'for'
+            #  >>>     do_things()
+            #  >>> for name in other_iterator:  # this 'name' is a new variable, masking the one in the previous 'for'
+            #  >>>     print(name)
+            #  When we track the 'name' from the last line, we match both 'for' statements 'name', ordered by line
+            #  number. The only good match is the one of the 'for' that actually contains the last line, so the second
+            #  match, not the first one. Searching for the common ancestor as follows serves this purpose.
+            name_node_parent = get_parent_node(name_node, NAME_DEFINING_BLOCKS, include_node=True)
+            m_parent = get_parent_node(m, NAME_DEFINING_BLOCKS, include_node=True)
+            if name_node_parent is m_parent:
+                match = m
+                break
+        else:
             match = m
             break
+
+    matched = None
     if match:
         if type(match) is astroid.Import:
             matched = track_name_from_import(name, match)
