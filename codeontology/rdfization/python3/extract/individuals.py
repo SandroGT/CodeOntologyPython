@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from codeontology.ontology import ontology
 from codeontology.rdfization.python3.explore import Project, Library, Package
-from codeontology.rdfization.python3.extract.utils import BLOCK_NODES, get_parent_node, get_stmt
+from codeontology.rdfization.python3.extract.utils import get_parent_node, get_parent_block_node, get_containing_stmt
 
 
 class OntologyIndividuals:
@@ -37,7 +37,7 @@ class OntologyIndividuals:
 
     """Other parameters."""
 
-    START_POSITION_COUNT: int = 0
+    START_POSITION_COUNT: int = 1
     START_LINE_COUNT: int = 1
 
     """Static individuals."""
@@ -447,7 +447,7 @@ class OntologyIndividuals:
     @staticmethod
     def init_local_variable_declaration_statement(var_node: astroid.AssignName):
         # ??? What about variables declared by `for loops` or `with statements`, or `except`s
-        ref_node = get_stmt(var_node)
+        ref_node = get_containing_stmt(var_node)
         OntologyIndividuals.init_declaration_statement(
             var_node, ref_node=ref_node, stmt_type=ontology.LocalVariableDeclarationStatement
         )
