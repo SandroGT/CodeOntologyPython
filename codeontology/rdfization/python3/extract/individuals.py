@@ -274,8 +274,8 @@ class OntologyIndividuals:
             if not type(true_stmt_node) is astroid.Module:
                 parent_block_stmt_individual = get_parent_block_individual(true_stmt_node)
                 if parent_block_stmt_individual is not None:
-                    parent_block_stmt_individual.hasSubStatement.append(getattr(true_stmt_node, stmt_attr))
-                    assert parent_block_stmt_individual == getattr(true_stmt_node, stmt_attr).isSubStatementOf
+                    parent_block_stmt_individual.hasBlockStatement.append(getattr(true_stmt_node, stmt_attr))
+                    assert parent_block_stmt_individual == getattr(true_stmt_node, stmt_attr).isBlockStatementOf
 
     @staticmethod
     def init_assert_statement(assert_node: astroid.Assert):
@@ -369,7 +369,9 @@ class OntologyIndividuals:
             if_node.stmt_individual.hasThenBranch = if_node.stmt_block_then_individual
             assert if_node.stmt_individual == if_node.stmt_block_then_individual.isThenBranchOf
 
-            if not if_node.has_elif_block() and if_node.orelse:
+            if if_node.orelse and not if_node.has_elif_block():
+                # The 'else' branch of an 'if-elif' is connected to a `If-Then-Else Statement`, not a `Block Statement`
+                #  like in the case that follows. This is why we have `and not if_node.has_elif_block()`.
                 OntologyIndividuals.init_block_statement(if_node, stmt_attr="stmt_block_else_individual")
 
                 if_node.stmt_individual.hasElseBranch = if_node.stmt_block_else_individual

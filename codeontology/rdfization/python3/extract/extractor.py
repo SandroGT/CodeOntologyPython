@@ -235,6 +235,10 @@ class Extractor:
             assert not hasattr(class_node, "stmt_individual")
 
         OntologyIndividuals.init_class(class_node)
+        OntologyIndividuals.init_block_statement(class_node)
+
+        class_node.individual.hasBody = class_node.stmt_block_individual
+        assert class_node.individual == class_node.stmt_block_individual.isBodyOf
 
         if do_link_stmts:
             Extractor._link_statements(class_node)
@@ -901,6 +905,10 @@ class Extractor:
         assert with_node.is_statement
 
         OntologyIndividuals.init_statement(with_node, stmt_type=ontology.Statement)
+        OntologyIndividuals.init_block_statement(with_node)
+
+        with_node.stmt_individual.hasBody = with_node.stmt_block_individual
+        assert with_node.stmt_individual == with_node.stmt_block_individual.isBodyOf
 
         if do_link_stmts:
             Extractor._link_statements(with_node)
