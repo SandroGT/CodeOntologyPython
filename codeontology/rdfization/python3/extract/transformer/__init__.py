@@ -9,6 +9,7 @@ from tqdm import tqdm
 from codeontology import LOGGER
 from codeontology.rdfization.python3.explore import Package
 from codeontology.rdfization.python3.extract.parser import CommentParser
+from codeontology.rdfization.python3.extract.transformer.utils import is_static_method
 from codeontology.rdfization.python3.extract.utils import get_parent_node
 from codeontology.utils import pass_on_exception
 
@@ -197,7 +198,8 @@ class Transformer:
             # Read all the parameters and accumulate them
             parameters = []
             is_var_args = False
-            if type(executable_node) in [astroid.FunctionDef, astroid.AsyncFunctionDef] and executable_node.is_method():
+            if type(executable_node) in [astroid.FunctionDef, astroid.AsyncFunctionDef] and \
+                    executable_node.is_method() and not is_static_method(executable_node):
                 is_self_reference = True
             else:
                 is_self_reference = False
