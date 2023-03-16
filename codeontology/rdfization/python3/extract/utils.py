@@ -38,6 +38,17 @@ def get_parent_node(
 
 
 def get_stmt(node: astroid.NodeNG):
+def get_parent_block_node(node: astroid.NodeNG):
+    # Since we modified the next statement of a TryExcept to be its first ExceptHandler, and the next statement of the
+    #  last ExceptHandler to be the next statement of the TryExcept, the true parent of an ExceptHandler should be the
+    #  parent of the TryExcept
+    if type(node) is astroid.ExceptHandler:
+        assert type(node.parent) is astroid.TryExcept
+        return get_parent_node(node.parent, BLOCK_NODES)
+    else:
+        return get_parent_node(node, BLOCK_NODES)
+
+
     iter_node = node
     while not iter_node.is_statement:
         iter_node = iter_node.parent

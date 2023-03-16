@@ -284,6 +284,16 @@ class OntologyIndividuals:
 
     @staticmethod
     def init_block_statement(node: astroid.NodeNG, stmt_attr: str = "stmt_block_individual"):
+        if type(node) is astroid.If:
+            assert stmt_attr in ["stmt_block_then_individual", "stmt_block_else_individual"]
+        elif type(node) is astroid.TryFinally:
+            assert stmt_attr in ["stmt_block_try_individual", "stmt_block_finally_individual"]
+        elif type(node) is astroid.TryExcept:
+            assert stmt_attr in ["stmt_block_try_individual"]
+        elif type(node) is astroid.ExceptHandler:
+            assert stmt_attr in ["stmt_block_except_individual"]
+        else:
+            assert stmt_attr in ["stmt_block_individual"]
         if not hasattr(node, stmt_attr):
             OntologyIndividuals.init_statement(node, stmt_type=ontology.BlockStatement, stmt_attr=stmt_attr)
             stmt_individual = getattr(node, stmt_attr)
@@ -295,6 +305,14 @@ class OntologyIndividuals:
                     assert stmt_attr == "stmt_block_else_individual"
                     if node.orelse[-1].end_lineno is not None:
                         stmt_individual.hasEndLine = node.orelse[-1].end_lineno
+            elif type(node) is astroid.TryFinally:
+                if stmt_attr == "stmt_block_try_individual":
+                    if node.body[-1].end_lineno is not None:
+                        stmt_individual.hasEndLine = node.body[-1].end_lineno
+                else:
+                    assert stmt_attr == "stmt_block_finally_individual"
+                    if node.finalbody[-1].end_lineno is not None:
+                        stmt_individual.hasEndLine = node.finalbody[-1].end_lineno
             else:
                 if node.end_lineno is not None:
                     stmt_individual.hasEndLine = node.end_lineno
@@ -441,12 +459,12 @@ class OntologyIndividuals:
     @staticmethod
     def init_catch_statement(except_node: astroid.ExceptHandler):
         if not hasattr(except_node, "stmt_individual"):
-            assert not hasattr(except_node, "stmt_block_try_individual")
+            assert not hasattr(except_node, "stmt_block_except_individual")
             OntologyIndividuals.init_statement(except_node, stmt_type=ontology.CatchStatement)
-            OntologyIndividuals.init_block_statement(except_node, stmt_attr="stmt_block_try_individual")
+            OntologyIndividuals.init_block_statement(except_node, stmt_attr="stmt_block_except_individual")
 
-            except_node.stmt_individual.hasBody = except_node.stmt_block_try_individual
-            assert except_node.stmt_individual == except_node.stmt_block_try_individual.isBodyOf
+            except_node.stmt_individual.hasBody = except_node.stmt_block_except_individual
+            assert except_node.stmt_individual == except_node.stmt_block_except_individual.isBodyOf
 
     @staticmethod
     def init_finally_statement(try_finally_node: astroid.TryFinally):
@@ -463,14 +481,14 @@ class OntologyIndividuals:
     @staticmethod
     def init_try_statement(try_except_finally_node: Union[astroid.TryFinally, astroid.TryExcept]):
         if not hasattr(try_except_finally_node, "stmt_try_individual"):
-            assert not hasattr(try_except_finally_node, "stmt_block_individual")
+            assert not hasattr(try_except_finally_node, "stmt_block_try_individual")
             # !!! Could need to adjust line number, not really distinguishing between the `try` and `finally` blocks
             OntologyIndividuals.init_statement(
                 try_except_finally_node, stmt_type=ontology.TryStatement, stmt_attr="stmt_try_individual")
-            OntologyIndividuals.init_block_statement(try_except_finally_node)
+            OntologyIndividuals.init_block_statement(try_except_finally_node, stmt_attr="stmt_block_try_individual")
 
-            try_except_finally_node.stmt_try_individual.hasBody = try_except_finally_node.stmt_block_individual
-            assert try_except_finally_node.stmt_try_individual == try_except_finally_node.stmt_block_individual.isBodyOf
+            try_except_finally_node.stmt_try_individual.hasBody = try_except_finally_node.stmt_block_try_individual
+            assert try_except_finally_node.stmt_try_individual == try_except_finally_node.stmt_block_try_individual.isBodyOf
 
     @staticmethod
     def init_expression_statement(expr_node: astroid.Expr):
@@ -720,7 +738,7 @@ class OntologyIndividuals:
 def get_parent_block_individual(node: astroid.NodeNG) -> Union[ontology.BlockStatement, None]:
     """TOCOMMENT find parent node for block-statement relations"""
     assert node.is_statement
-    parent_block_node = get_parent_node(node, BLOCK_NODES)
+    parent_block_node = get_parent_block_node(node)
     parent_block_individual = None
 
     if type(parent_block_node) is astroid.If:
@@ -735,6 +753,11 @@ def get_parent_block_individual(node: astroid.NodeNG) -> Union[ontology.BlockSta
         else:
             assert node in parent_block_node.finalbody
             parent_block_individual = getattr(parent_block_node, "stmt_block_finally_individual", None)
+    elif type(parent_block_node) is astroid.ExceptHandler:
+        parent_block_individual = getattr(parent_block_node, "stmt_block_except_individual", None)
+    elif type(parent_block_node) is astroid.TryExcept:
+        assert node in parent_block_node.body
+        parent_block_individual = getattr(parent_block_node, "stmt_block_try_individual", None)
     elif parent_block_node is not None:
         parent_block_individual = getattr(parent_block_node, "stmt_block_individual", None)
 
