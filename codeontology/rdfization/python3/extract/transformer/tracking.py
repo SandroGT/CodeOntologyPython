@@ -125,7 +125,7 @@ def track_name_from_scope(
 
     match = None
     for m in matches:
-        if name_node.root() is scope_node.root():
+        if (name_node.root() is scope_node.root()) and (name_node.root() is matches_scope.root()):
             # If the node that originated the search is in the same module of the scope node, search for the match that
             #  shares a common ancestor with name_node. This is needed in case of names that are masking other names,
             #  since we could match the masked name and not the masking one. Example:
