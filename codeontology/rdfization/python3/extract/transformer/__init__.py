@@ -216,7 +216,7 @@ class Transformer:
                         assert type(arg) in [astroid.AssignName, astroid.Name]
                         arg_name = arg.name
 
-                    comment_description, comment_ann = \
+                    comment_ann, comment_description = \
                         CommentParser.get_param_info(arg_name, executable_node, type(executable_node))
                     ann = comment_ann if not ann else ann
 
