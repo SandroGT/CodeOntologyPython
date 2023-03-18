@@ -178,10 +178,6 @@ class Transformer:
             assert type(args_node) is astroid.Arguments
             from codeontology.rdfization.python3.extract.transformer.tracking import resolve_annotation, resolve_value
 
-            if args_node.parent.name == "relation_expansion":
-                a = 0
-                pass
-
             executable_node = args_node.parent
             assert type(executable_node) in [astroid.FunctionDef, astroid.AsyncFunctionDef, astroid.Lambda]
 
