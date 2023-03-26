@@ -129,5 +129,4 @@ dmypy.json
 .pyre/
 
 # Development
-codeontology/_downloads/*
-codeontology/test/*
+codeontology/rdfization/python3/jupyter_experiments/*
