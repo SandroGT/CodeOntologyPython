@@ -92,11 +92,11 @@ You would obtain as answer the following list of libraries:
 24 (whoosh)
 ```
 
-For demonstration, we run a query asking for the star involving the node of the class [OKgraph](https://github.com/atzori/okgraph/blob/898d790af91a41ab2c9f0b804712c29d489edde1/okgraph/core.py#L18). We present the [result](https://github.com/SandroGT/CodeOntologyPython/blob/main/docs/okgraph_class_star_deep1.html) using [**pyvis**](https://github.com/WestHealth/pyvis).
+For demonstration, we run a query asking for the star involving the node of the class [OKgraph](https://github.com/atzori/okgraph/blob/898d790af91a41ab2c9f0b804712c29d489edde1/okgraph/core.py#L18). We present the [result](docs/okgraph_class_star_deep1.html) using [**pyvis**](https://github.com/WestHealth/pyvis).
 
-![](https://github.com/SandroGT/CodeOntologyPython/blob/main/docs/okgraph_class_star_deep1.png)
+![](docs/okgraph_class_star_deep1.png)
 
-Things start to get a little messy if we exted the start to patterns of length two, as showed [here](https://github.com/SandroGT/CodeOntologyPython/blob/main/docs/okgraph_class_star_deep2.html).
+Things start to get a little messy if we exted the start to patterns of length two, as showed [here](docs/okgraph_class_star_deep2.html).
 
 You can obviously perform more meaningful queries, searching for more detailed info or particular patterns.
 
