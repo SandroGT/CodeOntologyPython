@@ -96,7 +96,7 @@ For demonstration, we run a query asking for the star involving the node of the 
 
 ![](docs/okgraph_class_star_deep1.png)
 
-Things start to get a little messy if we exted the start to patterns of length two, as showed [here](docs/okgraph_class_star_deep2.html).
+Things start to get a little messy if we extend the star to patterns of length two, as shown [here](docs/okgraph_class_star_deep2.html).
 
 You can obviously perform more meaningful queries, searching for more detailed info or particular patterns.
 
@@ -110,7 +110,7 @@ The parsing capabilities of *CodeOntologyPython* rely on [**astroid**](https://g
 
 ## Status and possible improvements
 ___
-This repository is still under development. Although the main features have been made available, and it is possible to get a complete extraction of sources like the one in the use case example, things can still go sideways. Some reasons usually are unexpected clauses when translating from the AST structure to the ontology or illegal operations when applying the custom transformations added to *astroid* to track the use of variables, functions, and methods necessary to represent their use in the graph.
+**This repository is still under development**. Although the main features have been made available, and it is possible to get a complete extraction of sources like the one in the use case example, things can still go sideways. Some reasons usually are unexpected clauses when translating from the AST structure to the ontology or illegal operations when applying the custom transformations added to *astroid* to track the use of variables, functions, and methods necessary to represent their use in the graph.
 Besides a more thorough testing and review of the current implementation, other improvements that would be a fine addition are:
 
 - eliminate the need for the installation information, ignoring project dependencies if the user wishes;
