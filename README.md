@@ -8,8 +8,8 @@ ___
 It has been developed as a *Python* extension and adaptation of the extraction tool for *Java* projects that is part of the [CodeOntology project](http://codeontology.org/).
 
 *CodeOntologyPython* includes both:
- - an [**ontology**](https://github.com/SandroGT/CodeOntologyPython/blob/main/codeontology/ontology/codeontology.owl) adapted **to model multi-paradigm languages** (such as *Python*) at a statement-grained level;
- - a [**parser**](https://github.com/SandroGT/CodeOntologyPython/tree/main/codeontology/rdfization/python3), to manage and **extract *RDF triplets* of *Python* projects** and its dependencies in conformity with the ontology.
+ - an [**ontology**](codeontology/ontology/codeontology.owl) adapted **to model multi-paradigm languages** (such as *Python*) at a statement-grained level;
+ - a [**parser**](codeontology/rdfization/python3), to manage and **extract *RDF triplets* of *Python* projects** and its dependencies in conformity with the ontology.
 
 ## How to run it?
 ___
