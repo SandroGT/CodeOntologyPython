@@ -1,0 +1,116 @@
+<html>
+<head>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vis-network@latest/styles/vis-network.css" type="text/css" />
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vis-network@latest/dist/vis-network.min.js"> </script>
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+
+<style type="text/css">
+
+        #mynetwork {
+            width: 800px;
+            height: 800px;
+            background-color: #ffffff;
+            border: 1px solid lightgray;
+            position: relative;
+            float: left;
+        }
+
+        
+
+        
+
+        
+</style>
+
+</head>
+
+<body>
+<div id = "mynetwork"></div>
+
+
+<script type="text/javascript">
+
+    // initialize global variables.
+    var edges;
+    var nodes;
+    var network; 
+    var container;
+    var options, data;
+
+    
+    // This method is responsible for drawing the graph, returns the drawn network
+    function drawGraph() {
+        var container = document.getElementById('mynetwork');
+        
+        
+
+        // parsing and collecting nodes and edges from the python
+        nodes = new vis.DataSet([{"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/parameter57", "label": "woc:parameter57\nParameter\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/blockstatement130", "label": "woc:blockstatement130\nBlockStatement\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/method10", "label": "woc:method10\nMethod\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/PythonPublicAccessModifier", "label": "woc:PythonPublicAccessModifier\nAccessModifier\nDeep 1", "shape": "circle"}, {"color": "#F0A3FF", "id": "http://rdf.webofcode.org/woc/class20", "label": "woc:class20\nClass\nDeep 0", "shape": "circle"}, {"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/method6", "label": "woc:method6\nMethod\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "OKgraph", "label": "OKgraph\nstr\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/parameter75", "label": "woc:parameter75\nParameter\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/parameter80", "label": "woc:parameter80\nParameter\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/importstatement84", "label": "woc:importstatement84\nImportStatement\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/importstatement74", "label": "woc:importstatement74\nImportStatement\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/field28", "label": "woc:field28\nField\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "okgraph.core.OKgraph", "label": "okgraph.core.OKgraph\nstr\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/method4", "label": "woc:method4\nMethod\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/constructor2", "label": "woc:constructor2\nConstructor\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/field31", "label": "woc:field31\nField\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/parameter85", "label": "woc:parameter85\nParameter\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/parameter90", "label": "woc:parameter90\nParameter\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/field29", "label": "woc:field29\nField\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/method7", "label": "woc:method7\nMethod\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/method5", "label": "woc:method5\nMethod\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/class3", "label": "woc:class3\nClass\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "A class used to extract knowledge from unstructured text corpus. This class currently focuses on the following tasks: - **set expansion**: given one or a short set of words, continues this set with a list of other \u0027same-type\u0027 words (`co-hyponyms \u003chttps://en.wikipedia.org/wiki/Hyponymy_and_hypernymy#Co-hyponyms\u003e`_); - **relation expansion**: given one or a short set of word pairs, continues this set with a list of pairs having the same implicit relation of the given pairs; - **set labeling**: given one or a short set of words, returns a list of short strings (labels) describing the given set (its type or `hyperonym \u003chttps://en.wikipedia.org/wiki/Hyponymy_and_hypernymy\u003e`_); - **relation labeling**: given one or a short set of word pairs, returns a list of short strings (labels) describing the relation in the given set; All the tasks work with plain text corpus (untagged).", "label": "A class used to extract kno ...\nstr\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/declarationstatement42", "label": "woc:declarationstatement42\nDeclarationStatement\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/method9", "label": "woc:method9\nMethod\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/method8", "label": "woc:method8\nMethod\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/package16", "label": "woc:package16\nPackage\nDeep 1", "shape": "circle"}, {"color": "#0075DC", "id": "http://rdf.webofcode.org/woc/field30", "label": "woc:field30\nField\nDeep 1", "shape": "circle"}]);
+        edges = new vis.DataSet([{"arrows": "to", "from": "http://rdf.webofcode.org/woc/parameter75", "label": "has type", "to": "http://rdf.webofcode.org/woc/class20"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/importstatement74", "label": "imports", "to": "http://rdf.webofcode.org/woc/class20"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/class20", "label": "has fully-qualified name", "to": "okgraph.core.OKgraph"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/field29", "label": "is declared by", "to": "http://rdf.webofcode.org/woc/class20"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/class20", "label": "has simple name", "to": "OKgraph"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/method9", "label": "is method of", "to": "http://rdf.webofcode.org/woc/class20"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/method5", "label": "is method of", "to": "http://rdf.webofcode.org/woc/class20"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/method4", "label": "is method of", "to": "http://rdf.webofcode.org/woc/class20"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/class20", "label": "has package", "to": "http://rdf.webofcode.org/woc/package16"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/method6", "label": "is method of", "to": "http://rdf.webofcode.org/woc/class20"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/parameter90", "label": "has type", "to": "http://rdf.webofcode.org/woc/class20"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/class20", "label": "extends", "to": "http://rdf.webofcode.org/woc/class3"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/parameter80", "label": "has type", "to": "http://rdf.webofcode.org/woc/class20"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/method10", "label": "is method of", "to": "http://rdf.webofcode.org/woc/class20"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/field31", "label": "is field of", "to": "http://rdf.webofcode.org/woc/class20"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/field28", "label": "is declared by", "to": "http://rdf.webofcode.org/woc/class20"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/field30", "label": "is declared by", "to": "http://rdf.webofcode.org/woc/class20"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/constructor2", "label": "is constructor of", "to": "http://rdf.webofcode.org/woc/class20"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/parameter57", "label": "has type", "to": "http://rdf.webofcode.org/woc/class20"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/class20", "label": "has body", "to": "http://rdf.webofcode.org/woc/blockstatement130"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/method7", "label": "is method of", "to": "http://rdf.webofcode.org/woc/class20"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/class20", "label": "has modifier", "to": "http://rdf.webofcode.org/woc/PythonPublicAccessModifier"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/class20", "label": "has documentation", "to": "A class used to extract knowledge from unstructured text corpus. This class currently focuses on the following tasks: - **set expansion**: given one or a short set of words, continues this set with a list of other \u0027same-type\u0027 words (`co-hyponyms \u003chttps://en.wikipedia.org/wiki/Hyponymy_and_hypernymy#Co-hyponyms\u003e`_); - **relation expansion**: given one or a short set of word pairs, continues this set with a list of pairs having the same implicit relation of the given pairs; - **set labeling**: given one or a short set of words, returns a list of short strings (labels) describing the given set (its type or `hyperonym \u003chttps://en.wikipedia.org/wiki/Hyponymy_and_hypernymy\u003e`_); - **relation labeling**: given one or a short set of word pairs, returns a list of short strings (labels) describing the relation in the given set; All the tasks work with plain text corpus (untagged)."}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/field29", "label": "is field of", "to": "http://rdf.webofcode.org/woc/class20"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/field28", "label": "is field of", "to": "http://rdf.webofcode.org/woc/class20"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/field31", "label": "is declared by", "to": "http://rdf.webofcode.org/woc/class20"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/importstatement84", "label": "imports", "to": "http://rdf.webofcode.org/woc/class20"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/method8", "label": "is method of", "to": "http://rdf.webofcode.org/woc/class20"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/declarationstatement42", "label": "declares", "to": "http://rdf.webofcode.org/woc/class20"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/parameter85", "label": "has type", "to": "http://rdf.webofcode.org/woc/class20"}, {"arrows": "to", "from": "http://rdf.webofcode.org/woc/field30", "label": "is field of", "to": "http://rdf.webofcode.org/woc/class20"}]);
+
+        // adding nodes and edges to the graph
+        data = {nodes: nodes, edges: edges};
+
+        var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "repulsion": {
+            "centralGravity": 0.2,
+            "damping": 0.09,
+            "nodeDistance": 200,
+            "springConstant": 0.05,
+            "springLength": 200
+        },
+        "solver": "repulsion",
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+        
+        
+
+        
+
+        network = new vis.Network(container, data, options);
+	 
+        
+
+
+        
+
+        return network;
+
+    }
+
+    drawGraph();
+
+</script>
+</body>
+</html>
